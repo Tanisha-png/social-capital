@@ -48,7 +48,8 @@ export default function LogInPage({ setUser }) {
           onChange={handleChange}
           required
         />
-        <button type="submit">LOG IN</button>
+        <button type="submit">Log In</button>
+        <button type="submit">Forgot Password</button>
       </form>
       <p className="error-message">&nbsp;{errorMsg}</p>
     </>

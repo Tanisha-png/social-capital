@@ -1,13 +1,16 @@
-const path = require('path'); // Built into Node
-const express = require('express');
-const logger = require('morgan');
-const app = express();
-
-// Process the secrets/config vars in .env
+// Load environment variables from .env BEFORE anything else
 require('dotenv').config();
 
-// Connect to the database
+const path = require('path');
+const express = require('express');
+const logger = require('morgan');
+
+const app = express();
+
+// Connect to the database (this uses process.env.MONGO_URI)
 require('./db');
+
+// ...rest of your app setup...
 
 app.use(logger('dev'));
 // Serve static assets from the frontend's built code folder (dist)
