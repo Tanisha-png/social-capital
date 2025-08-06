@@ -3,27 +3,19 @@
 // }
 
 import React from "react";
+import "./HomePage.css";
+import logo from "../HomePage/sc_logo.png";
 
 const HomePage = () => {
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
-      {/* Fullscreen Background Video */}
-      <video
-        className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        src="/SC_logo.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
-
-      {/* Optional Overlay Content */}
-      <div className="relative z-10 flex items-center justify-center h-full w-full">
-        <h1 className="text-white text-4xl font-bold">Welcome to Social Capital</h1>
-      </div>
-
-      {/* Optional: Overlay for readability */}
-      <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-[5]"></div>
+    <div className="homepage">
+      <img src={logo} alt="logo" />
+      <p>
+        Welcome to Social Capital - a modern networking platform where
+        professionals connect, collaborate, and grow. Whether you're expanding
+        your network, building a community, or exploring new opportunities,
+        Social Capital is here to help you make every connection count.
+      </p>
     </div>
   );
 };
