@@ -1,9 +1,11 @@
 .NavBar {
+  background-color: #000000;
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 2vmin;
   font-size: 2vmin;
+  /* border: 2px solid red */
 }
 
 .NavBar {
@@ -15,13 +17,13 @@
   }
 
   a:hover {
-    background-color: #1a1a1a;
-    color: whitesmoke;
+    background-color: #b3e6fa;
+    color: #000000;
   }
 
   a.active {
-    background-color: rebeccapurple;
-    color: whitesmoke;
+    background-color: #1d9bd6dc;
+    color: #000000;
   }
 
   span {

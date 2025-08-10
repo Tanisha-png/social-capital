@@ -39,7 +39,7 @@ button {
 }
 
 button:hover {
-  background-color: white;
+  background-color: #1d9bd6dc;
   color: #1a1a1a;
   border-color: #1a1a1a;
 }
