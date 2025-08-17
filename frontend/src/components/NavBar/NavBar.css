@@ -29,15 +29,16 @@
   }
 
   span {
-    color: rgb(108, 9, 87);
+    background-color: #000000;
+    color: white;
   }
 }
 
-/* .navlink-button {
+.navlink-button {
   background-color: black;
   color: white;
   border: none;
   padding: 5px 10px;
   cursor: pointer;
   text-decoration: none;
-} */
+}
