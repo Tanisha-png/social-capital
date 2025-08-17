@@ -17,7 +17,7 @@
     max-width: 400px;
     height: auto;
     /* object-fit: cover; */
-    margin-top: -3rem;
+    margin-top: -2rem;
     opacity: 0;
     transform: scale(0.98);
     animation: fadeInScale 1.2s ease-in-out forwards;
