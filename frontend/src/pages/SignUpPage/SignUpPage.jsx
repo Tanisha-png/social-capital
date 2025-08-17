@@ -128,10 +128,28 @@ export default function SignUpPage({ setUser }) {
     setErrorMsg("");
   }
 
+  // async function handleSubmit(evt) {
+  //   evt.preventDefault();
+  //   try {
+  //     const user = await authService.signUp(formData);
+  //     setUser(user);
+  //     navigate("/posts");
+  //   } catch (err) {
+  //     console.log(err);
+  //     setErrorMsg("Sign Up Failed - Try Again");
+  //   }
+  // }
+
   async function handleSubmit(evt) {
     evt.preventDefault();
     try {
-      const user = await authService.signUp(formData);
+      // Combine firstName + lastName into one name field
+      const submitData = {
+        ...formData,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+      };
+
+      const user = await authService.signUp(submitData);
       setUser(user);
       navigate("/posts");
     } catch (err) {

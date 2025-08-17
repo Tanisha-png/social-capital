@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import * as authService from '../../services/authService';
 
-export default function LogInPage({ setUser }) {
+export default function LoginPage({ setUser }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
