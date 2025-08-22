@@ -46,16 +46,135 @@
 //     );
 // }
 
-import React from "react";
-import { useParams } from "react-router-dom";
+// import React from "react";
+// import { useParams } from "react-router-dom";
+
+// export default function ProfilePage() {
+//     const { id } = useParams();
+
+//     return (
+//         <div>
+//         <h2>Profile Page</h2>
+//         <p>User ID: {id}</p>
+//         </div>
+//     );
+// }
+
+// src/pages/ProfilePage.jsx
+import React, { useEffect, useState } from "react";
+import * as authService from "../services/authService";
+import ConnectionsList from "../components/ConnectionsList";
+import PotentialConnections from "../components/PotentialConnections";
+import HelpSections from "../components/HelpSections";
+import "./ProfilePage.css";
 
 export default function ProfilePage() {
-    const { id } = useParams();
+    const [user, setUser] = useState(null);
+    const [formData, setFormData] = useState({
+        profileImage: "",
+        occupation: "",
+        education: "",
+        canHelpWith: "",
+        needHelpWith: "",
+    });
+
+    useEffect(() => {
+        async function fetchProfile() {
+        const profile = await authService.getProfile();
+        setUser(profile);
+        setFormData({
+            profileImage: profile.profileImage || "",
+            occupation: profile.occupation || "",
+            education: profile.education || "",
+            canHelpWith: profile.canHelpWith?.join(", ") || "",
+            needHelpWith: profile.needHelpWith?.join(", ") || "",
+        });
+    }
+        fetchProfile();
+    }, []);
+
+    function handleChange(e) {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        const updated = await authService.updateProfile({
+        ...formData,
+        canHelpWith: formData.canHelpWith.split(",").map((s) => s.trim()),
+        needHelpWith: formData.needHelpWith.split(",").map((s) => s.trim()),
+    });
+    setUser(updated);
+    }
+
+    if (!user) return <p>Loading profile...</p>;
 
     return (
-        <div>
-        <h2>Profile Page</h2>
-        <p>User ID: {id}</p>
+        <div className="profile-page">
+        <div className="profile-header">
+            <img
+            src={formData.profileImage || "/default-profile.png"}
+            alt="Profile"
+            className="profile-img"
+        />
+        <h2>
+            {user.firstName} {user.lastName}
+        </h2>
         </div>
-    );
+
+        <form className="profile-form" onSubmit={handleSubmit}>
+            <label>Profile Image URL</label>
+            <input
+            type="text"
+            name="profileImage"
+            value={formData.profileImage}
+            onChange={handleChange}
+        />
+
+        <label>Occupation</label>
+        <input
+            type="text"
+            name="occupation"
+            value={formData.occupation}
+            onChange={handleChange}
+        />
+
+        <label>Education</label>
+        <input
+            type="text"
+            name="education"
+            value={formData.education}
+            onChange={handleChange}
+        />
+
+        <label>I can help with (comma separated)</label>
+        <input
+            type="text"
+            name="canHelpWith"
+            value={formData.canHelpWith}
+            onChange={handleChange}
+        />
+
+        <label>I need help with (comma separated)</label>
+        <input
+            type="text"
+            name="needHelpWith"
+            value={formData.needHelpWith}
+            onChange={handleChange}
+        />
+
+        <button type="submit">Save Profile</button>
+    </form>
+
+    <HelpSections
+        canHelpWith={user.canHelpWith}
+        needHelpWith={user.needHelpWith}
+    />
+
+    <div className="connections-section">
+        <ConnectionsList />
+        <PotentialConnections />
+    </div>
+    </div>
+);
 }

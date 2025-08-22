@@ -70,7 +70,8 @@
 
 import sendRequest from './sendRequest';
 
-const BASE_URL = '/api/auth';
+// const BASE_URL = '/api/auth';
+const BASE_URL = "http://localhost:3000/api/auth";
 
 // Save auth data to localStorage
 function saveAuthData(token, user) {
