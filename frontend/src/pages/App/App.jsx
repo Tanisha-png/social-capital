@@ -58,43 +58,92 @@
 //   );
 // }
 
-import { useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { getUser } from "../../services/authService";
-import "./App.css";
-import HomePage from "../HomePage/HomePage";
-import PostListPage from "../PostListPage/PostListPage";
-import NewPostPage from "../NewPostPage/NewPostPage";
-import SignUpPage from "../SignUpPage/SignUpPage";
-import LogInPage from "../LogInPage/LogInPage";
-import ProfilePage from "../ProfilePage/ProfilePage";
-import NavBar from "../../components/NavBar/NavBar";
+// import { useState } from "react";
+// import { Routes, Route, Navigate } from "react-router-dom";
+// import { getUser } from "../../services/authService";
+// import "./App.css";
+// import HomePage from "../HomePage/HomePage";
+// import PostListPage from "../PostListPage/PostListPage";
+// import NewPostPage from "../NewPostPage/NewPostPage";
+// import SignUpPage from "../SignUpPage/SignUpPage";
+// import LogInPage from "../LogInPage/LogInPage";
+// import ProfilePage from "../ProfilePage/ProfilePage";
+// import NavBar from "../../components/NavBar/NavBar";
+
+// export default function App() {
+//   const [user, setUser] = useState(getUser());
+
+//   return (
+//     <main className="App">
+//       <NavBar user={user} setUser={setUser} />
+//       <section id="main-section">
+//         <Routes>
+//           <Route path="/" element={<HomePage />} />
+//           <Route path="/signup" element={<SignUpPage setUser={setUser} />} />
+//           <Route path="/login" element={<LogInPage setUser={setUser} />} />
+//           {user && (
+//             <>
+//               <Route path="/profile/:id" element={<ProfilePage />} />
+//               <Route path="/posts" element={<PostListPage />} />
+//               <Route path="/posts/new" element={<NewPostPage />} />
+//             </>
+//           )}
+//           <Route
+//             path="*"
+//             element={<Navigate to={user ? "/posts" : "/login"} />}
+//           />
+//         </Routes>
+//       </section>
+//     </main>
+//   );
+// }
+
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import NavBar from "./components/NavBar/NavBar";
+import HomePage from "./pages/HomePage/HomePage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import SignUpPage from "./pages/SignUpPage/SignUpPage";
+import ProfilePage from "./pages/ProfilePage/ProfilePage";
+
+// 🔒 Private Route wrapper
+function PrivateRoute({ children }) {
+  const { user } = useAuth();
+  return user ? children : <Navigate to="/login" />;
+}
 
 export default function App() {
-  const [user, setUser] = useState(getUser());
-
   return (
-    <main className="App">
-      <NavBar user={user} setUser={setUser} />
-      <section id="main-section">
+    <AuthProvider>
+      <Router>
+        <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/signup" element={<SignUpPage setUser={setUser} />} />
-          <Route path="/login" element={<LogInPage setUser={setUser} />} />
-          {user && (
-            <>
-              <Route path="/profile/:id" element={<ProfilePage />} />
-              <Route path="/posts" element={<PostListPage />} />
-              <Route path="/posts/new" element={<NewPostPage />} />
-            </>
-          )}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+
+          {/* Profile route is protected */}
           <Route
-            path="*"
-            element={<Navigate to={user ? "/posts" : "/login"} />}
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
           />
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </section>
-    </main>
+      </Router>
+    </AuthProvider>
   );
 }
+
 
