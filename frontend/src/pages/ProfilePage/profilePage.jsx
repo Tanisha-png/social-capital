@@ -62,10 +62,10 @@
 
 // src/pages/ProfilePage.jsx
 import React, { useEffect, useState } from "react";
-import * as authService from "../services/authService";
-import ConnectionsList from "../components/ConnectionsList";
-import PotentialConnections from "../components/PotentialConnections";
-import HelpSections from "../components/HelpSections";
+import * as authService from "../../services/authService";
+import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
+import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
+import HelpSections from "../../components/HelpSections/HelpSections";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
