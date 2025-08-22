@@ -174,3 +174,52 @@
 //     </>
 //   );
 // }
+
+
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import NavBar from "./components/NavBar/NavBar";
+import HomePage from "./pages/HomePage/HomePage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import SignUpPage from "./pages/SignUpPage/SignUpPage";
+import ProfilePage from "./pages/ProfilePage/ProfilePage";
+
+// 🔒 Private Route wrapper
+function PrivateRoute({ children }) {
+    const { user } = useAuth();
+    return user ? children : <Navigate to="/login" />;
+}
+
+export default function App() {
+    return (
+    <AuthProvider>
+        <Router>
+            <NavBar />
+        <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+
+          {/* Profile route is protected */}
+        <Route
+            path="/profile"
+            element={
+                <PrivateRoute>
+                    <ProfilePage />
+                </PrivateRoute>
+            }
+            />
+
+          {/* fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+        </Router>
+    </AuthProvider>
+    );
+}
