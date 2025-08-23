@@ -170,6 +170,52 @@
 // }
 
 // src/services/authService.js
+// import sendRequest from "./sendRequest";
+
+// const BASE_URL = "/api/users";
+
+// // Token helpers
+// export function saveAuthData(token, user) {
+//   localStorage.setItem("token", token);
+//   localStorage.setItem("user", JSON.stringify(user));
+// }
+
+// export function getToken() {
+//   return localStorage.getItem("token");
+// }
+
+// export function removeAuthData() {
+//   localStorage.removeItem("token");
+//   localStorage.removeItem("user");
+// }
+
+// export function getUser() {
+//   const user = localStorage.getItem("user");
+//   return user ? JSON.parse(user) : null;
+// }
+
+// // API calls
+// export function getProfile() {
+//   return sendRequest(`${BASE_URL}/me`);
+// }
+
+// export function updateProfile(data) {
+//   return sendRequest(`${BASE_URL}/me`, "PUT", data);
+// }
+
+// export function getConnections() {
+//   return sendRequest(`${BASE_URL}/connections`);
+// }
+
+// export function addConnection(userId) {
+//   return sendRequest(`${BASE_URL}/connections/${userId}`, "POST");
+// }
+
+// export function searchUsers(query) {
+//   return sendRequest(`${BASE_URL}/search?query=${query}`);
+// }
+
+
 import sendRequest from "./sendRequest";
 
 const BASE_URL = "/api/users";
@@ -194,7 +240,16 @@ export function getUser() {
   return user ? JSON.parse(user) : null;
 }
 
-// API calls
+// 🔑 AUTH API calls
+export async function signUp(userData) {
+  return sendRequest(`${BASE_URL}/signup`, "POST", userData);
+}
+
+export async function logIn(credentials) {
+  return sendRequest(`${BASE_URL}/login`, "POST", credentials);
+}
+
+// Profile
 export function getProfile() {
   return sendRequest(`${BASE_URL}/me`);
 }
@@ -203,6 +258,7 @@ export function updateProfile(data) {
   return sendRequest(`${BASE_URL}/me`, "PUT", data);
 }
 
+// Connections
 export function getConnections() {
   return sendRequest(`${BASE_URL}/connections`);
 }

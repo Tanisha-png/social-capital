@@ -59,6 +59,9 @@
     line-height: 1.6;
     color: #555;
     margin: 0 auto;
+    opacity: 0;
+        transform: scale(0.98);
+        animation: fadeInScale 1.2s ease-in-out forwards;
 }
 
 @keyframes fadeInText {

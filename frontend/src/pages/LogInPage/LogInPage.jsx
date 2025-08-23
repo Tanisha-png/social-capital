@@ -16,15 +16,34 @@ export default function LoginPage({ setUser }) {
     setErrorMsg('');
   }
 
+  // async function handleSubmit(evt) {
+  //   evt.preventDefault();
+  //   try {
+  //     const user = await authService.logIn(formData);
+  //     setUser(user);
+  //     navigate('/posts');
+  //   } catch (err) {
+  //     console.log(err);
+  //     setErrorMsg('Log In Failed - Try Again');
+  //   }
+  // }
+
   async function handleSubmit(evt) {
     evt.preventDefault();
     try {
-      const user = await authService.logIn(formData);
+      const { token, user } = await authService.logIn(formData);
+
+      // Save to localStorage
+      authService.saveAuthData(token, user);
+
+      // Update App state
       setUser(user);
-      navigate('/posts');
+
+      // Navigate to posts
+      navigate("/posts");
     } catch (err) {
-      console.log(err);
-      setErrorMsg('Log In Failed - Try Again');
+      console.error(err);
+      setErrorMsg("Log In Failed - Try Again");
     }
   }
 
@@ -49,7 +68,7 @@ export default function LoginPage({ setUser }) {
           required
         />
         <button type="submit">Log In</button>
-        <button type="submit">Forgot Password</button>
+        <button type="button">Forgot Password</button>
       </form>
       <p className="error-message">&nbsp;{errorMsg}</p>
     </>
