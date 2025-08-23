@@ -218,7 +218,8 @@
 
 import sendRequest from "./sendRequest";
 
-const BASE_URL = "/api/users";
+const AUTH_URL = "/api/auth";
+const USER_URL = "/api/users";
 
 // Token helpers
 export function saveAuthData(token, user) {
@@ -242,31 +243,30 @@ export function getUser() {
 
 // 🔑 AUTH API calls
 export async function signUp(userData) {
-  return sendRequest(`${BASE_URL}/signup`, "POST", userData);
+  return sendRequest(`${AUTH_URL}/signup`, "POST", userData);
 }
 
 export async function logIn(credentials) {
-  return sendRequest(`${BASE_URL}/login`, "POST", credentials);
+  return sendRequest(`${AUTH_URL}/login`, "POST", credentials);
 }
 
-// Profile
+// 👤 USER API calls
 export function getProfile() {
-  return sendRequest(`${BASE_URL}/me`);
+  return sendRequest(`${USER_URL}/me`);
 }
 
 export function updateProfile(data) {
-  return sendRequest(`${BASE_URL}/me`, "PUT", data);
+  return sendRequest(`${USER_URL}/me`, "PUT", data);
 }
 
-// Connections
 export function getConnections() {
-  return sendRequest(`${BASE_URL}/connections`);
+  return sendRequest(`${USER_URL}/connections`);
 }
 
 export function addConnection(userId) {
-  return sendRequest(`${BASE_URL}/connections/${userId}`, "POST");
+  return sendRequest(`${USER_URL}/connections/${userId}`, "POST");
 }
 
 export function searchUsers(query) {
-  return sendRequest(`${BASE_URL}/search?query=${query}`);
+  return sendRequest(`${USER_URL}/search?query=${query}`);
 }
