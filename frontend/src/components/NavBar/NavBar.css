@@ -1,44 +1,95 @@
 
 
-.NavBar {
-  background-color: #000000;
+/* .NavBar { */
+  /* background-color: #000000;
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 2vmin;
   font-size: 2vmin;
-  /* border: 2px solid red */
-}
+  border: 2px solid red */
+/* } */
 
-.NavBar {
+/* .NavBar {
   a {
     border-radius: 0.8vmin;
     padding: 0.5vmin 1.5vmin;
     text-decoration: none;
     color: #1a1a1a;
-  }
+  } */
 
-  a:hover {
+  /* a:hover {
     background-color: #b3e6fa;
     color: #000000;
-  }
+  } */
 
-  a.active {
+  /* a.active {
     background-color: #1d9bd6dc;
     color: #000000;
-  }
+  } */
 
-  span {
+  /* span {
     background-color: #000000;
     color: white;
-  }
-}
+  } */
+/* } */
 
-.navlink-button {
-  background-color: black;
+/* .navlink-button { */
+  /* background-color: black;
   color: white;
   border: none;
   padding: 5px 10px;
   cursor: pointer;
   text-decoration: none;
+} */
+
+/* === src/components/NavBar/NavBar.css === */
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background-color: #f8f9fa;
+  /* matches homepage background */
+  border-bottom: 1px solid #ddd;
+}
+
+.nav-logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-button {
+  background-color: #0077cc;
+  /* your homepage accent */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s ease-in-out;
+}
+
+.nav-button:hover {
+  background-color: #005fa3;
+}
+
+.nav-username {
+  background-color: #000;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
 }

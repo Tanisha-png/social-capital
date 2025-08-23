@@ -89,52 +89,98 @@
 //   );
 // }
 
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+// import { NavLink, useNavigate } from "react-router-dom";
+// import { useAuth } from "../../contexts/AuthContext";
+// import "./NavBar.css";
+
+// export default function NavBar() {
+//   const { user, logOut } = useAuth(); // ✅ only from context
+//   const navigate = useNavigate();
+
+//   const handleLogOut = () => {
+//     logOut(); // ✅ clears auth state in context
+//     navigate("/login"); // ✅ redirect to login
+//   };
+
+//   return (
+//     <nav className="NavBar">
+//       <NavLink to="/" end>
+//         Home
+//       </NavLink>
+//       &nbsp;|&nbsp;
+//       {user ? (
+//         <>
+//           <NavLink to={`/profile/${user.id}`}>Profile</NavLink>
+//           &nbsp;|&nbsp;
+//           <NavLink to="/posts">Posts</NavLink>
+//           &nbsp;|&nbsp;
+//           <NavLink to="/posts/new">New Post</NavLink>
+//           &nbsp;|&nbsp;
+//           <NavLink
+//             to="/login"
+//             onClick={(e) => {
+//               e.preventDefault();
+//               handleLogOut();
+//             }}
+//           >
+//             Logout
+//           </NavLink>
+//           &nbsp;|&nbsp;
+//           <span>Welcome, {user.name}</span>
+//         </>
+//       ) : (
+//         <>
+//           <NavLink to="/login">Log In</NavLink>
+//           &nbsp;|&nbsp;
+//           <NavLink to="/signup">Sign Up</NavLink>
+//         </>
+//       )}
+//     </nav>
+//   );
+// }
+
+// === src/components/NavBar/NavBar.jsx ===
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import "./NavBar.css";
 
 export default function NavBar() {
-  const { user, logOut } = useAuth(); // ✅ only from context
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogOut = () => {
-    logOut(); // ✅ clears auth state in context
-    navigate("/login"); // ✅ redirect to login
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
-    <nav className="NavBar">
-      <NavLink to="/" end>
-        Home
-      </NavLink>
-      &nbsp;|&nbsp;
-      {user ? (
-        <>
-          <NavLink to={`/profile/${user.id}`}>Profile</NavLink>
-          &nbsp;|&nbsp;
-          <NavLink to="/posts">Posts</NavLink>
-          &nbsp;|&nbsp;
-          <NavLink to="/posts/new">New Post</NavLink>
-          &nbsp;|&nbsp;
-          <NavLink
-            to="/login"
-            onClick={(e) => {
-              e.preventDefault();
-              handleLogOut();
-            }}
-          >
-            Logout
-          </NavLink>
-          &nbsp;|&nbsp;
-          <span>Welcome, {user.name}</span>
-        </>
-      ) : (
-        <>
-          <NavLink to="/login">Log In</NavLink>
-          &nbsp;|&nbsp;
-          <NavLink to="/signup">Sign Up</NavLink>
-        </>
-      )}
+    <nav className="navbar">
+      <div className="navbar-left">
+        <Link to="/" className="nav-logo">
+          Social Capital
+        </Link>
+      </div>
+
+      <div className="navbar-right">
+        {user ? (
+          <>
+            <span className="nav-username">{user.firstName}</span>
+            <button className="nav-button" onClick={handleLogout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="nav-button">
+              Login
+            </Link>
+            <Link to="/signup" className="nav-button">
+              Sign Up
+            </Link>
+          </>
+        )}
+      </div>
     </nav>
   );
 }

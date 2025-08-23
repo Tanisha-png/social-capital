@@ -176,3 +176,59 @@
 // }
 
 
+// === src/App.jsx ===
+import React from "react";
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import NavBar from "./components/NavBar/NavBar";
+import HomePage from "./pages/HomePage/HomePage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import SignUpPage from "./pages/SignUpPage/SignUpPage";
+import ProfilePage from "./pages/ProfilePage/ProfilePage";
+import "./App.css";
+
+// 🔒 Private Route wrapper
+function PrivateRoute({ children }) {
+    const { user } = useAuth();
+    return user ? children : <Navigate to="/login" />;
+}
+
+export default function App() {
+    return (
+        <AuthProvider>
+        <Router>
+            <div className="page-container">
+            <NavBar />
+            <div className="content-wrap">
+                <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+
+                {/* Protected Profile route */}
+                <Route
+                    path="/profile"
+                    element={
+                    <PrivateRoute>
+                        <ProfilePage />
+                    </PrivateRoute>
+                    }
+                />
+
+                {/* fallback */}
+                <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+            </div>
+            <footer className="footer">
+                <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+            </footer>
+            </div>
+        </Router>
+        </AuthProvider>
+    );
+}
