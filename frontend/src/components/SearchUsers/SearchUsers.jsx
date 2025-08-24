@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { searchUsers } from "../../api/userApi";
+import { searchUsers, sendFriendRequest } from "../../api/userApi";
 
 const SearchUsers = ({ token, onSelectUser }) => {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [requestStatus, setRequestStatus] = useState({}); // track per-user
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -20,6 +21,15 @@ const SearchUsers = ({ token, onSelectUser }) => {
         setError("Failed to fetch users.");
         } finally {
         setLoading(false);
+        }
+    };
+
+    const handleSendRequest = async (userId) => {
+        try {
+        await sendFriendRequest(userId, token);
+        setRequestStatus((prev) => ({ ...prev, [userId]: "sent" }));
+        } catch (err) {
+        setRequestStatus((prev) => ({ ...prev, [userId]: "error" }));
         }
     };
 
@@ -48,12 +58,30 @@ const SearchUsers = ({ token, onSelectUser }) => {
             {results.map((user) => (
             <li
                 key={user._id}
-                className="p-3 hover:bg-gray-100 cursor-pointer flex justify-between"
-                onClick={() => onSelectUser && onSelectUser(user)}
+                className="p-3 flex justify-between items-center hover:bg-gray-50"
             >
-                <div>
+                <div
+                onClick={() => onSelectUser && onSelectUser(user)}
+                className="cursor-pointer"
+                >
                 <p className="font-semibold">{user.name}</p>
                 <p className="text-sm text-gray-600">{user.email}</p>
+                </div>
+
+                <div>
+                {requestStatus[user._id] === "sent" ? (
+                    <span className="text-green-600 text-sm">Request Sent</span>
+                ) : (
+                    <button
+                    onClick={() => handleSendRequest(user._id)}
+                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                    Add Friend
+                    </button>
+                )}
+                {requestStatus[user._id] === "error" && (
+                    <span className="text-red-500 text-sm">Error</span>
+                )}
                 </div>
             </li>
             ))}
