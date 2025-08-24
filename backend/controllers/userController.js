@@ -92,3 +92,38 @@ export const searchUsers = async (req, res) => {
     }
 };
 
+// Send a friend request
+export const sendFriendRequest = async (req, res) => {
+    try {
+        const { userId } = req.body; // recipient
+        const senderId = req.user._id; // from middleware
+
+        if (userId === senderId.toString()) {
+            return res.status(400).json({ message: "You cannot add yourself." });
+        }
+
+        const recipient = await User.findById(userId);
+        const sender = await User.findById(senderId);
+
+        if (!recipient) return res.status(404).json({ message: "User not found" });
+
+        // Already friends?
+        if (recipient.friends.includes(senderId)) {
+            return res.status(400).json({ message: "Already friends." });
+        }
+
+        // Already requested?
+        if (recipient.friendRequests.includes(senderId)) {
+            return res.status(400).json({ message: "Request already sent." });
+        }
+
+        recipient.friendRequests.push(senderId);
+        await recipient.save();
+
+        res.status(200).json({ message: "Friend request sent." });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
