@@ -21,3 +21,11 @@ export const searchUsers = (query, token) =>
     base.get(`/search?q=${query}`, {
         headers: { Authorization: `Bearer ${token}` }
     }).then(r => r.data);
+
+export const sendFriendRequest = (userId, token) =>
+    base.post(
+        "/friend-request",
+        { userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+    ).then((r) => r.data);
+
