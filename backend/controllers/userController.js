@@ -72,3 +72,23 @@ export const getFriendList = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+// Search users by name or email
+export const searchUsers = async (req, res) => {
+    try {
+        const query = req.query.q;
+        if (!query) return res.status(400).json({ message: "Query required" });
+
+        const users = await User.find({
+            $or: [
+                { name: { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } }
+            ]
+        }).select("-password");
+
+        res.status(200).json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
