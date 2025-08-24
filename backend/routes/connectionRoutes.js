@@ -11,8 +11,16 @@
 
 // backend/routes/connectionRoutes.js
 import express from "express";
+import { sendFriendRequest, respondToRequest, getConnections } from "../controllers/connectionController.js";
+import checkToken from "../middleware/checkToken.js";
+import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
 
 const router = express.Router();
+
+router.post("/:id/send-request", checkToken, ensureLoggedIn, sendFriendRequest);
+router.post("/:id/respond", checkToken, ensureLoggedIn, respondToRequest);
+router.get("/", checkToken, ensureLoggedIn, getConnections);
+
 
 // Example: Add a connection
 router.post("/", async (req, res) => {
