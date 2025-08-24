@@ -126,4 +126,62 @@ export const sendFriendRequest = async (req, res) => {
     }
 };
 
+// Get pending friend requests
+export const getFriendRequests = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+            .populate("friendRequests", "name email");
+        res.status(200).json(user.friendRequests);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Accept a friend request
+export const acceptFriendRequest = async (req, res) => {
+    try {
+        const { requesterId } = req.body;
+        const user = await User.findById(req.user._id);
+        const requester = await User.findById(requesterId);
+
+        if (!user || !requester)
+            return res.status(404).json({ message: "User not found" });
+
+        // Remove from pending requests
+        user.friendRequests = user.friendRequests.filter(
+            (id) => id.toString() !== requesterId
+        );
+
+        // Add to friends list
+        if (!user.friends.includes(requesterId)) user.friends.push(requesterId);
+        if (!requester.friends.includes(user._id)) requester.friends.push(user._id);
+
+        await user.save();
+        await requester.save();
+
+        res.status(200).json({ message: "Friend request accepted" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Decline a friend request
+export const declineFriendRequest = async (req, res) => {
+    try {
+        const { requesterId } = req.body;
+        const user = await User.findById(req.user._id);
+
+        user.friendRequests = user.friendRequests.filter(
+            (id) => id.toString() !== requesterId
+        );
+
+        await user.save();
+
+        res.status(200).json({ message: "Friend request declined" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
 
