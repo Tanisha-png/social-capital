@@ -14,8 +14,15 @@
 
 // backend/routes/userRoutes.js
 import express from "express";
+import { getUserProfile, updateUserProfile, getFriendList } from "../controllers/userController.js";
+import checkToken from "../middleware/checkToken.js";
+import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
 
 const router = express.Router();
+
+router.get("/:id", checkToken, ensureLoggedIn, getUserProfile);
+router.put("/", checkToken, ensureLoggedIn, updateUserProfile);
+router.get("/friends", checkToken, ensureLoggedIn, getFriendList);
 
 // Example: GET all users
 router.get("/", async (req, res) => {
