@@ -29,3 +29,21 @@ export const sendFriendRequest = (userId, token) =>
         { headers: { Authorization: `Bearer ${token}` } }
     ).then((r) => r.data);
 
+export const getFriendRequests = (token) =>
+    base.get("/friend-requests", {
+        headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => r.data);
+
+export const acceptFriendRequest = (requesterId, token) =>
+    base.post(
+        "/friend-requests/accept",
+        { requesterId },
+        { headers: { Authorization: `Bearer ${token}` } }
+    ).then((r) => r.data);
+
+export const declineFriendRequest = (requesterId, token) =>
+    base.post(
+        "/friend-requests/decline",
+        { requesterId },
+        { headers: { Authorization: `Bearer ${token}` } }
+    ).then((r) => r.data);
