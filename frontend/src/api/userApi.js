@@ -16,3 +16,8 @@ export const updateProfile = (data, token) =>
 
 export const getFriendList = (token) =>
     base.get("/friends", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data);
+
+export const searchUsers = (query, token) =>
+    base.get(`/search?q=${query}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    }).then(r => r.data);
