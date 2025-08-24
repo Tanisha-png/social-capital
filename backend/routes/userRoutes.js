@@ -14,7 +14,17 @@
 
 // backend/routes/userRoutes.js
 import express from "express";
-import { getUserProfile, updateUserProfile, getFriendList, searchUsers, sendFriendRequest } from "../controllers/userController.js";
+import { 
+    getUserProfile, 
+    updateUserProfile, 
+    getFriendList, 
+    searchUsers, 
+    sendFriendRequest,
+    getFriendRequests,
+    acceptFriendRequest,
+    declineFriendRequest,
+} from "../controllers/userController.js";
+
 import checkToken from "../middleware/checkToken.js";
 import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
 
@@ -25,6 +35,9 @@ router.get("/:id", checkToken, ensureLoggedIn, getUserProfile);
 router.put("/", checkToken, ensureLoggedIn, updateUserProfile);
 router.get("/friends", checkToken, ensureLoggedIn, getFriendList);
 router.post("/friend-request", checkToken, ensureLoggedIn, sendFriendRequest);
+router.get("/friend-requests", checkToken, ensureLoggedIn, getFriendRequests);
+router.post("/friend-requests/accept", checkToken, ensureLoggedIn, acceptFriendRequest);
+router.post("/friend-requests/decline", checkToken, ensureLoggedIn, declineFriendRequest);
 
 // Example: GET all users
 router.get("/", async (req, res) => {
