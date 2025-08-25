@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuth } from "../../context/AuthContext";
 import * as authService from '../../services/authService';
 
-export default function LoginPage({ setUser }) {
+export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [errorMsg, setErrorMsg] = useState('');
-
+  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   function handleChange(evt) {
