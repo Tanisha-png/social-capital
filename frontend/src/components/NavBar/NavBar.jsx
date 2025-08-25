@@ -154,6 +154,10 @@ export default function NavBar() {
     navigate("/login");
   };
 
+  const displayName = user?.firstName || user?.name || user?.email;
+
+  console.log("NavBar user from context:", user);
+
   return (
     <nav className="navbar">
       <div className="navbar-left">
@@ -165,7 +169,8 @@ export default function NavBar() {
       <div className="navbar-right">
         {user ? (
           <>
-            <span className="nav-username">{user.firstName}</span>
+            {/* <span className="nav-username">{user.firstName}</span> */}
+            <span className="nav-username">{displayName}</span>
             <button className="nav-button" onClick={handleLogout}>
               Logout
             </button>
