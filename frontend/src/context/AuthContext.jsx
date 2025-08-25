@@ -112,16 +112,28 @@ import * as authService from "../services/authService";
 
 const AuthContext = createContext();
 
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
   // On mount, check for a user from localStorage (via token)
+    // useEffect(() => {
+    //     const currentUser = authService.getUser();
+    //     setUser(currentUser);
+    //     setIsLoading(false);
+    // }, []);
+
     useEffect(() => {
-        const currentUser = authService.getUser();
-        setUser(currentUser);
-        setIsLoading(false);
-    }, []);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   // Login wrapper
     const logIn = async (credentials) => {
@@ -138,10 +150,17 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    const value = {
+    user,
+    setUser,
+    logOut,
+  };
+
     return (
-        <AuthContext.Provider value={{ user, setUser, logIn, logOut, isLoading }}>
-        {children}
-        </AuthContext.Provider>
+        // <AuthContext.Provider value={{ user, setUser, logIn, logOut, isLoading }}>
+        // {children}
+        // </AuthContext.Provider>
+        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
     );
 }
 
