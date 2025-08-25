@@ -39,3 +39,9 @@ export const logIn = async (req, res) => {
   }
 };
 
+// Save login data
+export function saveAuthData(token, user) {
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+}
+
