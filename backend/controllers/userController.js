@@ -184,4 +184,36 @@ export const declineFriendRequest = async (req, res) => {
 };
 
 
+// Get all accepted friends
+export const getFriends = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate("friends", "name email");
+        res.status(200).json(user.friends);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Remove a friend
+export const removeFriend = async (req, res) => {
+    try {
+        const { friendId } = req.body;
+
+        const user = await User.findById(req.user._id);
+        const friend = await User.findById(friendId);
+
+        if (!user || !friend) return res.status(404).json({ message: "User not found" });
+
+        user.friends = user.friends.filter((id) => id.toString() !== friendId);
+        friend.friends = friend.friends.filter((id) => id.toString() !== user._id.toString());
+
+        await user.save();
+        await friend.save();
+
+        res.status(200).json({ message: "Friend removed" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 
