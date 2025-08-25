@@ -132,7 +132,9 @@ export function AuthProvider({ children }) {
 
   // Logout wrapper
     const logOut = () => {
-        authService.logOut();
+        // authService.logOut();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setUser(null);
     };
 
