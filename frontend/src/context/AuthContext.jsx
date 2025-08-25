@@ -138,6 +138,8 @@ export function AuthProvider({ children }) {
   // Login wrapper
     const logIn = async (credentials) => {
         const loggedInUser = await authService.logIn(credentials);
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
         setUser(loggedInUser);
         return loggedInUser;
     };
@@ -153,6 +155,7 @@ export function AuthProvider({ children }) {
     const value = {
     user,
     setUser,
+    logIn,
     logOut,
   };
 
@@ -164,7 +167,4 @@ export function AuthProvider({ children }) {
     );
 }
 
-export function useAuth() {
-    return useContext(AuthContext);
-}
 
