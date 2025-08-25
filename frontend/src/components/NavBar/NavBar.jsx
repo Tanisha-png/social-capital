@@ -146,11 +146,11 @@ import { useAuth } from "../../context/AuthContext";
 import "./NavBar.css";
 
 export default function NavBar() {
-  const { user, logout } = useAuth();
+  const { user, logOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    logOut();
     navigate("/login");
   };
 
