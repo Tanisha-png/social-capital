@@ -119,7 +119,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // const [isLoading, setIsLoading] = useState(true);
 
   // On mount, check for a user from localStorage (via token)
     // useEffect(() => {
