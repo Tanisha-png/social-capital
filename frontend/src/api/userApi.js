@@ -47,3 +47,15 @@ export const declineFriendRequest = (requesterId, token) =>
         { requesterId },
         { headers: { Authorization: `Bearer ${token}` } }
     ).then((r) => r.data);
+
+export const getFriends = (token) =>
+    base.get("/friends", {
+        headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => r.data);
+
+export const removeFriend = (friendId, token) =>
+    base.post(
+        "/friends/remove",
+        { friendId },
+        { headers: { Authorization: `Bearer ${token}` } }
+    ).then((r) => r.data);
