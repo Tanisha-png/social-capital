@@ -23,6 +23,8 @@ import {
     getFriendRequests,
     acceptFriendRequest,
     declineFriendRequest,
+    getFriends,
+    removeFriend,
 } from "../controllers/userController.js";
 
 import checkToken from "../middleware/checkToken.js";
@@ -33,7 +35,8 @@ const router = express.Router();
 router.get("/search", checkToken, ensureLoggedIn, searchUsers);
 router.get("/:id", checkToken, ensureLoggedIn, getUserProfile);
 router.put("/", checkToken, ensureLoggedIn, updateUserProfile);
-router.get("/friends", checkToken, ensureLoggedIn, getFriendList);
+router.get("/friends", checkToken, ensureLoggedIn, getFriendList, getFriends);
+router.post("/friends/remove", checkToken, ensureLoggedIn, removeFriend);
 router.post("/friend-request", checkToken, ensureLoggedIn, sendFriendRequest);
 router.get("/friend-requests", checkToken, ensureLoggedIn, getFriendRequests);
 router.post("/friend-requests/accept", checkToken, ensureLoggedIn, acceptFriendRequest);
