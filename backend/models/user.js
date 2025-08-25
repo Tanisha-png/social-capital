@@ -46,6 +46,7 @@ const userSchema = new mongoose.Schema(
     // Social connections
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
