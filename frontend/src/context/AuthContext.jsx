@@ -137,7 +137,8 @@ export function AuthProvider({ children }) {
 
   // Login wrapper
     const logIn = async (credentials) => {
-        const loggedInUser = await authService.logIn(credentials);
+        // const loggedInUser = await authService.logIn(credentials);
+        const { token, user } = await authService.logIn(credentials);
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
         setUser(loggedInUser);
@@ -160,10 +161,10 @@ export function AuthProvider({ children }) {
   };
 
     return (
-        // <AuthContext.Provider value={{ user, setUser, logIn, logOut, isLoading }}>
-        // {children}
-        // </AuthContext.Provider>
-        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+        <AuthContext.Provider value={{ user, setUser, logIn, logOut }}>
+        {children}
+        </AuthContext.Provider>
+        // <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
     );
 }
 
