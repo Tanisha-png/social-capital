@@ -33,10 +33,12 @@ export default function LoginPage() {
     evt.preventDefault();
     try {
       const { token, user } = await authService.logIn(formData);
-      console.log("Submitting login", formData);
+      // console.log("Submitting login", formData);
 
       // Save to localStorage
-      authService.saveAuthData(token, user);
+      // authService.saveAuthData(token, user);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       // Update App state
       setUser(user);
