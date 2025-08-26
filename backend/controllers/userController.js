@@ -247,20 +247,32 @@ export const updateMe = async (req, res) => {
 };
 
 // GET /api/users/search?q=alice
+// export const searchUsers = async (req, res) => {
+//     try {
+//         const q = (req.query.q || "").trim();
+//         if (!q) return res.status(400).json({ message: "q is required" });
+
+//         const users = await User.find({
+//             $or: [
+//                 { name: { $regex: q, $options: "i" } },
+//                 { email: { $regex: q, $options: "i" } },
+//             ],
+//         }).select("-password");
+//         res.json(users);
+//     } catch (err) {
+//         res.status(500).json({ message: err.message });
+//     }
+// };
+
 export const searchUsers = async (req, res) => {
     try {
-        const q = (req.query.q || "").trim();
-        if (!q) return res.status(400).json({ message: "q is required" });
-
+        const query = req.query.q;
         const users = await User.find({
-            $or: [
-                { name: { $regex: q, $options: "i" } },
-                { email: { $regex: q, $options: "i" } },
-            ],
-        }).select("-password");
+            name: { $regex: query, $options: "i" },
+        }).select("name email");
         res.json(users);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: "Error searching users" });
     }
 };
 
