@@ -32,16 +32,28 @@
 
 // export default router;
 
+// import express from "express";
+// import { saveMessage, getConversation } from "../controllers/messageController.js";
+// import checkToken from "../middleware/checkToken.js";
+// import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
+
+// const router = express.Router();
+
+// // Authenticated only
+// router.post("/", checkToken, ensureLoggedIn, saveMessage);
+// router.get("/", checkToken, ensureLoggedIn, getConversation);
+
+// export default router;
+
 import express from "express";
-import { saveMessage, getConversation } from "../controllers/messageController.js";
-import checkToken from "../middleware/checkToken.js";
-import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
+import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
+import { getMessages, sendMessage } from "../controllers/messageController.js";
 
 const router = express.Router();
 
-// Authenticated only
-router.post("/", checkToken, ensureLoggedIn, saveMessage);
-router.get("/", checkToken, ensureLoggedIn, getConversation);
+router.get("/:recipientId", ensureLoggedIn, getMessages);
+router.post("/:recipientId", ensureLoggedIn, sendMessage);
 
 export default router;
+
 
