@@ -21,44 +21,77 @@
 //   }
 // }
 
-import Post from "../models/post.js";
+// import Post from "../models/post.js";
 
-// Create a new post
-export const create = async (req, res) => {
+// // Create a new post
+// export const create = async (req, res) => {
+//   try {
+//     const post = await Post.create({
+//       user: req.user._id,
+//       text: req.body.text,
+//     });
+//     res.status(201).json(post);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // Get all posts
+// export const index = async (req, res) => {
+//   try {
+//     const posts = await Post.find().populate("user", "name email");
+//     res.status(200).json(posts);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// // Delete a post
+// export const remove = async (req, res) => {
+//   try {
+//     const post = await Post.findById(req.params.id);
+//     if (!post) return res.status(404).json({ message: "Post not found" });
+
+//     if (post.user.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: "Not authorized" });
+//     }
+
+//     await post.deleteOne();
+//     res.status(200).json({ message: "Post deleted" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+import Post from "../models/Post.js";
+
+export const getPosts = async (req, res) => {
   try {
-    const post = await Post.create({
-      user: req.user._id,
-      text: req.body.text,
+    const posts = await Post.find().populate("author", "name email");
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching posts" });
+  }
+};
+
+export const createPost = async (req, res) => {
+  try {
+    const post = new Post({
+      author: req.user._id,
+      content: req.body.content,
     });
-    res.status(201).json(post);
+    await post.save();
+    res.json(post);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Error creating post" });
   }
 };
 
-// Get all posts
-export const index = async (req, res) => {
+export const deletePost = async (req, res) => {
   try {
-    const posts = await Post.find().populate("user", "name email");
-    res.status(200).json(posts);
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ message: "Post deleted" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Delete a post
-export const remove = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
-
-    if (post.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    await post.deleteOne();
-    res.status(200).json({ message: "Post deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Error deleting post" });
   }
 };
