@@ -176,7 +176,64 @@
 // }
 
 
-// === src/App.jsx ===
+// // === src/App.jsx ===
+// import React from "react";
+// import {
+//     BrowserRouter as Router,
+//     Routes,
+//     Route,
+//     Navigate,
+// } from "react-router-dom";
+// import { AuthProvider, useAuth } from "./context/AuthContext";
+// import NavBar from "./components/NavBar/NavBar";
+// import HomePage from "./pages/HomePage/HomePage";
+// import LoginPage from "./pages/LoginPage/LoginPage";
+// import SignUpPage from "./pages/SignUpPage/SignUpPage";
+// import ProfilePage from "./pages/ProfilePage/ProfilePage";
+// import "./App.css";
+
+// // 🔒 Private Route wrapper
+// function PrivateRoute({ children }) {
+//     const { user } = useAuth();
+//     return user ? children : <Navigate to="/login" />;
+// }
+
+// export default function App() {
+//     return (
+//         <AuthProvider>
+//         <Router>
+//             <div className="page-container">
+//             <NavBar />
+//             <div className="content-wrap">
+//                 <Routes>
+//                 <Route path="/" element={<HomePage />} />
+//                 <Route path="/login" element={<LoginPage />} />
+//                 <Route path="/signup" element={<SignUpPage />} />
+
+//                 {/* Protected Profile route */}
+//                 <Route
+//                     path="/profile"
+//                     element={
+//                     <PrivateRoute>
+//                         <ProfilePage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+
+//                 {/* fallback */}
+//                 <Route path="*" element={<Navigate to="/" />} />
+//                 </Routes>
+//             </div>
+//             <footer className="footer">
+//                 <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+//             </footer>
+//             </div>
+//         </Router>
+//         </AuthProvider>
+//     );
+// }
+
+// src/App.jsx
 import React from "react";
 import {
     BrowserRouter as Router,
@@ -190,9 +247,14 @@ import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import SignUpPage from "./pages/SignUpPage/SignUpPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
+import PostsPage from "./pages/PostsPage/PostsPage";
+import NewPostPage from "./pages/NewPostPage/NewPostPage";
+import MessagesPage from "./pages/MessagesPage/MessagesPage";
+import FriendsPage from "./pages/FriendsPage/FriendsPage";
+import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
 import "./App.css";
 
-// 🔒 Private Route wrapper
+// 🔒 Reusable Private Route
 function PrivateRoute({ children }) {
     const { user } = useAuth();
     return user ? children : <Navigate to="/login" />;
@@ -206,11 +268,12 @@ export default function App() {
             <NavBar />
             <div className="content-wrap">
                 <Routes>
+                {/* Public */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
 
-                {/* Protected Profile route */}
+                {/* Private */}
                 <Route
                     path="/profile"
                     element={
@@ -219,11 +282,52 @@ export default function App() {
                     </PrivateRoute>
                     }
                 />
+                <Route
+                    path="/posts"
+                    element={
+                    <PrivateRoute>
+                        <PostsPage />
+                    </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/posts/new"
+                    element={
+                    <PrivateRoute>
+                        <NewPostPage />
+                    </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/messages"
+                    element={
+                    <PrivateRoute>
+                        <MessagesPage />
+                    </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/friends"
+                    element={
+                    <PrivateRoute>
+                        <FriendsPage />
+                    </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/search"
+                    element={
+                    <PrivateRoute>
+                        <UserSearchPage />
+                    </PrivateRoute>
+                    }
+                />
 
                 {/* fallback */}
                 <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
             </div>
+
             <footer className="footer">
                 <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
             </footer>
