@@ -94,6 +94,9 @@ import userRoutes from "./routes/userRoutes.js";
 import connectionRoutes from "./routes/connectionRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 
+import messagesRoutes from "./routes/messages.js";
+import searchRoutes from "./routes/search.js";
+
 dotenv.config();
 await connectDB();
 
@@ -112,6 +115,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/messages", messagesRoutes);
+app.use("/api/search", searchRoutes);
 
 // (Optional) simple test endpoint
 app.get("/health", (_req, res) => res.json({ ok: true }));

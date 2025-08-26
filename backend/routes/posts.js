@@ -30,6 +30,9 @@ router.get("/", ensureLoggedIn, getPosts);
 router.post("/", ensureLoggedIn, createPost);
 router.delete("/:id", ensureLoggedIn, deletePost);
 
+router.get("/", getPosts);
+router.post("/", createPost);
+
 
 module.exports = router;
 export default router;
