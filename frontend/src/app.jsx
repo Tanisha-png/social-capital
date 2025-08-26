@@ -250,6 +250,7 @@ import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import PostsPage from "./pages/PostsPage/PostsPage";
 import NewPostPage from "./pages/NewPostPage/NewPostPage";
 import MessagesPage from "./pages/MessagesPage/MessagesPage";
+import SearchPage from "./pages/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
 import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
 import "./App.css";
@@ -272,6 +273,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/search" element={<PrivateRoute element={<SearchPage />} />} />
 
                 {/* Private */}
                 <Route
