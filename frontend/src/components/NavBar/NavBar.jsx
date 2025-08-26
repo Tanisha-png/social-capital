@@ -169,8 +169,25 @@ export default function NavBar() {
       <div className="navbar-right">
         {user ? (
           <>
-            {/* <span className="nav-username">{user.firstName}</span> */}
             <span className="nav-username">{displayName}</span>
+            <Link to="/posts" className="nav-button">
+              Posts
+            </Link>
+            <Link to="/posts/new" className="nav-button">
+              New Post
+            </Link>
+            <Link to="/messages" className="nav-button">
+              Messages
+            </Link>
+            <Link to="/friends" className="nav-button">
+              Friends
+            </Link>
+            <Link to="/search" className="nav-button">
+              Search
+            </Link>
+            <Link to="/profile" className="nav-button">
+              Profile
+            </Link>
             <button className="nav-button" onClick={handleLogout}>
               Logout
             </button>
