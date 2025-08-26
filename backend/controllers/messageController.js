@@ -53,47 +53,78 @@
 //     }
 // };
 
-import Message from "../models/message.js";
+// import Message from "../models/message.js";
 
-// POST /api/messages
-// body: { receiver: ObjectId, content: string }
-export const saveMessage = async (req, res) => {
+// // POST /api/messages
+// // body: { receiver: ObjectId, content: string }
+// export const saveMessage = async (req, res) => {
+//     try {
+//         const sender = req.user.id; // set by checkToken
+//         const { receiver, content } = req.body;
+
+//         if (!receiver || !content) {
+//             return res.status(400).json({ message: "receiver and content are required" });
+//         }
+
+//         if (receiver === sender) {
+//             return res.status(400).json({ message: "Cannot message yourself" });
+//         }
+
+//         const msg = await Message.create({ sender, receiver, content });
+//         res.status(201).json(msg);
+//     } catch (err) {
+//         res.status(500).json({ message: err.message });
+//     }
+// };
+
+// // GET /api/messages?userId=<otherUserId>
+// // returns the conversation between req.user.id and userId
+// export const getConversation = async (req, res) => {
+//     try {
+//         const me = req.user.id;
+//         const { userId } = req.query;
+//         if (!userId) return res.status(400).json({ message: "userId is required" });
+
+//         const messages = await Message.find({
+//             $or: [
+//                 { sender: me, receiver: userId },
+//                 { sender: userId, receiver: me },
+//             ],
+//         }).sort({ createdAt: 1 });
+
+//         res.json(messages);
+//     } catch (err) {
+//         res.status(500).json({ message: err.message });
+//     }
+// };
+
+import Message from "../models/Message.js";
+
+export const getMessages = async (req, res) => {
     try {
-        const sender = req.user.id; // set by checkToken
-        const { receiver, content } = req.body;
-
-        if (!receiver || !content) {
-            return res.status(400).json({ message: "receiver and content are required" });
-        }
-
-        if (receiver === sender) {
-            return res.status(400).json({ message: "Cannot message yourself" });
-        }
-
-        const msg = await Message.create({ sender, receiver, content });
-        res.status(201).json(msg);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// GET /api/messages?userId=<otherUserId>
-// returns the conversation between req.user.id and userId
-export const getConversation = async (req, res) => {
-    try {
-        const me = req.user.id;
-        const { userId } = req.query;
-        if (!userId) return res.status(400).json({ message: "userId is required" });
-
         const messages = await Message.find({
             $or: [
-                { sender: me, receiver: userId },
-                { sender: userId, receiver: me },
+                { sender: req.user._id, recipient: req.params.recipientId },
+                { sender: req.params.recipientId, recipient: req.user._id },
             ],
-        }).sort({ createdAt: 1 });
+        }).populate("sender recipient", "name email");
 
         res.json(messages);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: "Error fetching messages" });
+    }
+};
+
+export const sendMessage = async (req, res) => {
+    try {
+        const msg = new Message({
+            sender: req.user._id,
+            recipient: req.params.recipientId,
+            text: req.body.text,
+        });
+        await msg.save();
+        res.json(msg);
+    } catch (err) {
+        res.status(500).json({ message: "Error sending message" });
     }
 };
