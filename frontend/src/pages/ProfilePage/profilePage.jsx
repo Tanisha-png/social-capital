@@ -66,9 +66,13 @@ import * as authService from "../../services/authService";
 import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
+    const [name, setName] = useState(user?.name || "");
+    const [bio, setBio] = useState(user?.bio || "");
     const [user, setUser] = useState(null);
     const [formData, setFormData] = useState({
         profileImage: "",
@@ -77,6 +81,19 @@ export default function ProfilePage() {
         canHelpWith: "",
         needHelpWith: "",
     });
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        await fetch(`/api/users/${user._id}`, {
+            method: "PUT",
+            headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({ name, bio }),
+        });
+        alert("Profile updated!");
+    };
 
     useEffect(() => {
         async function fetchProfile() {
