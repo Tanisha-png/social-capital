@@ -9,8 +9,15 @@
 //   next();
 // }
 
-export default function ensureLoggedIn(req, res, next) {
-  if (!req.user) return res.status(401).json({ message: "Not logged in" });
-  next();
+// export default function ensureLoggedIn(req, res, next) {
+//   if (!req.user) return res.status(401).json({ message: "Not logged in" });
+//   next();
+// }
+
+export function ensureLoggedIn(req, res, next) {
+  if (req.user) {
+    return next();
+  }
+  return res.status(401).json({ message: "Unauthorized" });
 }
 

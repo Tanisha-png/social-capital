@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function FriendsPage() {
     const [friends, setFriends] = useState([]);

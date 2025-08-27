@@ -218,7 +218,9 @@
 
 import sendRequest from "./sendRequest";
 
-const AUTH_URL = "/api/auth";
+const BACKEND_URL = "http://localhost:3000";
+// const AUTH_URL = "/api/auth";
+const AUTH_URL = `${BACKEND_URL}/api/auth`;
 const USER_URL = "/api/users";
 
 // Token helpers

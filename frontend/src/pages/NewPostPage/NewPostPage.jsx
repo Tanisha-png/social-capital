@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuth } from "../../context/AuthContext";
 import * as postService from '../../services/postService';
 
 export default function NewPostPage() {

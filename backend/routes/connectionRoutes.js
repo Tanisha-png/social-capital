@@ -35,21 +35,42 @@
 // export default router;
 
 import express from "express";
-import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
+import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js"; 
 import {
-    getFriends,
-    sendRequest,
-    acceptRequest,
-    declineRequest,
+    sendFriendRequest,
+    acceptFriendRequest,
+    declineFriendRequest,
     removeFriend,
-} from "../controllers/friendController.js";
+    listFriends,
+} from "../controllers/friendController.js"; // ✅ fixed
 
 const router = express.Router();
 
-router.get("/", ensureLoggedIn, getFriends);
-router.post("/request/:id", ensureLoggedIn, sendRequest);
-router.post("/accept/:id", ensureLoggedIn, acceptRequest);
-router.post("/decline/:id", ensureLoggedIn, declineRequest);
-router.delete("/remove/:id", ensureLoggedIn, removeFriend);
+router.post("/request", ensureLoggedIn, sendFriendRequest);
+router.post("/accept", ensureLoggedIn, acceptFriendRequest);
+router.post("/decline", ensureLoggedIn, declineFriendRequest);
+router.delete("/remove", ensureLoggedIn, removeFriend);
+router.get("/", listFriends);
+
+// Send friend request
+router.post("/request/:userId", ensureLoggedIn, (req, res) => {
+    res.json({ message: `Friend request sent to ${req.params.userId}` });
+});
+
+// Accept friend request
+router.post("/accept/:userId", ensureLoggedIn, (req, res) => {
+    res.json({ message: `Friend request from ${req.params.userId} accepted` });
+});
+
+// Decline friend request
+router.post("/decline/:userId", ensureLoggedIn, (req, res) => {
+    res.json({ message: `Friend request from ${req.params.userId} declined` });
+});
+
+// Remove friend
+router.delete("/:userId", ensureLoggedIn, (req, res) => {
+    res.json({ message: `Removed ${req.params.userId} from friends list` });
+});
+
 
 export default router;

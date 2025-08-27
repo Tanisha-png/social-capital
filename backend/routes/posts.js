@@ -1,7 +1,7 @@
 import express from 'express';
 import postsCtrl from "../controllers/posts.js";
 import checkToken from "../middleware/checkToken.js";
-import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
+import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import { getPosts, createPost, deletePost } from "../controllers/postController.js";
 
 
@@ -11,7 +11,14 @@ import ensureLoggedIn from '../middleware/ensureLoggedIn.js';
 
 import { someController } from '../controllers/posts.js';
 
+router.get("/", ensureLoggedIn, (req, res) => {
+    res.json({ message: "Posts fetched" });
+});
 
+router.post("/", ensureLoggedIn, (req, res) => {
+    const { content } = req.body;
+    res.json({ id: Date.now(), content, user: req.user.id });
+});
 
 const express = require('express');
 const router = express.Router();
@@ -33,6 +40,14 @@ router.delete("/:id", ensureLoggedIn, deletePost);
 router.get("/", getPosts);
 router.post("/", createPost);
 
+router.get("/", ensureLoggedIn, (req, res) => {
+    res.json([{ id: 1, content: "First post!", user: req.user.id }]);
+});
+
+router.post("/", ensureLoggedIn, (req, res) => {
+    const { content } = req.body;
+    res.json({ id: Date.now(), content, user: req.user.id });
+});
 
 module.exports = router;
 export default router;

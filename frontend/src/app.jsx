@@ -247,12 +247,12 @@ import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import SignUpPage from "./pages/SignUpPage/SignUpPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
-import PostsPage from "./pages/PostsPage/PostsPage";
+import PostListPage from "./pages/PostListPage/PostListPage";
 import NewPostPage from "./pages/NewPostPage/NewPostPage";
 import MessagesPage from "./pages/MessagesPage/MessagesPage";
-import SearchPage from "./pages/SearchPage";
+import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
-import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
+// import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
 import "./App.css";
 
 // 🔒 Reusable Private Route
@@ -288,7 +288,7 @@ export default function App() {
                     path="/posts"
                     element={
                     <PrivateRoute>
-                        <PostsPage />
+                        <PostListPage />
                     </PrivateRoute>
                     }
                 />
@@ -316,14 +316,14 @@ export default function App() {
                     </PrivateRoute>
                     }
                 />
-                <Route
+                {/* <Route
                     path="/search"
                     element={
                     <PrivateRoute>
                         <UserSearchPage />
                     </PrivateRoute>
                     }
-                />
+                /> */}
 
                 {/* fallback */}
                 <Route path="*" element={<Navigate to="/" />} />

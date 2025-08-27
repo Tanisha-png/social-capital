@@ -53,6 +53,7 @@
 // }
 
 import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function MessagesPage({ recipientId }) {
     const [messages, setMessages] = useState([]);

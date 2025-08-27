@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as postService from '../../services/postService';
 import './PostListPage.css';
 import PostItem from '../../components/PostItem/PostItem';
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PostListPage() {
   const { user } = useAuth();

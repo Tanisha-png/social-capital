@@ -64,8 +64,8 @@
 
 import express from "express";
 import checkToken from "../middleware/checkToken.js";
-import ensureLoggedIn from "../middleware/ensureLoggedIn.js";
-import { searchUsers } from "../controllers/userController.js";
+import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
+// import { searchUsers } from "../controllers/userController.js";
 import {
     getMe,
     updateMe,

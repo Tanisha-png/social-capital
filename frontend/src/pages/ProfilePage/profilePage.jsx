@@ -62,12 +62,12 @@
 
 // src/pages/ProfilePage.jsx
 import React, { useEffect, useState } from "react";
+// import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
 import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {

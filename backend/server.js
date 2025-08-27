@@ -94,7 +94,7 @@ import userRoutes from "./routes/userRoutes.js";
 import connectionRoutes from "./routes/connectionRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 
-import messagesRoutes from "./routes/messages.js";
+import messagesRoutes from "./routes/messageRoutes.js";
 import searchRoutes from "./routes/search.js";
 
 dotenv.config();
