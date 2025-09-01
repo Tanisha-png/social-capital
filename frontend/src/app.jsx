@@ -234,14 +234,114 @@
 // }
 
 // src/App.jsx
+// import React from "react";
+// import {
+//     BrowserRouter as Router,
+//     Routes,
+//     Route,
+//     Navigate,
+// } from "react-router-dom";
+// import { AuthProvider, useAuth } from "./context/AuthContext";
+// import NavBar from "./components/NavBar/NavBar";
+// import HomePage from "./pages/HomePage/HomePage";
+// import LoginPage from "./pages/LoginPage/LoginPage";
+// import SignUpPage from "./pages/SignUpPage/SignUpPage";
+// import ProfilePage from "./pages/ProfilePage/ProfilePage";
+// import PostListPage from "./pages/PostListPage/PostListPage";
+// import NewPostPage from "./pages/NewPostPage/NewPostPage";
+// import MessagesPage from "./pages/MessagesPage/MessagesPage";
+// import SearchPage from "./pages/SearchPage/SearchPage";
+// import FriendsPage from "./pages/FriendsPage/FriendsPage";
+// // import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
+// import "./App.css";
+
+// // 🔒 Reusable Private Route
+// function PrivateRoute({ children }) {
+//     const { user } = useAuth();
+//     return user ? children : <Navigate to="/login" />;
+// }
+
+// export default function App() {
+//     return (
+//         <AuthProvider>
+//         {/* <Router> */}
+//             <div className="page-container">
+//             <NavBar />
+//             <div className="content-wrap">
+//                 <Routes>
+//                 {/* Public */}
+//                 <Route path="/" element={<HomePage />} />
+//                 <Route path="/login" element={<LoginPage />} />
+//                 <Route path="/signup" element={<SignUpPage />} />
+//                 <Route path="/search" element={<PrivateRoute element={<SearchPage />} />} />
+
+//                 {/* Private */}
+//                 <Route
+//                     path="/profile"
+//                     element={
+//                     <PrivateRoute>
+//                         <ProfilePage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+//                 <Route
+//                     path="/posts"
+//                     element={
+//                     <PrivateRoute>
+//                         <PostListPage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+//                 <Route
+//                     path="/posts/new"
+//                     element={
+//                     <PrivateRoute>
+//                         <NewPostPage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+//                 <Route
+//                     path="/messages"
+//                     element={
+//                     <PrivateRoute>
+//                         <MessagesPage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+//                 <Route
+//                     path="/friends"
+//                     element={
+//                     <PrivateRoute>
+//                         <FriendsPage />
+//                     </PrivateRoute>
+//                     }
+//                 />
+//                 {/* <Route
+//                     path="/search"
+//                     element={
+//                     <PrivateRoute>
+//                         <UserSearchPage />
+//                     </PrivateRoute>
+//                     }
+//                 /> */}
+
+//                 {/* fallback */}
+//                 <Route path="*" element={<Navigate to="/" />} />
+//                 </Routes>
+//             </div>
+
+//             <footer className="footer">
+//                 <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+//             </footer>
+//             </div>
+//         {/* </Router> */}
+//         </AuthProvider>
+//     );
+// }
+
 import React from "react";
-import {
-    BrowserRouter as Router,
-    Routes,
-    Route,
-    Navigate,
-} from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import NavBar from "./components/NavBar/NavBar";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
@@ -252,89 +352,84 @@ import NewPostPage from "./pages/NewPostPage/NewPostPage";
 import MessagesPage from "./pages/MessagesPage/MessagesPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
-// import UserSearchPage from "./pages/UserSearchPage/UserSearchPage";
 import "./App.css";
 
-// 🔒 Reusable Private Route
+// Private Route
 function PrivateRoute({ children }) {
     const { user } = useAuth();
-    return user ? children : <Navigate to="/login" />;
-}
+        return user ? children : <Navigate to="/login" />;
+    }
 
-export default function App() {
+    export default function App() {
     return (
-        <AuthProvider>
-        <Router>
-            <div className="page-container">
+        <div className="page-container">
             <NavBar />
             <div className="content-wrap">
-                <Routes>
+            <Routes>
                 {/* Public */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/search" element={<PrivateRoute element={<SearchPage />} />} />
 
                 {/* Private */}
                 <Route
-                    path="/profile"
-                    element={
+                path="/profile"
+                element={
                     <PrivateRoute>
-                        <ProfilePage />
+                    <ProfilePage />
                     </PrivateRoute>
-                    }
+                }
                 />
                 <Route
-                    path="/posts"
-                    element={
+                path="/posts"
+                element={
                     <PrivateRoute>
-                        <PostListPage />
+                    <PostListPage />
                     </PrivateRoute>
-                    }
+                }
                 />
                 <Route
-                    path="/posts/new"
-                    element={
+                path="/posts/new"
+                element={
                     <PrivateRoute>
-                        <NewPostPage />
+                    <NewPostPage />
                     </PrivateRoute>
-                    }
+                }
                 />
                 <Route
-                    path="/messages"
-                    element={
+                path="/messages"
+                element={
                     <PrivateRoute>
-                        <MessagesPage />
+                    <MessagesPage />
                     </PrivateRoute>
-                    }
+                }
                 />
                 <Route
-                    path="/friends"
-                    element={
+                path="/friends"
+                element={
                     <PrivateRoute>
-                        <FriendsPage />
+                    <FriendsPage />
                     </PrivateRoute>
-                    }
+                }
                 />
-                {/* <Route
-                    path="/search"
-                    element={
+                <Route
+                path="/search"
+                element={
                     <PrivateRoute>
-                        <UserSearchPage />
+                    <SearchPage />
                     </PrivateRoute>
-                    }
-                /> */}
+                }
+                />
 
-                {/* fallback */}
+                {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
+            </Routes>
             </div>
-
             <footer className="footer">
-                <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+            <p>
+                © {new Date().getFullYear()} Social Capital. All rights reserved.
+            </p>
             </footer>
-            </div>
-        </Router>
-        </AuthProvider>
+        </div>
     );
 }

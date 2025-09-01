@@ -2,7 +2,7 @@
 //   return <h1>Home Page</h1>;
 // }
 
-import React from "react";
+import Reac, { useState, useEffect } from "react";
 import "./HomePage.css";
 import logo from "../HomePage/sc_logo.png";
 

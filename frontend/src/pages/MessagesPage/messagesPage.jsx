@@ -52,50 +52,98 @@
 //     );
 // }
 
-import { useState, useEffect } from "react";
+// import { useState, useEffect } from "react";
+// import { useAuth } from "../../context/AuthContext";
+
+// export default function MessagesPage({ recipientId }) {
+//     const [messages, setMessages] = useState([]);
+//     const [text, setText] = useState("");
+
+//     useEffect(() => {
+//         fetch(`/api/messages/${recipientId}`, {
+//         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//         })
+//         .then((res) => res.json())
+//         .then(setMessages);
+//     }, [recipientId]);
+
+//     const sendMessage = async (e) => {
+//         e.preventDefault();
+//         const res = await fetch(`/api/messages/${recipientId}`, {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json",
+//             Authorization: `Bearer ${localStorage.getItem("token")}`,
+//         },
+//         body: JSON.stringify({ text }),
+//         });
+//         const msg = await res.json();
+//         setMessages([...messages, msg]);
+//         setText("");
+//     };
+
+//     return (
+//         <div>
+//         <h2>Messages</h2>
+//         <ul>
+//             {messages.map((m) => (
+//             <li key={m._id}>
+//                 <b>{m.sender.name}:</b> {m.text}
+//             </li>
+//             ))}
+//         </ul>
+//         <form onSubmit={sendMessage}>
+//             <input value={text} onChange={(e) => setText(e.target.value)} />
+//             <button type="submit">Send</button>
+//         </form>
+//         </div>
+//     );
+// }
+
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
-export default function MessagesPage({ recipientId }) {
+
+export default function MessagesPage() {
+    const { user } = useAuth();
     const [messages, setMessages] = useState([]);
-    const [text, setText] = useState("");
 
     useEffect(() => {
-        fetch(`/api/messages/${recipientId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        })
-        .then((res) => res.json())
-        .then(setMessages);
-    }, [recipientId]);
+        if (!user) return;
+        async function fetchMessages() {
+            const token = localStorage.getItem("token");
+            try {
+            const res = await fetch("/api/messages", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            // ✅ Make sure messages is always an array
+            setMessages(Array.isArray(data) ? data : data.messages || []);
+            } catch (err) {
+            console.error("Failed to fetch messages:", err);
+            setMessages([]); // fallback to empty array
+            }
+        }
 
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        const res = await fetch(`/api/messages/${recipientId}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ text }),
-        });
-        const msg = await res.json();
-        setMessages([...messages, msg]);
-        setText("");
-    };
+        fetchMessages();
+    }, [user]);
+
+    if (!user) return <p>Loading messages...</p>;
 
     return (
         <div>
-        <h2>Messages</h2>
-        <ul>
-            {messages.map((m) => (
-            <li key={m._id}>
-                <b>{m.sender.name}:</b> {m.text}
-            </li>
-            ))}
-        </ul>
-        <form onSubmit={sendMessage}>
-            <input value={text} onChange={(e) => setText(e.target.value)} />
-            <button type="submit">Send</button>
-        </form>
+            <h2>Messages</h2>
+            {messages.length === 0 ? (
+            <p>No messages yet</p>
+            ) : (
+            messages.map((msg) => (
+                <div key={msg._id}>
+                <strong>{msg.senderName}:</strong> {msg.text}
+                </div>
+            ))
+            )}
         </div>
     );
 }
+
+

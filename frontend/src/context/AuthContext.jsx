@@ -170,21 +170,118 @@
 
 // export const useAuth = () => useContext(AuthContext);
 
-import { createContext, useContext, useState } from "react";
+// // import React, { useState } from "react";
+// import React, { createContext, useContext, useState, useEffect } from "react";
+// import { useAuth } from "../context/AuthContext";
+// import * as authService from "../services/authService";
+// import { useNavigate } from "react-router-dom";
 
-// Create the context
+// export default function LogInPage() {
+//   const [formData, setFormData] = useState({ email: "", password: "" });
+//   const { login } = useAuth();
+//   const navigate = useNavigate();
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     try {
+//       const { user, token } = await authService.login(formData);
+//       login(user, token); // set user in context
+//       navigate("/"); // redirect after login
+//     } catch (err) {
+//       console.error(err);
+//       alert("Login failed");
+//     }
+//   };
+
+//   return (
+//     <form onSubmit={handleSubmit}>
+//       <input
+//         type="email"
+//         name="email"
+//         value={formData.email}
+//         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+//       />
+//       <input
+//         type="password"
+//         name="password"
+//         value={formData.password}
+//         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+//       />
+//       <button type="submit">Login</button>
+//     </form>
+//   );
+// }
+
+// import React, { createContext, useContext, useState, useEffect } from "react";
+
+// const AuthContext = createContext();
+
+// export function AuthProvider({ children }) {
+//   const [user, setUser] = useState(null);
+
+//   // Load user on app start if token exists
+//   useEffect(() => {
+//     const token = localStorage.getItem("token");
+//     if (token) {
+//       fetch("/api/users/profile", {
+//         headers: { Authorization: `Bearer ${token}` },
+//       })
+//         .then((res) => res.json())
+//         .then((data) => setUser(data))
+//         .catch(() => setUser(null));
+//     }
+//   }, []);
+
+//   const login = (userData, token) => {
+//     localStorage.setItem("token", token);
+//     setUser(userData);
+//   };
+
+//   const logout = () => {
+//     localStorage.removeItem("token");
+//     setUser(null);
+//   };
+
+//   return (
+//     <AuthContext.Provider value={{ user, login, logout }}>
+//       {children}
+//     </AuthContext.Provider>
+//   );
+// }
+
+// // Custom hook to access auth
+// export const useAuth = () => useContext(AuthContext);
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+
 const AuthContext = createContext();
 
-// Provider component
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (token && userData) setUser(userData);
+  }, []);
+
+  function login(userData, token) {
+    setUser(userData);
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+  }
+
+  function logOut() {
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, login, logOut }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-// Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);

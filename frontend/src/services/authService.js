@@ -224,51 +224,112 @@ const AUTH_URL = `${BACKEND_URL}/api/auth`;
 const USER_URL = "/api/users";
 
 // Token helpers
-export function saveAuthData(token, user) {
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user));
-}
+// export function saveAuthData(token, user) {
+//   localStorage.setItem("token", token);
+//   localStorage.setItem("user", JSON.stringify(user));
+// }
 
+// export function getToken() {
+//   return localStorage.getItem("token");
+// }
+
+// export function removeAuthData() {
+//   localStorage.removeItem("token");
+//   localStorage.removeItem("user");
+// }
+
+// export function getUser() {
+//   const user = localStorage.getItem("user");
+//   return user ? JSON.parse(user) : null;
+// }
+
+// // 🔑 AUTH API calls
+// export async function signUp(userData) {
+//   return sendRequest(`${AUTH_URL}/signup`, "POST", userData);
+// }
+
+// export async function logIn(credentials) {
+//   return sendRequest(`${AUTH_URL}/login`, "POST", credentials);
+// }
+
+// // 👤 USER API calls
+// // export function getProfile() {
+// //   return sendRequest(`${USER_URL}/me`);
+// // }
+
+// export async function getProfile() {
+//   const token = localStorage.getItem("token");
+//   if (!token) throw new Error("No token provided");
+
+//   const res = await fetch("/api/users/profile", {
+//     headers: {
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+
+//   if (!res.ok) throw new Error("Failed to fetch profile");
+
+//   return res.json();
+// }
+
+// export function updateProfile(data) {
+//   return sendRequest(`${USER_URL}/me`, "PUT", data);
+// }
+
+// export function getConnections() {
+//   return sendRequest(`${USER_URL}/connections`);
+// }
+
+// export function addConnection(userId) {
+//   return sendRequest(`${USER_URL}/connections/${userId}`, "POST");
+// }
+
+// export function searchUsers(query) {
+//   return sendRequest(`${USER_URL}/search?query=${query}`);
+// }
+
+// services/authService.js
 export function getToken() {
   return localStorage.getItem("token");
 }
 
-export function removeAuthData() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+export async function login({ email, password }) {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error("Login failed");
+  return res.json(); // { user, token }
 }
 
-export function getUser() {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
+export async function signup(data) {
+  const res = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Signup failed");
+  return res.json();
 }
 
-// 🔑 AUTH API calls
-export async function signUp(userData) {
-  return sendRequest(`${AUTH_URL}/signup`, "POST", userData);
+export async function getProfile(token) {
+  const res = await fetch("/api/users/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Failed to fetch profile");
+  return res.json();
 }
 
-export async function logIn(credentials) {
-  return sendRequest(`${AUTH_URL}/login`, "POST", credentials);
-}
-
-// 👤 USER API calls
-export function getProfile() {
-  return sendRequest(`${USER_URL}/me`);
-}
-
-export function updateProfile(data) {
-  return sendRequest(`${USER_URL}/me`, "PUT", data);
-}
-
-export function getConnections() {
-  return sendRequest(`${USER_URL}/connections`);
-}
-
-export function addConnection(userId) {
-  return sendRequest(`${USER_URL}/connections/${userId}`, "POST");
-}
-
-export function searchUsers(query) {
-  return sendRequest(`${USER_URL}/search?query=${query}`);
+export async function updateProfile(token, data) {
+  const res = await fetch("/api/users/me", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+  return res.json();
 }

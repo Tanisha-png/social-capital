@@ -15,8 +15,8 @@
 .profile-img {
     width: 100px;
     height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
+    border-radius: 25%;
+    /* object-fit: cover; */
     border: 3px solid #1a3d7c;
     /* navy blue */
 }
