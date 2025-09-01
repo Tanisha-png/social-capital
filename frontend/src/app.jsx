@@ -12,6 +12,7 @@ import NewPostPage from "./pages/NewPostPage/NewPostPage";
 import MessagesPage from "./pages/MessagesPage/MessagesPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
+import EditProfilePage from "./pages/EditProfilePage";
 import "./App.css";
 
 // Private Route
@@ -77,6 +78,14 @@ function PrivateRoute({ children }) {
                 element={
                     <PrivateRoute>
                     <SearchPage />
+                    </PrivateRoute>
+                }
+                />
+                <Route
+                path="/profile/edit"
+                element={
+                    <PrivateRoute>
+                    <EditProfilePage />
                     </PrivateRoute>
                 }
                 />
