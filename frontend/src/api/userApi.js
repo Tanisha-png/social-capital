@@ -7,13 +7,6 @@ export const getProfile = (id, token) =>
 export const updateProfile = (data, token) =>
     base.put("/", data, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data);
 
-// export const getFriendList = async (token) => {
-//     const { data } = await axios.get('/api/users/friends', {
-//         headers: { Authorization: `Bearer ${token}` }
-//     });
-//     return data;
-// };
-
 export const getFriendList = (token) =>
     base.get("/friends", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data);
 
