@@ -1,24 +1,179 @@
 
+// import React, { useState, useEffect } from "react";
+// import { useAuth } from "../../context/AuthContext";
+// import * as authService from "../../services/authService";
+// import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
+// import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
+// import HelpSections from "../../components/HelpSections/HelpSections";
+// import "./ProfilePage.css";
+
+// export default function ProfilePage() {
+//   const { user, login } = useAuth(); // get current user from context
+//     const [formData, setFormData] = useState({
+//         profileImage: "",
+//         firstName: "",
+//         lastName: "",
+//         bio: "",
+//         occupation: "",
+//         education: "",
+//         canHelpWith: "",
+//         needHelpWith: "",
+//     });
+//     const [loading, setLoading] = useState(true);
+
+//     useEffect(() => {
+//         async function fetchProfile() {
+//         if (!user) return;
+//         try {
+//             const token = localStorage.getItem("token");
+//             const profile = await authService.getProfile(token);
+
+//             setFormData({
+//             profileImage: profile.profileImage || "",
+//             firstName: profile.firstName || "",
+//             lastName: profile.lastName || "",
+//             bio: profile.bio || "",
+//             occupation: profile.occupation || "",
+//             education: profile.education || "",
+//             canHelpWith: profile.canHelpWith?.join(", ") || "",
+//             needHelpWith: profile.needHelpWith?.join(", ") || "",
+//             });
+//         } catch (err) {
+//             console.error("Failed to load profile:", err);
+//         } finally {
+//             setLoading(false);
+//         }
+//         }
+//         fetchProfile();
+//     }, [user]);
+
+//     function handleChange(e) {
+//         setFormData({ ...formData, [e.target.name]: e.target.value });
+//     }
+
+//     async function handleSubmit(e) {
+//         e.preventDefault();
+//         try {
+//         const token = localStorage.getItem("token");
+//         const updated = await authService.updateProfile(token, {
+//             ...formData,
+//             canHelpWith: formData.canHelpWith.split(",").map((s) => s.trim()),
+//             needHelpWith: formData.needHelpWith.split(",").map((s) => s.trim()),
+//         });
+//         // Update context with new user data
+//         login(updated, token);
+//         alert("Profile updated!");
+//         } catch (err) {
+//         console.error("Failed to update profile:", err);
+//         alert("Profile update failed");
+//         }
+//     }
+
+//     if (!user || loading) return <p>Loading profile...</p>;
+
+//     return (
+//         <div className="profile-page">
+//         <div className="profile-header">
+//             <img
+//             src={formData.profileImage || "/default-profile.png"}
+//             alt="Profile"
+//             className="profile-img"
+//             />
+//             <h2>
+//             {formData.firstName} {formData.lastName}
+//             </h2>
+//             <p>{formData.bio}</p>
+//         </div>
+
+//         <form className="profile-form" onSubmit={handleSubmit}>
+//             <label>Profile Image URL</label>
+//             <input
+//             type="text"
+//             name="profileImage"
+//             value={formData.profileImage}
+//             onChange={handleChange}
+//             />
+
+//             <label>First Name</label>
+//             <input
+//             type="text"
+//             name="firstName"
+//             value={formData.firstName}
+//             onChange={handleChange}
+//             />
+
+//             <label>Last Name</label>
+//             <input
+//             type="text"
+//             name="lastName"
+//             value={formData.lastName}
+//             onChange={handleChange}
+//             />
+
+//             <label>Bio</label>
+//             <textarea name="bio" value={formData.bio} onChange={handleChange} />
+
+//             <label>Occupation</label>
+//             <input
+//             type="text"
+//             name="occupation"
+//             value={formData.occupation}
+//             onChange={handleChange}
+//             />
+
+//             <label>Education</label>
+//             <input
+//             type="text"
+//             name="education"
+//             value={formData.education}
+//             onChange={handleChange}
+//             />
+
+//             <label>I can help with (comma separated)</label>
+//             <input
+//             type="text"
+//             name="canHelpWith"
+//             value={formData.canHelpWith}
+//             onChange={handleChange}
+//             />
+
+//             <label>I need help with (comma separated)</label>
+//             <input
+//             type="text"
+//             name="needHelpWith"
+//             value={formData.needHelpWith}
+//             onChange={handleChange}
+//             />
+
+//             <button type="submit">Save Profile</button>
+//         </form>
+
+//         <HelpSections
+//             canHelpWith={formData.canHelpWith.split(",").map((s) => s.trim())}
+//             needHelpWith={formData.needHelpWith.split(",").map((s) => s.trim())}
+//         />
+
+//         <div className="connections-section">
+//             <ConnectionsList />
+//             <PotentialConnections />
+//         </div>
+//         </div>
+//     );
+// }
+
+// src/pages/ProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
 import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
+import { Link } from "react-router-dom";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
-  const { user, login } = useAuth(); // get current user from context
-    const [formData, setFormData] = useState({
-        profileImage: "",
-        firstName: "",
-        lastName: "",
-        bio: "",
-        occupation: "",
-        education: "",
-        canHelpWith: "",
-        needHelpWith: "",
-    });
+    const { user } = useAuth();
+    const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,18 +181,8 @@ export default function ProfilePage() {
         if (!user) return;
         try {
             const token = localStorage.getItem("token");
-            const profile = await authService.getProfile(token);
-
-            setFormData({
-            profileImage: profile.profileImage || "",
-            firstName: profile.firstName || "",
-            lastName: profile.lastName || "",
-            bio: profile.bio || "",
-            occupation: profile.occupation || "",
-            education: profile.education || "",
-            canHelpWith: profile.canHelpWith?.join(", ") || "",
-            needHelpWith: profile.needHelpWith?.join(", ") || "",
-            });
+            const profileData = await authService.getProfile(token);
+            setProfile(profileData);
         } catch (err) {
             console.error("Failed to load profile:", err);
         } finally {
@@ -47,110 +192,31 @@ export default function ProfilePage() {
         fetchProfile();
     }, [user]);
 
-    function handleChange(e) {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    }
-
-    async function handleSubmit(e) {
-        e.preventDefault();
-        try {
-        const token = localStorage.getItem("token");
-        const updated = await authService.updateProfile(token, {
-            ...formData,
-            canHelpWith: formData.canHelpWith.split(",").map((s) => s.trim()),
-            needHelpWith: formData.needHelpWith.split(",").map((s) => s.trim()),
-        });
-        // Update context with new user data
-        login(updated, token);
-        alert("Profile updated!");
-        } catch (err) {
-        console.error("Failed to update profile:", err);
-        alert("Profile update failed");
-        }
-    }
-
     if (!user || loading) return <p>Loading profile...</p>;
+    if (!profile) return <p>No profile found.</p>;
 
     return (
         <div className="profile-page">
         <div className="profile-header">
             <img
-            src={formData.profileImage || "/default-profile.png"}
+            src={profile.profileImage || "/default-profile.png"}
             alt="Profile"
             className="profile-img"
             />
             <h2>
-            {formData.firstName} {formData.lastName}
+            {profile.firstName} {profile.lastName}
             </h2>
-            <p>{formData.bio}</p>
+            <p>{profile.bio}</p>
+            <p><strong>Occupation:</strong> {profile.occupation}</p>
+            <p><strong>Education:</strong> {profile.education}</p>
+            <Link to="/profile/edit">
+            <button>Edit Profile</button>
+            </Link>
         </div>
 
-        <form className="profile-form" onSubmit={handleSubmit}>
-            <label>Profile Image URL</label>
-            <input
-            type="text"
-            name="profileImage"
-            value={formData.profileImage}
-            onChange={handleChange}
-            />
-
-            <label>First Name</label>
-            <input
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            />
-
-            <label>Last Name</label>
-            <input
-            type="text"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            />
-
-            <label>Bio</label>
-            <textarea name="bio" value={formData.bio} onChange={handleChange} />
-
-            <label>Occupation</label>
-            <input
-            type="text"
-            name="occupation"
-            value={formData.occupation}
-            onChange={handleChange}
-            />
-
-            <label>Education</label>
-            <input
-            type="text"
-            name="education"
-            value={formData.education}
-            onChange={handleChange}
-            />
-
-            <label>I can help with (comma separated)</label>
-            <input
-            type="text"
-            name="canHelpWith"
-            value={formData.canHelpWith}
-            onChange={handleChange}
-            />
-
-            <label>I need help with (comma separated)</label>
-            <input
-            type="text"
-            name="needHelpWith"
-            value={formData.needHelpWith}
-            onChange={handleChange}
-            />
-
-            <button type="submit">Save Profile</button>
-        </form>
-
         <HelpSections
-            canHelpWith={formData.canHelpWith.split(",").map((s) => s.trim())}
-            needHelpWith={formData.needHelpWith.split(",").map((s) => s.trim())}
+            canHelpWith={profile.canHelpWith || []}
+            needHelpWith={profile.needHelpWith || []}
         />
 
         <div className="connections-section">
@@ -160,4 +226,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
 
