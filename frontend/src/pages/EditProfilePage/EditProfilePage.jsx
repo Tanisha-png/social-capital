@@ -1,8 +1,7 @@
-// src/pages/EditProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
-import "./ProfilePage.css"; // reuse styles if you want
+import "../ProfilePage/ProfilePage.css"; // reuse ProfilePage styles
 
 export default function EditProfilePage() {
     const { user, login } = useAuth();
@@ -57,6 +56,7 @@ export default function EditProfilePage() {
             canHelpWith: formData.canHelpWith.split(",").map((s) => s.trim()),
             needHelpWith: formData.needHelpWith.split(",").map((s) => s.trim()),
         });
+
         // Update context with new user data
         login(updated, token);
         alert("Profile updated!");
