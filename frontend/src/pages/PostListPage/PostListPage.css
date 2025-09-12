@@ -11,36 +11,26 @@
   color: #333;
 }
 
-/* Feed wrapper to give spacing between new post and posts */
 .posts-feed {
   display: flex;
   flex-direction: column;
   gap: 16px;
   list-style: none;
-  /* remove bullets */
   padding: 0;
-  /* remove default padding */
   margin: 0;
-  /* remove default margin */
 }
 
-/* Individual post card styling to match feed input */
 .post-card {
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 12px;
-  /* same as form */
   padding: 16px;
-  /* same as form */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  /* subtle shadow */
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* spacing between content, author, link */
 }
 
-/* Post content matches textarea font-size and line-height */
 .post-content {
   font-size: 14px;
   line-height: 1.5;
@@ -48,27 +38,23 @@
   margin: 0;
 }
 
-/* Author text slightly smaller for subtlety */
 .post-author {
   font-size: 12px;
   color: #555;
   margin: 0;
 }
 
-/* Link styling matches form button accent color */
 .post-link {
   font-size: 12px;
   color: #007bff;
   text-decoration: none;
   align-self: flex-start;
-  /* aligns with content start */
 }
 
 .post-link:hover {
   text-decoration: underline;
 }
 
-/* No posts message styling consistent with feed look */
 .no-posts {
   text-align: center;
   color: #777;
