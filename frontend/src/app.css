@@ -108,3 +108,16 @@ img {
     mix-blend-mode: multiply;
 }
 
+button {
+    background-color: #0077cc;
+    color: white;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+
+button:hover {
+    background-color: #005fa3;
+}
+

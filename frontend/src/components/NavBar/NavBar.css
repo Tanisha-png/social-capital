@@ -51,7 +51,6 @@
   align-items: center;
   padding: 12px 24px;
   background-color: #f8f9fa;
-  /* matches homepage background */
   border-bottom: 1px solid #ddd;
 }
 
@@ -70,7 +69,6 @@
 
 .nav-button {
   background-color: #0077cc;
-  /* your homepage accent */
   color: white;
   border: none;
   border-radius: 6px;
@@ -92,4 +90,45 @@
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+/* 🔔 Notifications Bell */
+.nav-notifications {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #0077cc;
+  transition: background 0.2s ease-in-out;
+}
+
+.nav-notifications:hover {
+  background-color: #005fa3;
+}
+
+.nav-notifications .bell-icon {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+}
+
+.nav-notifications .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ff3b30;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: bold;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  /* small white border for contrast */
 }

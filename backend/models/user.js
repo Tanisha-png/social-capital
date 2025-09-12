@@ -9,9 +9,15 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
 
     // Profile fields
+    firstName: { type: String, default: "" },
+    lastName: { type: String, default: "" },
     bio: { type: String, default: "" },
+    occupation: { type: String, default: "" },
+    education: { type: String, default: "" },
+    canHelpWith: [{ type: String }],
+    needHelpWith: [{ type: String }],
     location: { type: String, default: "" },
-    avatar: { type: String, default: "" }, // optional profile pic
+    avatar: { type: String, default: "/default-avatar.png" }, // optional profile pic
 
     // Social connections
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

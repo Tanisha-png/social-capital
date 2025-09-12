@@ -2,45 +2,65 @@ import React, { useState, useEffect } from "react";
 import * as authService from "../../services/authService";
 import "./PotentialConnections.css";
 
-export default function PotentialConnections() {
+export default function PotentialConnections({ userId, currentUserId }) {
     const [results, setResults] = useState([]);
-    const [query, setQuery] = useState("");
+    const [query, setQuery] = useState([]);
+    const [connectedIds, setConnectedIds] = useState([]);
 
-async function handleSearch(e) {
-    e.preventDefault();
-    const users = await authService.searchUsers(query);
-    setResults(users);
-}
+    useEffect(() => {
+        async function fetchPotential() {
+        if (!userId) return;
+        const users = await authService.getPotentialConnections(userId);
+        setResults(users);
 
-async function handleConnect(userId) {
-    await authService.addConnection(userId);
-    alert("Connection added!");
-}
+        // Keep track of connected IDs to disable buttons
+        const connections = await authService.getConnections(currentUserId);
+        setConnectedIds(connections.map((c) => c._id));
+        }
+        fetchPotential();
+    }, [userId, currentUserId]);
 
-return (
-    <div className="potential-connections">
-        <h3>Find People</h3>
-        <form onSubmit={handleSearch}>
+    async function handleConnect(uId) {
+        await authService.addConnection(uId);
+        alert("Connection added!");
+        setConnectedIds((prev) => [...prev, uId]);
+    }
+
+    return (
+        <div className="potential-connections">
+        <h3>People You May Know</h3>
+        <form
+            onSubmit={async (e) => {
+            e.preventDefault();
+            const users = await authService.searchUsers(query, userId);
+            setResults(users);
+            }}
+        >
             <input
-                type="text"
-                placeholder="Search by name, occupation, education"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+            type="text"
+            placeholder="Search by name, occupation, education"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             />
             <button type="submit">Search</button>
         </form>
 
-    <ul>
-        {results.map((u) => (
-        <li key={u._id}>
-            <img src={u.profileImage || "/default-profile.png"} alt="" />
-            <span>
+        <ul>
+            {results.map((u) => (
+            <li key={u._id}>
+                <img src={u.profileImage || "/default-profile.png"} alt="" />
+                <span>
                 {u.firstName} {u.lastName}
-            </span>
-            <button onClick={() => handleConnect(u._id)}>Connect</button>
-        </li>
-        ))}
+                </span>
+                {u._id !== currentUserId && !connectedIds.includes(u._id) && (
+                <button onClick={() => handleConnect(u._id)}>Connect</button>
+                )}
+                {(u._id === currentUserId || connectedIds.includes(u._id)) && (
+                <span>Connected</span>
+                )}
+            </li>
+            ))}
         </ul>
-    </div>
+        </div>
     );
 }

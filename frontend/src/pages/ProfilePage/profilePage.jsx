@@ -1,230 +1,193 @@
 
-// import React, { useState, useEffect } from "react";
-// import { useAuth } from "../../context/AuthContext";
-// import * as authService from "../../services/authService";
-// import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
-// import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
-// import HelpSections from "../../components/HelpSections/HelpSections";
-// import "./ProfilePage.css";
 
-// export default function ProfilePage() {
-//   const { user, login } = useAuth(); // get current user from context
-//     const [formData, setFormData] = useState({
-//         profileImage: "",
-//         firstName: "",
-//         lastName: "",
-//         bio: "",
-//         occupation: "",
-//         education: "",
-//         canHelpWith: "",
-//         needHelpWith: "",
-//     });
-//     const [loading, setLoading] = useState(true);
-
-//     useEffect(() => {
-//         async function fetchProfile() {
-//         if (!user) return;
-//         try {
-//             const token = localStorage.getItem("token");
-//             const profile = await authService.getProfile(token);
-
-//             setFormData({
-//             profileImage: profile.profileImage || "",
-//             firstName: profile.firstName || "",
-//             lastName: profile.lastName || "",
-//             bio: profile.bio || "",
-//             occupation: profile.occupation || "",
-//             education: profile.education || "",
-//             canHelpWith: profile.canHelpWith?.join(", ") || "",
-//             needHelpWith: profile.needHelpWith?.join(", ") || "",
-//             });
-//         } catch (err) {
-//             console.error("Failed to load profile:", err);
-//         } finally {
-//             setLoading(false);
-//         }
-//         }
-//         fetchProfile();
-//     }, [user]);
-
-//     function handleChange(e) {
-//         setFormData({ ...formData, [e.target.name]: e.target.value });
-//     }
-
-//     async function handleSubmit(e) {
-//         e.preventDefault();
-//         try {
-//         const token = localStorage.getItem("token");
-//         const updated = await authService.updateProfile(token, {
-//             ...formData,
-//             canHelpWith: formData.canHelpWith.split(",").map((s) => s.trim()),
-//             needHelpWith: formData.needHelpWith.split(",").map((s) => s.trim()),
-//         });
-//         // Update context with new user data
-//         login(updated, token);
-//         alert("Profile updated!");
-//         } catch (err) {
-//         console.error("Failed to update profile:", err);
-//         alert("Profile update failed");
-//         }
-//     }
-
-//     if (!user || loading) return <p>Loading profile...</p>;
-
-//     return (
-//         <div className="profile-page">
-//         <div className="profile-header">
-//             <img
-//             src={formData.profileImage || "/default-profile.png"}
-//             alt="Profile"
-//             className="profile-img"
-//             />
-//             <h2>
-//             {formData.firstName} {formData.lastName}
-//             </h2>
-//             <p>{formData.bio}</p>
-//         </div>
-
-//         <form className="profile-form" onSubmit={handleSubmit}>
-//             <label>Profile Image URL</label>
-//             <input
-//             type="text"
-//             name="profileImage"
-//             value={formData.profileImage}
-//             onChange={handleChange}
-//             />
-
-//             <label>First Name</label>
-//             <input
-//             type="text"
-//             name="firstName"
-//             value={formData.firstName}
-//             onChange={handleChange}
-//             />
-
-//             <label>Last Name</label>
-//             <input
-//             type="text"
-//             name="lastName"
-//             value={formData.lastName}
-//             onChange={handleChange}
-//             />
-
-//             <label>Bio</label>
-//             <textarea name="bio" value={formData.bio} onChange={handleChange} />
-
-//             <label>Occupation</label>
-//             <input
-//             type="text"
-//             name="occupation"
-//             value={formData.occupation}
-//             onChange={handleChange}
-//             />
-
-//             <label>Education</label>
-//             <input
-//             type="text"
-//             name="education"
-//             value={formData.education}
-//             onChange={handleChange}
-//             />
-
-//             <label>I can help with (comma separated)</label>
-//             <input
-//             type="text"
-//             name="canHelpWith"
-//             value={formData.canHelpWith}
-//             onChange={handleChange}
-//             />
-
-//             <label>I need help with (comma separated)</label>
-//             <input
-//             type="text"
-//             name="needHelpWith"
-//             value={formData.needHelpWith}
-//             onChange={handleChange}
-//             />
-
-//             <button type="submit">Save Profile</button>
-//         </form>
-
-//         <HelpSections
-//             canHelpWith={formData.canHelpWith.split(",").map((s) => s.trim())}
-//             needHelpWith={formData.needHelpWith.split(",").map((s) => s.trim())}
-//         />
-
-//         <div className="connections-section">
-//             <ConnectionsList />
-//             <PotentialConnections />
-//         </div>
-//         </div>
-//     );
-// }
-
-// src/pages/ProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useParams, Link } from "react-router-dom";
 import * as authService from "../../services/authService";
 import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
-import { Link } from "react-router-dom";
+import {
+  Briefcase,
+  GraduationCap,
+  User,
+  MessageCircle,
+  Users,
+  HeartHandshake,
+} from "lucide-react";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
-    const { user } = useAuth();
-    const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { id } = useParams(); // if viewing another user's profile
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchProfile() {
-        if (!user) return;
-        try {
-            const token = localStorage.getItem("token");
-            const profileData = await authService.getProfile(token);
-            setProfile(profileData);
-        } catch (err) {
-            console.error("Failed to load profile:", err);
-        } finally {
-            setLoading(false);
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const token = localStorage.getItem("token");
+        let profileData;
+
+        if (id && id !== user?.id) {
+          // Viewing another user's profile
+          profileData = await authService.getUserProfile(id, token);
+        } else {
+          // Viewing logged-in user's profile
+          profileData = await authService.getProfile(token);
         }
-        }
-        fetchProfile();
-    }, [user]);
 
-    if (!user || loading) return <p>Loading profile...</p>;
-    if (!profile) return <p>No profile found.</p>;
+        // Ensure help sections are always arrays
+        profileData.canHelpWith = Array.isArray(profileData.canHelpWith)
+          ? profileData.canHelpWith
+          : [];
+        profileData.needHelpWith = Array.isArray(profileData.needHelpWith)
+          ? profileData.needHelpWith
+          : [];
 
+        setProfile(profileData);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfile();
+  }, [id, user]);
+
+  if (loading) return <p>Loading profile...</p>;
+
+  if (!profile) {
     return (
-        <div className="profile-page">
-        <div className="profile-header">
-            <img
-            src={profile.profileImage || "/default-profile.png"}
-            alt="Profile"
-            className="profile-img"
-            />
-            <h2>
-            {profile.firstName} {profile.lastName}
-            </h2>
-            <p>{profile.bio}</p>
-            <p><strong>Occupation:</strong> {profile.occupation}</p>
-            <p><strong>Education:</strong> {profile.education}</p>
-            <Link to="/profile/edit">
-            <button>Edit Profile</button>
-            </Link>
-        </div>
-
-        <HelpSections
-            canHelpWith={profile.canHelpWith || []}
-            needHelpWith={profile.needHelpWith || []}
-        />
-
-        <div className="connections-section">
-            <ConnectionsList />
-            <PotentialConnections />
-        </div>
-        </div>
+      <div className="profile-empty">
+        <p>No profile found.</p>
+        {!id && user && (
+          <Link to="/edit-profile">
+            <button className="edit-btn">Create Profile</button>
+          </Link>
+        )}
+      </div>
     );
+  }
+
+  const canHelpList = Array.isArray(profile.canHelpWith)
+    ? profile.canHelpWith
+    : [];
+  const needHelpList = Array.isArray(profile.needHelpWith)
+    ? profile.needHelpWith
+    : [];
+
+  return (
+    <div className="profile-page">
+      {/* Profile Card */}
+      <div className="profile-card">
+        <img
+          src={
+            profile.avatar && profile.avatar.trim() !== ""
+              ? profile.avatar
+              : "/default-avatar.png"
+          }
+          alt="Profile"
+          className="profile-avatar"
+        />
+        <h2>
+          {profile.firstName} {profile.lastName}
+        </h2>
+
+        {profile.occupation && (
+          <p>
+            <Briefcase size={16} style={{ marginRight: "6px" }} />
+            {profile.occupation}
+          </p>
+        )}
+        {profile.education && (
+          <p>
+            <GraduationCap size={16} style={{ marginRight: "6px" }} />
+            {profile.education}
+          </p>
+        )}
+        {profile.bio && (
+          <p className="profile-bio">
+            <MessageCircle size={16} style={{ marginRight: "6px" }} />
+            {profile.bio}
+          </p>
+        )}
+      </div>
+
+      {/* Can Help With */}
+      <div className="profile-card">
+        <h3>
+          <HeartHandshake size={18} style={{ marginRight: "8px" }} />I Can Help
+          With
+        </h3>
+        {canHelpList.length > 0 ? (
+          <ul>
+            {canHelpList.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No help topics listed yet.</p>
+        )}
+      </div>
+
+      {/* Need Help With */}
+      <div className="profile-card">
+        <h3>
+          <User size={18} style={{ marginRight: "8px" }} />I Need Help With
+        </h3>
+        {needHelpList.length > 0 ? (
+          <ul>
+            {needHelpList.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No help requests yet.</p>
+        )}
+      </div>
+
+      {/* Connections */}
+      <div className="profile-card">
+        <h3>
+          <Users size={18} style={{ marginRight: "8px" }} />
+          Connections
+        </h3>
+        <ConnectionsList userId={profile._id} />
+      </div>
+
+      {/* Potential Connections */}
+      <div className="profile-card">
+        <h3>
+          <Users size={18} style={{ marginRight: "8px" }} />
+          People You May Know
+        </h3>
+        <PotentialConnections />
+      </div>
+
+      {/* Help Sections */}
+      <div className="profile-card">
+        <h3>
+          <MessageCircle size={18} style={{ marginRight: "8px" }} />
+          Help Sections
+        </h3>
+        <HelpSections canHelpWith={canHelpList} needHelpWith={needHelpList} />
+      </div>
+
+      {/* Edit Profile Button — only for your own profile */}
+      {user && (user.id === profile._id || user._id === profile._id) && (
+        <div className="profile-actions">
+          <Link to="/edit-profile">
+            <button className="edit-btn">Edit Profile</button>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
 }
+
+
+
 
 

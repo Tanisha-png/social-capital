@@ -2,34 +2,35 @@ import React, { useState, useEffect } from "react";
 import * as authService from "../../services/authService";
 import "./ConnectionsList.css";
 
-export default function ConnectionsList() {
+export default function ConnectionsList({ userId }) {
     const [connections, setConnections] = useState([]);
 
-useEffect(() => {
-    async function fetchConnections() {
-        const data = await authService.getConnections();
+    useEffect(() => {
+        async function fetchConnections() {
+        if (!userId) return;
+        const data = await authService.getConnections(userId);
         setConnections(data);
-    }
-    fetchConnections();
-    }, []);
+        }
+        fetchConnections();
+    }, [userId]);
 
-return (
-    <div className="connections-list">
-        <h3>My Connections</h3>
+    return (
+        <div className="connections-list">
+        <h3>Connections</h3>
         {connections.length === 0 ? (
-        <p>No connections yet.</p>
-    ) : (
-        <ul>
+            <p>No connections yet.</p>
+        ) : (
+            <ul>
             {connections.map((c) => (
-            <li key={c._id}>
+                <li key={c._id}>
                 <img src={c.profileImage || "/default-profile.png"} alt="" />
                 <span>
                     {c.firstName} {c.lastName}
                 </span>
-            </li>
+                </li>
             ))}
-        </ul>
+            </ul>
         )}
-    </div>
+        </div>
     );
 }

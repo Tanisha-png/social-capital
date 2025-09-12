@@ -13,6 +13,8 @@ import MessagesPage from "./pages/MessagesPage/MessagesPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
 import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
+import PostDetailPage from "./pages/Posts/PostDetailPage";
+
 import "./App.css";
 
 // Private Route
@@ -82,16 +84,21 @@ function PrivateRoute({ children }) {
                 }
                 />
                 <Route
-                path="/profile/edit"
+                path="/edit-profile"
                 element={
                     <PrivateRoute>
                     <EditProfilePage />
                     </PrivateRoute>
                 }
-                />
+            />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" />} />
+            <Route path="/posts/:id" element={<PostDetailPage />} />
+            <Route path="/messages/:id" element={<MessagesPage />} />
+            <Route path="/posts/:id" element={<PostDetailPage />} />
+            <Route path="/edit-profile" element={<EditProfilePage />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
             </Routes>
             </div>
             <footer className="footer">

@@ -35,57 +35,60 @@ const SearchUsers = ({ token, onSelectUser }) => {
 
     return (
         <div className="p-4 bg-white rounded-2xl shadow-md">
-        <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+            <form onSubmit={handleSearch} className="flex gap-2 mb-4">
             <input
-            type="text"
-            placeholder="Search users..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="text"
+                placeholder="Search users..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-            Search
+                Search
             </button>
-        </form>
+            </form>
 
-        {loading && <p className="text-gray-500">Searching...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+            {loading && <p className="text-gray-500">Searching...</p>}
+            {error && <p className="text-red-500">{error}</p>}
 
-        <ul className="divide-y divide-gray-200">
-            {results.map((user) => (
-            <li
-                key={user._id}
+            <ul className="divide-y divide-gray-200">
+            {results.map((userItem) => (
+                <li
+                key={userItem._id}
                 className="p-3 flex justify-between items-center hover:bg-gray-50"
-            >
-                <div
-                onClick={() => onSelectUser && onSelectUser(user)}
-                className="cursor-pointer"
                 >
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-gray-600">{user.email}</p>
+                <div
+                    onClick={() => onSelectUser && onSelectUser(userItem)}
+                    className="cursor-pointer"
+                >
+                    <p className="font-semibold">{userItem.name}</p>
+                    <p className="text-sm text-gray-600">{userItem.email}</p>
                 </div>
 
                 <div>
-                {requestStatus[user._id] === "sent" ? (
+                    {/* Hide Add Friend button if it's the logged-in user */}
+                    {userItem._id === user.id ? (
+                    <span className="text-gray-500 text-sm">This is you</span>
+                    ) : requestStatus[userItem._id] === "sent" ? (
                     <span className="text-green-600 text-sm">Request Sent</span>
-                ) : (
+                    ) : (
                     <button
-                    onClick={() => handleSendRequest(user._id)}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        onClick={() => handleSendRequest(userItem._id)}
+                        className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                     >
-                    Add Friend
+                        Add Friend
                     </button>
-                )}
-                {requestStatus[user._id] === "error" && (
+                    )}
+                    {requestStatus[userItem._id] === "error" && (
                     <span className="text-red-500 text-sm">Error</span>
-                )}
+                    )}
                 </div>
-            </li>
+                </li>
             ))}
-        </ul>
+            </ul>
         </div>
     );
 };

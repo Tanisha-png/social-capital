@@ -7,6 +7,22 @@ export default function MessagesPage() {
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
 
+    const handleSendMessage = async (recipientId, content) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/messages", {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ toUserId: recipientId, content }),
+        });
+        if (res.ok) alert("Message sent!");
+      // Recipient will get real-time notification via Socket.IO
+    };
+
+
+
     useEffect(() => {
         if (!user) return;
         async function fetchMessages() {
