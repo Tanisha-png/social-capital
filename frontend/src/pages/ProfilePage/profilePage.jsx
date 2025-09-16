@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useParams, Link } from "react-router-dom";
@@ -115,39 +113,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Can Help With */}
-      <div className="profile-card">
-        <h3>
-          <HeartHandshake size={18} style={{ marginRight: "8px" }} />I Can Help
-          With
-        </h3>
-        {canHelpList.length > 0 ? (
-          <ul>
-            {canHelpList.map((item, idx) => (
-              <li key={idx}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No help topics listed yet.</p>
-        )}
-      </div>
-
-      {/* Need Help With */}
-      <div className="profile-card">
-        <h3>
-          <User size={18} style={{ marginRight: "8px" }} />I Need Help With
-        </h3>
-        {needHelpList.length > 0 ? (
-          <ul>
-            {needHelpList.map((item, idx) => (
-              <li key={idx}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No help requests yet.</p>
-        )}
-      </div>
-
       {/* Connections */}
       <div className="profile-card">
         <h3>
@@ -186,8 +151,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-
-
-
