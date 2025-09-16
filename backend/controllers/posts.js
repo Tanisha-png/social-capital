@@ -2,9 +2,7 @@
 
 // backend/controllers/posts.js
 import Post from "../models/post.js";
-// import user from "../models/user.js";
-import { sendEmail, createNotification } from "./notifications.js";
-// import { sendEmail } from "../utils/email.js"; // optional helper if you add nodemailer
+import { sendEmail, notifyUser } from "./notifications.js";
 
 // Get all posts
 export const getPosts = async (req, res) => {
@@ -12,6 +10,7 @@ export const getPosts = async (req, res) => {
     const posts = await Post.find()
       .populate("author", "firstName lastName email")
       .populate("replies.user", "firstName lastName email")
+      .populate("likes", "firstName lastName email") // ✅ get liker names
       .sort({ createdAt: -1 });
 
     res.json(posts);
@@ -31,10 +30,10 @@ export const createPost = async (req, res) => {
 
     await post.save();
 
-    // Populate author immediately for frontend
     const populatedPost = await Post.findById(post._id)
       .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email");
+      .populate("replies.user", "firstName lastName email")
+      .populate("likes", "firstName lastName email");
 
     res.status(201).json(populatedPost);
   } catch (err) {
@@ -48,7 +47,8 @@ export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email");
+      .populate("replies.user", "firstName lastName email")
+      .populate("likes", "firstName lastName email");
 
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
@@ -79,7 +79,7 @@ export const deletePost = async (req, res) => {
 // Add reply
 export const addReply = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate("author", "firstName lastName email");
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const reply = {
@@ -91,21 +91,22 @@ export const addReply = async (req, res) => {
     post.replies.push(reply);
     await post.save();
 
-    // Notifications
-    if (post.author.toString() !== req.user._id.toString()) {
+    // Notifications (if replying to someone else’s post)
+    if (post.author._id.toString() !== req.user._id.toString()) {
       const message = `${req.user.firstName} ${req.user.lastName} replied to your post.`;
       await sendEmail(post.author.email, "New Reply", message);
-      await createNotification({
-        userId: post.author,
+      await notifyUser({
+        userId: post.author._id,
         type: "post_reply",
         message,
-        postId: post._id,
+        post: post._id,
       });
     }
 
     const populatedPost = await Post.findById(post._id)
       .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email");
+      .populate("replies.user", "firstName lastName email")
+      .populate("likes", "firstName lastName email");
 
     res.status(201).json(populatedPost);
   } catch (err) {
@@ -117,23 +118,37 @@ export const addReply = async (req, res) => {
 // Toggle like/unlike
 export const toggleLike = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate("author", "firstName lastName email");
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const userId = req.user._id;
     const alreadyLiked = post.likes.includes(userId);
 
     if (alreadyLiked) {
+      // Unlike
       post.likes = post.likes.filter((id) => id.toString() !== userId.toString());
     } else {
+      // Like
       post.likes.push(userId);
+
+      if (post.author._id.toString() !== userId.toString()) {
+        const message = `${req.user.firstName} ${req.user.lastName} liked your post.`;
+        await sendEmail(post.author.email, "New Like", message);
+        await notifyUser({
+          userId: post.author._id,
+          type: "post_like",
+          message,
+          post: post._id,
+        });
+      }
     }
 
     await post.save();
 
     const populatedPost = await Post.findById(post._id)
       .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email");
+      .populate("replies.user", "firstName lastName email")
+      .populate("likes", "firstName lastName email");
 
     res.json(populatedPost);
   } catch (err) {
@@ -141,3 +156,4 @@ export const toggleLike = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+

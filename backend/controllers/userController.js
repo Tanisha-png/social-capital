@@ -22,6 +22,13 @@ export const updateMe = async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
+        if (req.file) {
+            // If a file was uploaded, set avatar to its path
+            user.avatar = `/uploads/avatars/${req.file.filename}`;
+        } else if (req.body.avatar) {
+            user.avatar = req.body.avatar; // fallback to URL
+        }
+
         const fields = [
             "avatar",
             "firstName",

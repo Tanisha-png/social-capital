@@ -61,3 +61,60 @@
   font-size: 14px;
   margin-top: 12px;
 }
+
+/* Container for Like and Reply buttons */
+.post-actions {
+  display: flex;
+  gap: 8px;
+  /* space between buttons */
+  margin-top: 8px;
+}
+
+.post-btn {
+  background-color: #0077cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* Like and Reply buttons */
+.post-actions button {
+  font-size: 0.8rem;
+  /* smaller text */
+  padding: 4px 8px;
+  /* compact size */
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #0077cc;
+  /* button color */
+  color: white;
+  /* text color */
+  border: none;
+  /* remove default border */
+  transition: background 0.2s;
+}
+
+/* Hover effect */
+.post-actions button:hover {
+  background-color: #005fa3;
+  /* slightly darker on hover */
+}
+
+/* Liked by list */
+.liked-by {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  color: #555;
+}
+
+/* Reply list */
+.reply-list {
+  margin-top: 8px;
+  padding-left: 16px;
+  font-size: 0.85rem;
+  border-left: 2px solid #eee;
+}

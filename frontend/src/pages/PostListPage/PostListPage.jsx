@@ -1,8 +1,7 @@
 
 
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import NewPostPage from "../NewPostPage/NewPostPage";
+import PostItem from "../../components/PostItem/PostItem";
 import "./PostListPage.css";
 
 export default function PostListPage() {
@@ -34,14 +33,7 @@ export default function PostListPage() {
       }
 
       const data = await res.json();
-
-      // Ensure author exists
-      const postsWithAuthor = data.map((post) => ({
-        ...post,
-        author: post.author || { firstName: "Unknown", lastName: "" },
-      }));
-
-      setPosts(postsWithAuthor);
+      setPosts(data);
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError(err.message);
@@ -54,9 +46,13 @@ export default function PostListPage() {
     fetchPosts();
   }, []);
 
-  // Handler to prepend new post
-  const handleNewPost = (newPost) => {
-    setPosts((prev) => [newPost, ...prev]);
+  // Handler to update a single post in state after reply or like
+  const handlePostUpdated = (updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
   };
 
   if (loading) return <p>Loading posts...</p>;
@@ -66,22 +62,13 @@ export default function PostListPage() {
     <div className="post-list">
       <h2 className="feed-title">Posts</h2>
 
-      {/* New post form */}
-      <NewPostPage onNewPost={handleNewPost} />
-
       {posts.length === 0 ? (
         <p className="no-posts">No posts yet.</p>
       ) : (
         <ul className="posts-feed">
           {posts.map((post) => (
-            <li key={post._id} className="post-card">
-              <p className="post-content">{post.content}</p>
-              <small className="post-author">
-                By {post.author.firstName} {post.author.lastName}
-              </small>
-              <Link to={`/posts/${post._id}`} className="post-link">
-                View Details
-              </Link>
+            <li key={post._id}>
+              <PostItem post={post} onPostUpdated={handlePostUpdated} />
             </li>
           ))}
         </ul>

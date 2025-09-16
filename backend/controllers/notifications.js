@@ -54,6 +54,12 @@ export async function createNotification({
             messageRef: messageId,
         });
         await notification.save();
+
+        // ✅ Emit socket event (real-time)
+        if (io) {
+            io.to(userId.toString()).emit("notification", notification);
+        }
+
         return notification;
     } catch (err) {
         console.error("Notification save error:", err);

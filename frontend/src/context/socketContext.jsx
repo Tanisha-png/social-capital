@@ -1,31 +1,34 @@
+
+
 import React, { createContext, useContext, useEffect, useState } from "react";
-import socket from "../socket";
-import { useAuth } from "./AuthContext";
+import { io as socketIOClient } from "socket.io-client";
 
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
-    const { user } = useAuth();
+    const [socket, setSocket] = useState(null);
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        if (user && user.id) {
-        socket.connect();
-        socket.emit("identify", user.id);
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-        // Listen for live notifications
-        socket.on("newNotification", (notification) => {
-            setNotifications((prev) => [notification, ...prev]);
+        const newSocket = socketIOClient("http://localhost:3001", {
+        auth: { token },
         });
-        } else {
-        socket.disconnect();
-        }
 
-        return () => {
-        socket.off("newNotification");
-        socket.disconnect();
-        };
-    }, [user]);
+        // Join the user-specific room
+        newSocket.emit("join", JSON.parse(atob(token.split(".")[1]))._id);
+
+        // Listen for new notifications from the backend
+        newSocket.on("notification", (notif) => {
+        setNotifications((prev) => [notif, ...prev]);
+        });
+
+        setSocket(newSocket);
+
+        return () => newSocket.disconnect();
+    }, []);
 
     return (
         <SocketContext.Provider value={{ socket, notifications, setNotifications }}>
@@ -35,3 +38,4 @@ export const SocketProvider = ({ children }) => {
 };
 
 export const useSocket = () => useContext(SocketContext);
+

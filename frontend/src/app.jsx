@@ -19,9 +19,13 @@ import "./App.css";
 
 // Private Route
 function PrivateRoute({ children }) {
-    const { user } = useAuth();
-        return user ? children : <Navigate to="/login" />;
-    }
+    const { user, initialized } = useAuth();
+
+    // Show nothing (or a spinner) until AuthContext finishes initializing
+    if (!initialized) return <p>Loading...</p>;
+
+    return user ? children : <Navigate to="/login" />;
+}
 
     export default function App() {
     return (

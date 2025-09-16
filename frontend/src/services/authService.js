@@ -49,20 +49,26 @@ export async function getProfile(token) {
 }
 
 // Update current user's profile
-export async function updateProfile(formData) {
-  const token = localStorage.getItem("token");
+export async function updateProfile(data, token = null, isFormData = false) {
+  token = token || localStorage.getItem("token");
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  // Only set Content-Type for JSON
+  if (!isFormData) headers["Content-Type"] = "application/json";
+
   const res = await fetch(`${USER_URL}/me`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(formData),
+    headers,
+    body: isFormData ? data : JSON.stringify(data),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to update profile");
-  return data;
+  const responseData = await res.json();
+  if (!res.ok) throw new Error(responseData.error || "Failed to update profile");
+
+  return responseData;
 }
 
 // Get connections/friends for a specific user
