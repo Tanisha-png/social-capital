@@ -1,13 +1,3 @@
-// import express from "express";
-// import * as authCtrl from "../controllers/auth.js";
-// import upload from "../middleware/upload.js";  // add multer middleware
-
-// const router = express.Router();
-
-// router.post("/signup", upload.single("avatar"), authCtrl.signUp);
-// router.post("/login", authCtrl.logIn);
-
-// export default router;
 
 import express from "express";
 import User from "../models/User.js";
