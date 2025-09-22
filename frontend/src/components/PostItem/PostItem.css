@@ -1,0 +1,102 @@
+.post-card {
+    display: flex;
+    flex-direction: column;
+    /* keep replies stacked vertically */
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    /* space between header and post content */
+}
+
+.post-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+    /* space between avatar and name/timestamp */
+}
+
+.post-meta {
+    display: flex;
+    flex-direction: column;
+    /* name on top, timestamp below */
+}
+
+.post-author {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.post-timestamp {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.post-content {
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin-left: 62px;
+    /* aligns with avatar width + margin */
+}
+
+.post-actions {
+    display: flex;
+    gap: 12px;
+    margin-left: 62px;
+    /* aligns with avatar */
+    margin-top: 8px;
+}
+
+.post-btn {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #0073b1;
+    /* LinkedIn blue */
+    font-weight: bold;
+}
+
+.reply-list {
+    margin-left: 62px;
+    margin-top: 8px;
+    padding-left: 0;
+    list-style: none;
+}
+
+.post-actions-row {
+    display: flex;
+    gap: 24px;
+    margin-left: 62px;
+    /* aligns with avatar */
+    margin-top: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+}
+
+.post-actions-row .post-btn {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #0073b1;
+    /* LinkedIn blue */
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.post-actions-row .post-btn:hover {
+    text-decoration: underline;
+}

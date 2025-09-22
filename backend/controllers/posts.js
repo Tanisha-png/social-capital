@@ -4,18 +4,33 @@
 import Post from "../models/post.js";
 import { sendEmail, notifyUser } from "./notifications.js";
 
+const migratePosts = async () => {
+  await mongoose.connect("mongodb://127.0.0.1:27017/yourdbname");
+
+  const posts = await Post.find({ author: { $exists: true } });
+  for (let post of posts) {
+    post.user = post.author;  // move author into user
+    post.author = undefined;  // remove old field
+    await post.save();
+  }
+
+  console.log("Migration complete!");
+  process.exit();
+};
+
+migratePosts();
+
 // Get all posts
 export const getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email")
-      .populate("likes", "firstName lastName email") // ✅ get liker names
+      .populate("user", "firstName lastName avatar") // ✅ populate user details
+      .populate("replies.author", "firstName lastName avatar") // ✅ replies too
       .sort({ createdAt: -1 });
 
     res.json(posts);
   } catch (err) {
-    console.error("Error fetching posts:", err);
+    console.error("Error fetching posts:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -31,9 +46,9 @@ export const createPost = async (req, res) => {
     await post.save();
 
     const populatedPost = await Post.findById(post._id)
-      .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email")
-      .populate("likes", "firstName lastName email");
+      .populate("user", "firstName lastName email avatar") // ✅ correct field
+      .populate("replies.author", "firstName lastName email avatar") // ✅ replies use `author`
+      .populate("likes", "firstName lastName email avatar");
 
     res.status(201).json(populatedPost);
   } catch (err) {

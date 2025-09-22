@@ -1,28 +1,135 @@
 
 
-// backend/routes/posts.js
+// // backend/routes/posts.js
+// import express from "express";
+// import {
+//     getPosts,
+//     getPostById,
+//     createPost,
+//     deletePost,
+//     addReply,
+//     toggleLike,
+// } from "../controllers/posts.js";
+// import checkToken from "../middleware/checkToken.js";
+
+// const router = express.Router();
+
+// // ✅ All post routes require valid token
+// router.use(checkToken);
+
+// router.get("/", getPosts);
+// router.get("/:id", getPostById);
+// router.post("/", createPost);
+// router.delete("/:id", deletePost);
+// router.post("/:id/replies", addReply);
+// router.post("/:id/like", toggleLike);
+
+// export default router;
+
+
 import express from "express";
-import {
-    getPosts,
-    getPostById,
-    createPost,
-    deletePost,
-    addReply,
-    toggleLike,
-} from "../controllers/posts.js";
+import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
+import Notification from "../models/Notification.js";
 import checkToken from "../middleware/checkToken.js";
+import Post from "../models/post.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
-// ✅ All post routes require valid token
-router.use(checkToken);
+// ✅ GET all posts
+router.get("/", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .populate("author", "firstName lastName avatar")
+            .populate("replies.author", "firstName lastName avatar");
+        res.json(posts);
+    } catch (err) {
+        console.error("Error fetching posts:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
 
-router.get("/", getPosts);
-router.get("/:id", getPostById);
-router.post("/", createPost);
-router.delete("/:id", deletePost);
-router.post("/:id/replies", addReply);
-router.post("/:id/like", toggleLike);
+// ✅ CREATE a post
+router.post("/", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("firstName lastName avatar");
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const post = new Post({
+            content: req.body.content,
+            author: user._id,
+        });
+
+        await post.save();
+        await post.populate("author", "firstName lastName avatar");
+
+        res.status(201).json(post);
+    } catch (err) {
+        console.error("Error creating post:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ✅ LIKE / UNLIKE a post
+router.put("/:id/like", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id).populate("author");
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        const userId = req.user.id;
+
+        if (post.likes.includes(userId)) {
+            post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+        } else {
+            post.likes.push(userId);
+
+            if (post.author._id.toString() !== userId.toString()) {
+                const liker = await User.findById(userId).select("firstName lastName");
+                const notif = await Notification.create({
+                    user: post.author._id,
+                    type: "post_like",
+                    message: `${liker.firstName} ${liker.lastName} liked your post.`,
+                    post: post._id,
+                });
+                if (req.io) req.io.to(post.author._id.toString()).emit("notification", notif);
+            }
+        }
+
+        await post.save();
+
+        // ✅ Re-fetch the post with populated fields for response
+        const populatedPost = await Post.findById(post._id)
+            .populate("author", "firstName lastName avatar")
+            .populate("replies.author", "firstName lastName avatar");
+
+        res.json(populatedPost);
+    } catch (err) {
+        console.error("Error liking post:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+// ✅ ADD a reply
+router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text || text.trim() === "") {
+            return res.status(400).json({ message: "Reply text is required" });
+        }
+
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        const reply = { author: req.user.id, text };
+        post.replies.push(reply);
+        await post.save();
+        await post.populate("replies.author", "firstName lastName avatar");
+
+        res.json(post.replies[post.replies.length - 1]);
+    } catch (err) {
+        console.error("Error replying:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
 
 export default router;
-

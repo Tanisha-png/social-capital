@@ -1,89 +1,59 @@
-
-import sendRequest from "./sendRequest";
-
+// frontend/services/authService.js
 const BACKEND_URL = "http://localhost:3000";
 const AUTH_URL = `${BACKEND_URL}/api/auth`;
-const USER_URL = `${BACKEND_URL}/api/users`; // note full URL here
+const USER_URL = `${BACKEND_URL}/api/users`;
 
-// Get token from localStorage
 export function getToken() {
   return localStorage.getItem("token");
 }
 
-// Login user
-export async function login({ email, password }) {
+export async function login(credentials) {
   const res = await fetch(`${AUTH_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(credentials),
   });
-  if (!res.ok) throw new Error("Login failed");
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Login failed");
+  }
   return res.json();
 }
 
-// Signup user
-export async function signup(data) {
+export async function signup(formData) {
   const res = await fetch(`${AUTH_URL}/signup`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: formData, // FormData includes file
   });
-  if (!res.ok) throw new Error("Signup failed");
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Signup failed");
+  }
   return res.json();
 }
 
-// Get current user's profile
-export async function getProfile(token) {
-  const response = await fetch(`${USER_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Failed to fetch profile: ${text}`);
-  }
-
-  return await response.json();
-}
-
-// Update current user's profile
-export async function updateProfile(data, token = null, isFormData = false) {
-  token = token || localStorage.getItem("token");
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
-  // Only set Content-Type for JSON
-  if (!isFormData) headers["Content-Type"] = "application/json";
+export async function updateProfile(formData, token) {
+  if (!token) throw new Error("Missing token");
 
   const res = await fetch(`${USER_URL}/me`, {
     method: "PUT",
-    headers,
-    body: isFormData ? data : JSON.stringify(data),
-  });
-
-  const responseData = await res.json();
-  if (!res.ok) throw new Error(responseData.error || "Failed to update profile");
-
-  return responseData;
-}
-
-// Get connections/friends for a specific user
-export async function getConnections(userId) {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${USER_URL}/${userId}/connections`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    body: formData,
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch connections: ${text}`);
+    const txt = await res.text();
+    throw new Error(txt || "Update profile failed");
   }
+  return res.json();
+}
 
+export async function getProfile(token) {
+  const res = await fetch(`${USER_URL}/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

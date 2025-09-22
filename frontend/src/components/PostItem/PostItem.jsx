@@ -2,80 +2,105 @@
 
 import React, { useState } from "react";
 import ReplyForm from "../ReplyForm/ReplyForm";
-import "../../pages/PostListPage/PostListPage.css"; // make sure button styles are in your CSS
+import "../../pages/PostListPage/PostListPage.css";
+import "./PostItem.css";
 
 export default function PostItem({ post, onPostUpdated }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
 
-  const handleReplyAdded = async (postId, updatedPost) => {
+  const handleReplyAdded = (newReply) => {
+    const updatedPost = {
+      ...post,
+      replies: [...post.replies, newReply],
+    };
     onPostUpdated(updatedPost);
     setShowReplyForm(false);
   };
 
   const handleLikeToggle = async () => {
     const token = localStorage.getItem("token");
+    if (!token)
+      return console.error("No token found — user might not be logged in");
+
     try {
       const res = await fetch(
         `http://localhost:3000/api/posts/${post._id}/like`,
         {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      if (!res.ok) throw new Error("Failed to like post");
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to like post: ${errorText}`);
+      }
+
       const updatedPost = await res.json();
       onPostUpdated(updatedPost);
     } catch (err) {
-      console.error(err);
+      console.error("Error in handleLikeToggle:", err);
     }
   };
 
+  const handleShare = () => alert("Share feature coming soon!");
+
   return (
     <article className="post-card">
+      <div className="post-header">
+        {post.author?.avatar && (
+          <img
+            src={
+              post.author.avatar.startsWith("http")
+                ? post.author.avatar
+                : `http://localhost:3000${post.author.avatar}`
+            }
+            alt={`${post.author.firstName} ${post.author.lastName}`}
+            className="post-avatar"
+          />
+        )}
+        <div className="post-meta">
+          <span className="post-author">
+            {post.author?.firstName} {post.author?.lastName}
+          </span>
+          <span className="post-timestamp">
+            {new Date(post.createdAt).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
       <p className="post-content">{post.content}</p>
 
-      <small className="post-meta">
-        By {post.author?.firstName} {post.author?.lastName} •{" "}
-        {new Date(post.createdAt).toLocaleString()}
-      </small>
-
-      {/* Buttons side by side */}
-      <div className="post-actions">
+      <div className="post-actions-row">
         <button className="post-btn" onClick={handleLikeToggle}>
-          👍 {post.likes.length}
+          👍 {post.likes?.length || 0}
         </button>
         <button
           className="post-btn"
           onClick={() => setShowReplyForm(!showReplyForm)}
         >
-          {showReplyForm ? "Cancel" : "Reply"}
+          💬 {post.replies?.length || 0}
+        </button>
+        <button className="post-btn" onClick={handleShare}>
+          🔄 Share
         </button>
       </div>
 
-      {/* Liked by list */}
-      {post.likes.length > 0 && (
-        <div className="liked-by">
-          Liked by:{" "}
-          {post.likes
-            .map((user) => `${user.firstName} ${user.lastName}`)
-            .join(", ")}
-        </div>
-      )}
-
-      {/* Reply form */}
       {showReplyForm && (
         <ReplyForm postId={post._id} onReplyAdded={handleReplyAdded} />
       )}
 
-      {/* Reply list */}
       {post.replies?.length > 0 && (
         <ul className="reply-list">
           {post.replies.map((reply) => (
             <li key={reply._id}>
               <strong>
-                {reply.user.firstName} {reply.user.lastName}
+                {reply.author?.firstName} {reply.author?.lastName}
               </strong>{" "}
-              <span>{reply.content}</span>{" "}
+              <span>{reply.text}</span>{" "}
               <small>{new Date(reply.createdAt).toLocaleString()}</small>
             </li>
           ))}

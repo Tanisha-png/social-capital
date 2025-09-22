@@ -1,153 +1,169 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useParams, Link } from "react-router-dom";
-import * as authService from "../../services/authService";
-import ConnectionsList from "../../components/ConnectionsList/ConnectionsList";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
+import Avatar from "../../components/Avatar/Avatar.jsx";
 import {
   Briefcase,
   GraduationCap,
-  User,
   MessageCircle,
   Users,
   HeartHandshake,
 } from "lucide-react";
+import { getToken } from "../../services/authService";
+import { getSafeAvatarUrl } from "../../utils/avatar";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const { id } = useParams(); // if viewing another user's profile
+  const { user: authUser } = useAuth();
+  const { id } = useParams();
+
   const [profile, setProfile] = useState(null);
+  const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchProfile() {
       try {
-        const token = localStorage.getItem("token");
-        let profileData;
+        const token = getToken();
+        const profileRes = await fetch(
+          id && id !== authUser?.id ? `/api/users/${id}` : "/api/users/me",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const profileData = await profileRes.json();
 
-        if (id && id !== user?.id) {
-          // Viewing another user's profile
-          profileData = await authService.getUserProfile(id, token);
-        } else {
-          // Viewing logged-in user's profile
-          profileData = await authService.getProfile(token);
-        }
+        const connRes = await fetch(
+          `/api/users/${profileData._id}/connections`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const connData = await connRes.json();
 
-        // Ensure help sections are always arrays
-        profileData.canHelpWith = Array.isArray(profileData.canHelpWith)
-          ? profileData.canHelpWith
-          : [];
-        profileData.needHelpWith = Array.isArray(profileData.needHelpWith)
-          ? profileData.needHelpWith
-          : [];
+        if (!isMounted) return;
 
-        setProfile(profileData);
+        setProfile({
+          ...profileData,
+          avatar: getSafeAvatarUrl(profileData.avatar),
+          canHelpWith: Array.isArray(profileData.canHelpWith)
+            ? profileData.canHelpWith
+            : [],
+          needHelpWith: Array.isArray(profileData.needHelpWith)
+            ? profileData.needHelpWith
+            : [],
+        });
+
+        setConnections(
+          (connData || []).map((c) => ({
+            ...c,
+            profileImage: getSafeAvatarUrl(c.profileImage),
+          }))
+        );
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error(err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     fetchProfile();
-  }, [id, user]);
+    return () => {
+      isMounted = false;
+    };
+  }, [id, authUser]);
 
   if (loading) return <p>Loading profile...</p>;
-
-  if (!profile) {
+  if (!profile)
     return (
       <div className="profile-empty">
         <p>No profile found.</p>
-        {!id && user && (
+        {!id && authUser && (
           <Link to="/edit-profile">
             <button className="edit-btn">Create Profile</button>
           </Link>
         )}
       </div>
     );
-  }
-
-  const canHelpList = Array.isArray(profile.canHelpWith)
-    ? profile.canHelpWith
-    : [];
-  const needHelpList = Array.isArray(profile.needHelpWith)
-    ? profile.needHelpWith
-    : [];
 
   return (
     <div className="profile-page">
-      {/* Profile Card */}
       <div className="profile-card">
-        <img
-          src={
-            profile.avatar && profile.avatar.trim() !== ""
-              ? profile.avatar
-              : "/default-avatar.png"
-          }
-          alt="Profile"
-          className="profile-avatar"
-        />
+        <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" />
         <h2>
           {profile.firstName} {profile.lastName}
         </h2>
-
         {profile.occupation && (
           <p>
-            <Briefcase size={16} style={{ marginRight: "6px" }} />
-            {profile.occupation}
+            <Briefcase size={16} /> {profile.occupation}
           </p>
         )}
         {profile.education && (
           <p>
-            <GraduationCap size={16} style={{ marginRight: "6px" }} />
-            {profile.education}
+            <GraduationCap size={16} /> {profile.education}
           </p>
         )}
         {profile.bio && (
           <p className="profile-bio">
-            <MessageCircle size={16} style={{ marginRight: "6px" }} />
-            {profile.bio}
+            <MessageCircle size={16} /> {profile.bio}
           </p>
         )}
       </div>
 
-      {/* Connections */}
       <div className="profile-card">
         <h3>
-          <Users size={18} style={{ marginRight: "8px" }} />
-          Connections
+          <Users size={18} /> Connections
         </h3>
-        <ConnectionsList userId={profile._id} />
+        {connections.length === 0 ? (
+          <p>No connections yet.</p>
+        ) : (
+          <ul className="connections-list">
+            {connections.map((c) => (
+              <li key={c._id}>
+                <Avatar
+                  src={c.profileImage}
+                  alt={`${c.firstName} ${c.lastName}`}
+                  className="connection-avatar"
+                />
+                <span>
+                  {c.firstName} {c.lastName}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Potential Connections */}
       <div className="profile-card">
         <h3>
-          <Users size={18} style={{ marginRight: "8px" }} />
-          People You May Know
+          <Users size={18} /> People You May Know
         </h3>
         <PotentialConnections />
       </div>
 
-      {/* Help Sections */}
       <div className="profile-card">
         <h3>
-          <MessageCircle size={18} style={{ marginRight: "8px" }} />
-          Help Sections
+          <MessageCircle size={18} /> Help Sections
         </h3>
-        <HelpSections canHelpWith={canHelpList} needHelpWith={needHelpList} />
+        {profile.canHelpWith.length > 0 && (
+          <div>
+            <HeartHandshake size={16} /> I can help with:
+          </div>
+        )}
+        <HelpSections
+          canHelpWith={profile.canHelpWith}
+          needHelpWith={profile.needHelpWith}
+        />
       </div>
 
-      {/* Edit Profile Button — only for your own profile */}
-      {user && (user.id === profile._id || user._id === profile._id) && (
-        <div className="profile-actions">
-          <Link to="/edit-profile">
-            <button className="edit-btn">Edit Profile</button>
-          </Link>
-        </div>
-      )}
+      {authUser &&
+        (authUser.id === profile._id || authUser._id === profile._id) && (
+          <div className="profile-actions">
+            <Link to="/edit-profile">
+              <button className="edit-btn">Edit Profile</button>
+            </Link>
+          </div>
+        )}
     </div>
   );
 }

@@ -33,7 +33,12 @@ export default function PostListPage() {
       }
 
       const data = await res.json();
-      setPosts(data);
+
+      // ✅ Ensure posts are always sorted (newest first)
+      console.log("Posts response:", data);
+      setPosts(
+        data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      );
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError(err.message);
@@ -68,6 +73,7 @@ export default function PostListPage() {
         <ul className="posts-feed">
           {posts.map((post) => (
             <li key={post._id}>
+              {/* ✅ Pass full post (with populated user) to PostItem */}
               <PostItem post={post} onPostUpdated={handlePostUpdated} />
             </li>
           ))}

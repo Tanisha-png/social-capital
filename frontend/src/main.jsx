@@ -6,7 +6,7 @@ import "./index.css";
 import App from "./app";
 import { AuthProvider } from "./context/AuthContext";
 import { SocketProvider } from "./context/socketContext";
-import { NotificationProvider } from "./context/NotificationContext";
+// import { NotificationProvider } from "./context/NotificationContext";
 
 
 createRoot(document.getElementById("root")).render(
@@ -14,9 +14,9 @@ createRoot(document.getElementById("root")).render(
     <AuthProvider>
       <SocketProvider>
         <BrowserRouter>
-          <NotificationProvider>
+          {/* <NotificationProvider> */}
             <App />
-          </NotificationProvider>
+          {/* </NotificationProvider> */}
         </BrowserRouter>
       </SocketProvider>
     </AuthProvider>

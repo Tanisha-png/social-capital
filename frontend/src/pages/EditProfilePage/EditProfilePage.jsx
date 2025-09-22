@@ -1,16 +1,22 @@
-
-
+// frontend/src/pages/EditProfilePage/EditProfilePage.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
-import { useNavigate } from "react-router-dom";
+import Avatar from "../../components/Avatar/Avatar";
+// import { getAvatarPreview, cleanupPreview } from "../../utils/avatar";
+import {
+  getAvatarPreview,
+  cleanupPreview,
+  getSafeAvatarUrl,
+} from "../../utils/avatar";
+
+import "./EditProfilePage.css";
 
 export default function EditProfilePage() {
-  const { user, login } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    avatar: "",
-    avatarFile: null,
     firstName: "",
     lastName: "",
     bio: "",
@@ -19,224 +25,125 @@ export default function EditProfilePage() {
     canHelpWith: "",
     needHelpWith: "",
   });
-  const [loading, setLoading] = useState(true);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("/default-avatar.png");
 
   useEffect(() => {
-    async function fetchProfile() {
-      if (!user) return;
-      try {
-        const token = localStorage.getItem("token");
-        const profile = await authService.getProfile(token);
-
-        setFormData({
-          avatar: profile.avatar || "",
-          avatarFile: null,
-          firstName: profile.firstName || "",
-          lastName: profile.lastName || "",
-          bio: profile.bio || "",
-          occupation: profile.occupation || "",
-          education: profile.education || "",
-          canHelpWith: Array.isArray(profile.canHelpWith)
-            ? profile.canHelpWith.join(", ")
-            : "",
-          needHelpWith: Array.isArray(profile.needHelpWith)
-            ? profile.needHelpWith.join(", ")
-            : "",
-        });
-      } catch (err) {
-        console.error("Failed to load profile:", err);
-      } finally {
-        setLoading(false);
-      }
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        bio: user.bio || "",
+        occupation: user.occupation || "",
+        education: user.education || "",
+        canHelpWith: (user.canHelpWith || []).join(", "),
+        needHelpWith: (user.needHelpWith || []).join(", "),
+      });
+      setAvatarPreview(user.avatar || "/default-avatar.png");
     }
-    fetchProfile();
   }, [user]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => () => cleanupPreview(avatarPreview), [avatarPreview]);
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const allowedTypes = ["image/jpeg", "image/png"];
-
-      if (!allowedTypes.includes(file.type)) {
-        alert("Only JPEG and PNG images are allowed!");
-        e.target.value = ""; // reset the file input
-        return;
-      }
-
-      setFormData({ ...formData, avatarFile: file });
+  function handleChange(e) {
+    const { name, value, files } = e.target;
+    if (name === "avatarFile" && files?.[0]) {
+      const f = files[0];
+      setAvatarFile(f);
+      setAvatarPreview(getAvatarPreview(f));
+    } else {
+      setFormData((p) => ({ ...p, [name]: value }));
     }
-  };
+  }
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
+    const data = new FormData();
+    Object.entries(formData).forEach(([k, v]) => data.append(k, v));
+    if (avatarFile) data.append("avatarFile", avatarFile);
 
     try {
       const token = localStorage.getItem("token");
+      const updated = await authService.updateProfile(data, token);
 
-      const payload = new FormData();
-      if (formData.avatarFile)
-        payload.append("avatarFile", formData.avatarFile);
-      else payload.append("avatar", formData.avatar); // fallback to URL
+      // ✅ Normalize avatar URL immediately
+      const safeAvatar = getSafeAvatarUrl(updated.avatar);
 
-      payload.append("firstName", formData.firstName);
-      payload.append("lastName", formData.lastName);
-      payload.append("bio", formData.bio);
-      payload.append("occupation", formData.occupation);
-      payload.append("education", formData.education);
-      payload.append(
-        "canHelpWith",
-        formData.canHelpWith
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      );
-      payload.append(
-        "needHelpWith",
-        formData.needHelpWith
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      );
+      setUser({
+        ...updated,
+        avatar: safeAvatar,
+      });
 
-      const updatedUser = await authService.updateProfile(payload, token, true);
+      // ✅ Update local preview immediately
+      setAvatarPreview(safeAvatar);
 
-      // Ensure _id exists for posts context
-      if (!updatedUser._id && updatedUser.id) updatedUser._id = updatedUser.id;
-
-      login(updatedUser, token);
       navigate("/profile");
     } catch (err) {
-      console.error("Failed to update profile:", err);
-      alert("Failed to update profile. Try again.");
+      console.error("Update failed:", err);
+      alert("Update failed — see console");
     }
-  };
-
-  if (!user || loading) return <p>Loading form...</p>;
+  }
 
   return (
-    <div style={{ maxWidth: "500px", margin: "0 auto" }}>
-      <h2>Edit Profile</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Profile Image Upload */}
-        <div>
-          <label>Profile Image Upload</label>
-          <input
-            type="file"
-            name="avatarFile"
-            accept="image/jpeg,image/png"
-            onChange={handleFileChange}
-          />
-          {formData.avatarFile && (
-            <img
-              src={URL.createObjectURL(formData.avatarFile)}
-              alt="Preview"
-              style={{
-                width: "100px",
-                height: "100px",
-                marginTop: "10px",
-                borderRadius: "50%",
-              }}
-            />
-          )}
-          {!formData.avatarFile && formData.avatar && (
-            <img
-              src={formData.avatar}
-              alt="Preview"
-              style={{
-                width: "100px",
-                height: "100px",
-                marginTop: "10px",
-                borderRadius: "50%",
-              }}
-            />
-          )}
-        </div>
-
-        {/* Personal Info */}
-        <div>
-          <label>First Name</label>
-          <input
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>Last Name</label>
-          <input
-            type="text"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>
-            Bio:
-            <textarea
-              name="bio"
-              value={formData.bio || ""}
-              onChange={handleChange}
-              placeholder="Tell us about yourself..."
-            />
-          </label>
-        </div>
-
-        <div>
-          <label>Occupation</label>
-          <input
-            type="text"
-            name="occupation"
-            value={formData.occupation}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>Education</label>
-          <input
-            type="text"
-            name="education"
-            value={formData.education}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Help Fields */}
-        <div>
-          <label>I can help with (comma separated)</label>
-          <input
-            type="text"
-            name="canHelpWith"
-            value={formData.canHelpWith}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>I need help with (comma separated)</label>
-          <input
-            type="text"
-            name="needHelpWith"
-            value={formData.needHelpWith}
-            onChange={handleChange}
-          />
-        </div>
-
-        <button type="submit" style={{ marginTop: "20px" }}>
-          Save Profile
-        </button>
-      </form>
-    </div>
+    <form
+      className="edit-profile-form"
+      onSubmit={handleSubmit}
+      encType="multipart/form-data"
+    >
+      <input
+        name="firstName"
+        value={formData.firstName}
+        onChange={handleChange}
+        placeholder="First name"
+      />
+      <input
+        name="lastName"
+        value={formData.lastName}
+        onChange={handleChange}
+        placeholder="Last name"
+      />
+      <textarea
+        name="bio"
+        value={formData.bio}
+        onChange={handleChange}
+        placeholder="Bio"
+      />
+      <input
+        name="occupation"
+        value={formData.occupation}
+        onChange={handleChange}
+        placeholder="Occupation"
+      />
+      <input
+        name="education"
+        value={formData.education}
+        onChange={handleChange}
+        placeholder="Education"
+      />
+      <input
+        name="canHelpWith"
+        value={formData.canHelpWith}
+        onChange={handleChange}
+        placeholder="I can help with (comma separated)"
+      />
+      <input
+        name="needHelpWith"
+        value={formData.needHelpWith}
+        onChange={handleChange}
+        placeholder="I need help with (comma separated)"
+      />
+      <input
+        type="file"
+        name="avatarFile"
+        accept="image/png,image/jpeg"
+        onChange={handleChange}
+      />
+      <Avatar
+        src={avatarPreview}
+        alt="Avatar Preview"
+        className="avatar-preview"
+      />
+      <button type="submit">Save Changes</button>
+    </form>
   );
 }
-
-
-

@@ -1,134 +1,92 @@
-
-// import { useState } from "react";
+// frontend/src/pages/SignUpPage/SignUpPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
-import "./SignUpPage.css"; // <-- We'll add styling here
+import Avatar from "../../components/Avatar/Avatar";
+import { getAvatarPreview, cleanupPreview } from "../../utils/avatar";
+import "./SignUpPage.css";
 
-export default function SignUpPage({ setUser }) {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    mobile: "",
-    location: "",
-    password: "",
-    confirm: "",
-  });
-  const [errorMsg, setErrorMsg] = useState("");
-
+export default function SignUpPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("/default-avatar.png");
 
-  function handleChange(evt) {
-    setFormData({ ...formData, [evt.target.name]: evt.target.value });
-    setErrorMsg("");
-  }
+  useEffect(() => () => cleanupPreview(avatarPreview), [avatarPreview]);
 
-
-  async function handleSubmit(evt) {
-    evt.preventDefault();
-    try {
-      // Combine firstName + lastName into one name field
-      const submitData = {
-        ...formData,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-      };
-
-      const user = await authService.signUp(submitData);
-      setUser(user);
-      navigate("/posts");
-    } catch (err) {
-      console.log(err);
-      setErrorMsg("Sign Up Failed - Try Again");
+  function handleChange(e) {
+    const { name, value, files } = e.target;
+    if (name === "avatarFile" && files?.[0]) {
+      const f = files[0];
+      setAvatarFile(f);
+      setAvatarPreview(getAvatarPreview(f));
+    } else {
+      setFormData((p) => ({ ...p, [name]: value }));
     }
   }
 
-  const disable = formData.password !== formData.confirm;
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const data = new FormData();
+    Object.entries(formData).forEach(([k, v]) => data.append(k, v));
+    if (avatarFile) data.append("avatarFile", avatarFile);
+
+    try {
+      const res = await authService.signup(data);
+      login(res.user, res.token);
+      navigate("/profile");
+    } catch (err) {
+      console.error("Signup failed:", err);
+      alert("Signup failed — check console");
+    }
+  }
 
   return (
-    <>
-      <h2>Sign Up!</h2>
-      <form autoComplete="off" onSubmit={handleSubmit} className="signup-form">
-        <div className="form-row">
-          <div className="form-group">
-            <label>First Name</label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Last Name</label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
-          </div>
-        </div>
-
-        <label>Email</label>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-
-        <label>Mobile</label>
-        <input
-          type="text"
-          name="mobile"
-          value={formData.mobile}
-          onChange={handleChange}
-          required
-        />
-
-        <label>Location</label>
-        <input
-          type="text"
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          required
-        />
-
-        <div className="form-row">
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Confirm</label>
-            <input
-              type="password"
-              name="confirm"
-              value={formData.confirm}
-              onChange={handleChange}
-              required
-            />
-          </div>
-        </div>
-
-        <button type="submit" disabled={disable}>
-          SIGN UP
-        </button>
-      </form>
-      <p className="error-message">&nbsp;{errorMsg}</p>
-    </>
+    <form
+      className="signup-form"
+      onSubmit={handleSubmit}
+      encType="multipart/form-data"
+    >
+      <input
+        name="name"
+        value={formData.name}
+        onChange={handleChange}
+        placeholder="Name"
+        required
+      />
+      <input
+        name="email"
+        value={formData.email}
+        onChange={handleChange}
+        placeholder="Email"
+        required
+      />
+      <input
+        name="password"
+        value={formData.password}
+        onChange={handleChange}
+        placeholder="Password"
+        type="password"
+        required
+      />
+      <input
+        type="file"
+        name="avatarFile"
+        accept="image/png,image/jpeg"
+        onChange={handleChange}
+      />
+      <Avatar
+        src={avatarPreview}
+        alt="Avatar preview"
+        className="avatar-preview"
+      />
+      <button type="submit">Sign Up</button>
+    </form>
   );
 }
-

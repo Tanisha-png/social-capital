@@ -1,28 +1,28 @@
-// backend/middleware/authMiddleware.js
+// middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
     try {
-        // Expect token in Authorization header: "Bearer <token>"
         const authHeader = req.headers.authorization;
-
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({ message: "No token provided, authorization denied" });
+            return res.status(401).json({ message: "No token provided" });
         }
 
         const token = authHeader.split(" ")[1];
-
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Attach user ID to request
-        req.user = { id: decoded.id };
+        const user = await User.findById(decoded.userId).select("-password");
+        if (!user) {
+            return res.status(401).json({ message: "User not found" });
+        }
 
-        console.log("✅ verifyToken success, user ID:", decoded.id); // Debug log
+        req.user = user; // 👈 this is what ensureLoggedIn checks
         next();
     } catch (err) {
-        console.error("❌ verifyToken error:", err.message);
-        return res.status(401).json({ message: "Token is not valid" });
+        console.error("Token verification error:", err);
+        res.status(401).json({ message: "Invalid or expired token" });
     }
 };
+
 

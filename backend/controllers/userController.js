@@ -2,6 +2,7 @@
 
 // userController.js
 import User from "../models/User.js";
+import path from "path";
 
 // GET current user profile
 export const getMe = async (req, res) => {
@@ -15,22 +16,29 @@ export const getMe = async (req, res) => {
     }
 };
 
-
-// PUT update current user profile
+// backend/controllers/userController.js
 export const updateMe = async (req, res) => {
     try {
+        // find user
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
+        // If file was uploaded, set full URL
         if (req.file) {
-            // If a file was uploaded, set avatar to its path
-            user.avatar = `/uploads/avatars/${req.file.filename}`;
-        } else if (req.body.avatar) {
-            user.avatar = req.body.avatar; // fallback to URL
+            const avatarPath = `/uploads/avatars/${req.file.filename}`;
+            user.avatar = `${req.protocol}://${req.get("host")}${avatarPath}`;
+
+            
+            console.log("Serving avatar URL:", user.avatar);
         }
 
+        // If front-end sends avatar (rare), allow it but prefer file
+        if (!req.file && req.body.avatar) {
+            user.avatar = req.body.avatar;
+        }
+
+        // Update other fields (safe list)
         const fields = [
-            "avatar",
             "firstName",
             "lastName",
             "bio",
@@ -38,12 +46,12 @@ export const updateMe = async (req, res) => {
             "education",
             "canHelpWith",
             "needHelpWith",
+            "location",
         ];
 
         fields.forEach((field) => {
             if (req.body[field] !== undefined) {
                 if (["canHelpWith", "needHelpWith"].includes(field)) {
-                    // Always normalize to array
                     if (typeof req.body[field] === "string") {
                         user[field] = req.body[field]
                             .split(",")
@@ -61,9 +69,33 @@ export const updateMe = async (req, res) => {
         });
 
         const updatedUser = await user.save();
-        res.json(updatedUser);
+        // ensure password isn't sent
+        const userObj = updatedUser.toObject();
+        delete userObj.password;
+        res.json(userObj);
     } catch (err) {
         console.error("Error updating profile:", err);
         res.status(500).json({ error: "Failed to update profile" });
+    }
+};
+
+
+// GET connections for a user
+export const getConnections = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).populate("friends", "-password");
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const connections = user.friends.map(f => ({
+            _id: f._id,
+            firstName: f.firstName,
+            lastName: f.lastName,
+            profileImage: f.avatar || "/default-avatar.png",
+        }));
+
+        res.json(connections);
+    } catch (err) {
+        console.error("Error fetching connections:", err);
+        res.status(500).json({ error: "Failed to fetch connections" });
     }
 };

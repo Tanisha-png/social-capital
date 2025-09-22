@@ -29,41 +29,22 @@ export default function NavBar() {
         {user ? (
           <>
             <span className="nav-username">{displayName}</span>
-
-            <Link to="/posts" className="nav-button">
-              Posts
-            </Link>
-            <Link to="/posts/new" className="nav-button">
-              New Post
-            </Link>
-            <Link to="/messages" className="nav-button">
-              Messages
-            </Link>
-            <Link to="/friends" className="nav-button">
-              Friends
-            </Link>
-            <Link to="/search" className="nav-button">
-              Search
-            </Link>
+            <Link to="/posts" className="nav-button">Posts</Link>
+            <Link to="/posts/new" className="nav-button">New Post</Link>
+            <Link to="/messages" className="nav-button">Messages</Link>
+            <Link to="/friends" className="nav-button">Friends</Link>
+            <Link to="/search" className="nav-button">Search</Link>
 
             {/* ✅ Notifications bell */}
             <NotificationsDropdown />
 
-            <Link to="/profile" className="nav-button">
-              Profile
-            </Link>
-            <button className="nav-button" onClick={handleLogout}>
-              Logout
-            </button>
+            <Link to="/profile" className="nav-button">Profile</Link>
+            <button className="nav-button" onClick={handleLogout}>Logout</button>
           </>
         ) : (
           <>
-            <Link to="/login" className="nav-button">
-              Login
-            </Link>
-            <Link to="/signup" className="nav-button">
-              Sign Up
-            </Link>
+            <Link to="/login" className="nav-button">Login</Link>
+            <Link to="/signup" className="nav-button">Sign Up</Link>
           </>
         )}
       </div>
