@@ -104,4 +104,52 @@ router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
     }
 });
 
+// ✅ SHARE a post
+router.post("/:id/share", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const originalPost = await Post.findById(req.params.id)
+            .populate("author", "firstName lastName avatar")
+            .populate("replies.author", "firstName lastName avatar");
+
+        if (!originalPost) {
+            return res.status(404).json({ message: "Original post not found" });
+        }
+
+        const user = await User.findById(req.user.id).select("firstName lastName avatar");
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // ✅ Allow empty content for shared posts
+        const newPost = new Post({
+            content: req.body.content?.trim() || "", // empty string allowed for shared posts
+            author: user._id,
+            sharedFrom: originalPost._id,
+        });
+
+        await newPost.save();
+
+        // ✅ Populate author of new post
+        await newPost.populate("author", "firstName lastName avatar");
+
+        // ✅ Populate sharedFrom with original post's author and replies
+        await newPost.populate({
+            path: "sharedFrom",
+            populate: [
+                { path: "author", select: "firstName lastName avatar" },
+                { path: "replies.author", select: "firstName lastName avatar" },
+            ],
+        });
+
+        // ✅ Ensure new post's own replies (likely empty) are populated
+        await newPost.populate("replies.author", "firstName lastName avatar");
+
+        res.status(201).json(newPost);
+    } catch (err) {
+        console.error("Error sharing post:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
+
+
 export default router;

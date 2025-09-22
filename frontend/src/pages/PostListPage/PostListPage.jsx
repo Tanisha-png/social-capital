@@ -35,7 +35,6 @@ export default function PostListPage() {
       const data = await res.json();
 
       // ✅ Ensure posts are always sorted (newest first)
-      console.log("Posts response:", data);
       setPosts(
         data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       );
@@ -51,13 +50,18 @@ export default function PostListPage() {
     fetchPosts();
   }, []);
 
-  // Handler to update a single post in state after reply or like
+  // Handler to update a single post after reply or like
   const handlePostUpdated = (updatedPost) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post._id === updatedPost._id ? updatedPost : post
       )
     );
+  };
+
+  // Handler to insert a new shared post at the top
+  const handlePostShared = (sharedPost) => {
+    setPosts((prevPosts) => [sharedPost, ...prevPosts]);
   };
 
   if (loading) return <p>Loading posts...</p>;
@@ -73,8 +77,11 @@ export default function PostListPage() {
         <ul className="posts-feed">
           {posts.map((post) => (
             <li key={post._id}>
-              {/* ✅ Pass full post (with populated user) to PostItem */}
-              <PostItem post={post} onPostUpdated={handlePostUpdated} />
+              <PostItem
+                post={post}
+                onPostUpdated={handlePostUpdated}
+                onPostShared={handlePostShared} // ✅ Pass handler for shared posts
+              />
             </li>
           ))}
         </ul>
