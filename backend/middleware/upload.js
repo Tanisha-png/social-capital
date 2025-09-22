@@ -26,12 +26,7 @@ const upload = multer({
     limits: { fileSize: 1024 * 1024 * 100 } // 100MB max, practically unlimited
 });
 
-// const upload = multer({
-//     storage,
-//     fileFilter,
-//     limits: { fileSize: 1024 * 1024 * 100 },
-// });
 
 export default upload;
-// export default multer({ storage, fileFilter });
+
 
