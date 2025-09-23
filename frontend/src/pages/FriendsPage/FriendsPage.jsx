@@ -23,7 +23,7 @@ export default function FriendsPage() {
 
     return (
         <div>
-        <h2>Friends</h2>
+        <h2>Connections</h2>
         {friends.map((friend) => (
             <div key={friend._id}>{friend.name}</div>
         ))}

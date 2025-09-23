@@ -65,3 +65,50 @@ export async function createNotification({
         console.error("Notification save error:", err);
     }
 }
+
+export const markAllNotificationsRead = async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { user: req.user._id, read: false },
+            { $set: { read: true } }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ message: "Error marking notifications as read" });
+    }
+};
+
+// --- GET all notifications for logged-in user ---
+export const getNotifications = async (req, res) => {
+    try {
+        const notifications = await Notification.find({ user: req.user._id })
+            .sort({ createdAt: -1 })
+            .populate("post", "content")
+            .populate("messageRef", "content");
+
+        res.json(notifications);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching notifications" });
+    }
+};
+
+// --- GET counts for navbar badges ---
+export const getNotificationCounts = async (req, res) => {
+    try {
+        const postCount = await Notification.countDocuments({
+            user: req.user._id,
+            type: { $in: ["post_reply", "post_like"] },
+            read: false,
+        });
+
+        const messageCount = await Notification.countDocuments({
+            user: req.user._id,
+            type: "message",
+            read: false,
+        });
+
+        res.json({ postCount, messageCount });
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching counts" });
+    }
+};

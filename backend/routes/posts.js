@@ -81,6 +81,7 @@ router.put("/:id/like", checkToken, ensureLoggedIn, async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+
 // ✅ ADD a reply
 router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
     try {
@@ -89,7 +90,7 @@ router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
             return res.status(400).json({ message: "Reply text is required" });
         }
 
-        const post = await Post.findById(req.params.id);
+        const post = await Post.findById(req.params.id).populate("author");
         if (!post) return res.status(404).json({ message: "Post not found" });
 
         const reply = { author: req.user.id, text };
@@ -97,12 +98,25 @@ router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
         await post.save();
         await post.populate("replies.author", "firstName lastName avatar");
 
+        // 🔔 Create a notification for the post author (if not replying to self)
+        if (post.author._id.toString() !== req.user.id) {
+            const replier = await User.findById(req.user.id).select("firstName lastName");
+            const notif = await Notification.create({
+                user: post.author._id,
+                type: "post_reply",
+                message: `${replier.firstName} ${replier.lastName} replied to your post.`,
+                post: post._id,
+            });
+            if (req.io) req.io.to(post.author._id.toString()).emit("notification", notif);
+        }
+
         res.json(post.replies[post.replies.length - 1]);
     } catch (err) {
         console.error("Error replying:", err);
         res.status(500).json({ message: "Server error" });
     }
 });
+
 
 // ✅ SHARE a post
 router.post("/:id/share", checkToken, ensureLoggedIn, async (req, res) => {

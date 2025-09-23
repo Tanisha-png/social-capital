@@ -44,3 +44,21 @@ export const sendMessage = async (req, res) => {
         res.status(500).json({ message: "Error sending message" });
     }
 };
+
+// Mark all messages from a conversation as read
+export const markMessagesRead = async (req, res) => {
+    try {
+        const { otherUserId } = req.body;
+        await Message.updateMany(
+            {
+                sender: otherUserId,
+                recipient: req.user._id,
+                read: false,
+            },
+            { $set: { read: true } }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ message: "Error marking messages as read" });
+    }
+};

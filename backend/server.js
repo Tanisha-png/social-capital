@@ -11,6 +11,7 @@ import connectDB from "./config/db.js";
 import posts from "./routes/posts.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/userRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 dotenv.config();
 await connectDB();
@@ -19,7 +20,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Socket.io setup
-const io = new Server(server, {
+export const io = new Server(server, {
   cors: { origin: "http://localhost:5173", credentials: true },
 });
 
@@ -54,6 +55,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", posts);
+app.use("/api/notifications", notificationRoutes);
 
 // Health check
 app.get("/health", (_req, res) => res.json({ ok: true }));

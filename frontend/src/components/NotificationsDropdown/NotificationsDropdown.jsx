@@ -5,7 +5,7 @@ import { useSocket } from "../../context/socketContext";
 
 export default function NotificationsDropdown() {
   const { user } = useAuth();
-  const { socket } = useSocket(); // <-- ✅ destructure correctly
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
 
@@ -15,8 +15,9 @@ export default function NotificationsDropdown() {
 
     const fetchNotifications = async () => {
       try {
+        const token = localStorage.getItem("token");
         const res = await fetch("/api/notifications", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch notifications");
         const data = await res.json();
@@ -29,11 +30,12 @@ export default function NotificationsDropdown() {
     fetchNotifications();
   }, [user]);
 
-  // Listen for real-time notifications from socket
+  // Listen for real-time notifications
   useEffect(() => {
     if (!socket) return;
 
     const handleNotification = (notification) => {
+      // Prepend new notification
       setNotifications((prev) => [notification, ...prev]);
     };
 
@@ -44,11 +46,36 @@ export default function NotificationsDropdown() {
     };
   }, [socket]);
 
+  // Toggle dropdown & mark all as read
+  const handleToggle = async () => {
+    const newState = !open;
+    setOpen(newState);
+
+    if (newState) {
+      try {
+        const token = localStorage.getItem("token");
+        await fetch("/api/notifications/read-all", {
+          method: "PUT", // match your backend route method
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Mark notifications as read locally
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      } catch (err) {
+        console.error("Failed to mark notifications as read:", err);
+      }
+    }
+  };
+
+  // Count unread notifications
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
     <div className="relative">
-      <button onClick={() => setOpen((prev) => !prev)}>
-        🔔 {notifications.length > 0 && <span>({notifications.length})</span>}
+      <button onClick={handleToggle}>
+        🔔 {unreadCount > 0 && <span>({unreadCount})</span>}
       </button>
+
       {open && (
         <div className="absolute bg-white border rounded shadow-md mt-2 p-2 w-64">
           {notifications.length === 0 ? (
