@@ -32,7 +32,7 @@ export default function NavBar() {
             <Link to="/posts" className="nav-button">Posts</Link>
             <Link to="/posts/new" className="nav-button">New Post</Link>
             <Link to="/messages" className="nav-button">Messages</Link>
-            <Link to="/friends" className="nav-button">Friends</Link>
+            <Link to="/friends" className="nav-button">Connections</Link>
             <Link to="/search" className="nav-button">Search</Link>
 
             {/* ✅ Notifications bell */}
