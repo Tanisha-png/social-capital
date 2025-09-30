@@ -10,20 +10,19 @@ const replySchema = new mongoose.Schema(
 
 const postSchema = new mongoose.Schema(
   {
-    content: {
-      type: String,
-      required: function () {
-        // Only require content if this post is not a share
-        return !this.sharedFrom;
-      },
-      trim: true,
-    },
+    content: { type: String, required: true },
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    replies: [replySchema],
-    sharedFrom: { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: null },
+    replies: [
+      {
+        author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        text: String,
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
+    sharedFrom: { type: mongoose.Schema.Types.ObjectId, ref: "Post" }
   },
-  { timestamps: true }
+  { timestamps: true } // ✅ gives createdAt + updatedAt automatically
 );
 
 const Post = mongoose.model("Post", postSchema);

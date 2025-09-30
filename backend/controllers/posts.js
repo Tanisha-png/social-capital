@@ -18,7 +18,7 @@ const migratePosts = async () => {
   process.exit();
 };
 
-migratePosts();
+// migratePosts();
 
 // Get all posts
 export const getPosts = async (req, res) => {
@@ -38,16 +38,21 @@ export const getPosts = async (req, res) => {
 // Create a new post
 export const createPost = async (req, res) => {
   try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
     const post = new Post({
-      author: req.user._id,
+      author: req.user._id, // 🔹 use author consistently
       content: req.body.content,
     });
 
     await post.save();
 
+    // Populate author for frontend display
     const populatedPost = await Post.findById(post._id)
-      .populate("user", "firstName lastName email avatar") // ✅ correct field
-      .populate("replies.author", "firstName lastName email avatar") // ✅ replies use `author`
+      .populate("author", "firstName lastName email avatar")
+      .populate("replies.author", "firstName lastName email avatar")
       .populate("likes", "firstName lastName email avatar");
 
     res.status(201).json(populatedPost);
@@ -61,9 +66,16 @@ export const createPost = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email")
-      .populate("likes", "firstName lastName email");
+      .populate("author", "firstName lastName avatar")
+      .populate("replies.author", "firstName lastName avatar")
+      .populate("likes", "firstName lastName avatar")
+      .populate({
+        path: "sharedFrom",
+        populate: [
+          { path: "author", select: "firstName lastName avatar" },
+          { path: "replies.author", select: "firstName lastName avatar" },
+        ],
+      });
 
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
@@ -94,19 +106,28 @@ export const deletePost = async (req, res) => {
 // Add reply
 export const addReply = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("author", "firstName lastName email");
+    const { text } = req.body;
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ message: "Reply text is required" });
+    }
+
+    const post = await Post.findById(req.params.id).populate(
+      "author",
+      "firstName lastName email avatar"
+    );
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    // ✅ Keep reply shape consistent: { author, text, createdAt }
     const reply = {
-      user: req.user._id,
-      content: req.body.content,
+      author: req.user._id,
+      text,
       createdAt: new Date(),
     };
 
     post.replies.push(reply);
     await post.save();
 
-    // Notifications (if replying to someone else’s post)
+    // ✅ Notify post author if someone else replied
     if (post.author._id.toString() !== req.user._id.toString()) {
       const message = `${req.user.firstName} ${req.user.lastName} replied to your post.`;
       await sendEmail(post.author.email, "New Reply", message);
@@ -118,10 +139,11 @@ export const addReply = async (req, res) => {
       });
     }
 
+    // ✅ Re-fetch post with populated replies for frontend
     const populatedPost = await Post.findById(post._id)
-      .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email")
-      .populate("likes", "firstName lastName email");
+      .populate("author", "firstName lastName email avatar")
+      .populate("replies.author", "firstName lastName email avatar")
+      .populate("likes", "firstName lastName email avatar");
 
     res.status(201).json(populatedPost);
   } catch (err) {
@@ -172,3 +194,65 @@ export const toggleLike = async (req, res) => {
   }
 };
 
+// ✅ EDIT a reply
+export const editReply = async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ message: "Reply text is required" });
+    }
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const reply = post.replies.id(req.params.replyId);
+    if (!reply) return res.status(404).json({ message: "Reply not found" });
+
+    // ✅ Only author can edit
+    if (reply.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    reply.text = text;
+    await post.save();
+
+    const populatedPost = await Post.findById(post._id)
+      .populate("author", "firstName lastName email avatar")
+      .populate("replies.author", "firstName lastName email avatar")
+      .populate("likes", "firstName lastName email avatar");
+
+    res.json(populatedPost);
+  } catch (err) {
+    console.error("Error editing reply:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ DELETE a reply
+export const deleteReply = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const reply = post.replies.id(req.params.replyId);
+    if (!reply) return res.status(404).json({ message: "Reply not found" });
+
+    // ✅ Only author can delete
+    if (reply.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    reply.deleteOne(); // ✅ safe removal
+    await post.save();
+
+    const populatedPost = await Post.findById(post._id)
+      .populate("author", "firstName lastName email avatar")
+      .populate("replies.author", "firstName lastName email avatar")
+      .populate("likes", "firstName lastName email avatar");
+
+    res.json(populatedPost);
+  } catch (err) {
+    console.error("Error deleting reply:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

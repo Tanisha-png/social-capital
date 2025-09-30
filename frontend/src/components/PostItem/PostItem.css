@@ -59,12 +59,11 @@
 }
 
 .post-btn {
-    cursor: pointer;
-    background: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 500;
     border: none;
-    color: #0073b1;
-    /* LinkedIn blue */
-    font-weight: bold;
+    cursor: pointer;
 }
 
 .reply-list {
@@ -99,4 +98,106 @@
 
 .post-actions-row .post-btn:hover {
     text-decoration: underline;
+}
+
+.edit-post-form {
+    margin-top: 0.5rem;
+}
+
+.edit-post-form textarea {
+    width: 100%;
+    min-height: 80px;
+    margin-bottom: 0.5rem;
+}
+
+.reply-actions {
+    margin-top: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.post-btn.bg-gray-300 {
+    background-color: #d1d5db;
+}
+
+.post-btn.bg-red-500 {
+    background-color: #ef4444;
+    color: white;
+}
+
+.post-btn:hover {
+    opacity: 0.9;
+}
+
+.comment-actions {
+    display: inline-flex;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #65676b;
+    /* Facebook-style gray text */
+    margin-left: 8px;
+}
+
+.comment-actions button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-weight: 500;
+    color: #65676b;
+}
+
+.comment-actions button:hover {
+    text-decoration: underline;
+    color: #050505;
+    /* darker on hover */
+}
+
+/*  */
+
+/* Reply avatars & content layout */
+.reply-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.reply-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    object-fit: cover;
+}
+
+.reply-content {
+    flex: 1;
+    background: #f9f9f9;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
+.reply-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.shared-replies .reply-item {
+    margin-left: 2.5rem;
+    /* indent shared replies */
+}
+
+/* Optional: smaller font for timestamp inside reply */
+.reply-content small {
+    display: block;
+    font-size: 0.75rem;
+    color: #555;
+    margin-top: 0.25rem;
+}
+
+/* Keep buttons below text nicely */
+.comment-actions {
+    margin-top: 0.25rem;
+    display: flex;
+    gap: 0.5rem;
 }

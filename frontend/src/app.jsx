@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -27,72 +26,72 @@ function PrivateRoute({ children }) {
     return user ? children : <Navigate to="/login" />;
 }
 
-    export default function App() {
+export default function App() {
     return (
         <div className="page-container">
-            <NavBar />
-            <div className="content-wrap">
+        <NavBar />
+        <div className="content-wrap">
             <Routes>
-                {/* Public */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
+            {/* Public */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
 
-                {/* Private */}
-                <Route
+            {/* Private */}
+            <Route
                 path="/profile"
                 element={
-                    <PrivateRoute>
+                <PrivateRoute>
                     <ProfilePage />
-                    </PrivateRoute>
-                }
-                />
-                <Route
-                path="/posts"
-                element={
-                    <PrivateRoute>
+                </PrivateRoute>
+            }
+            />
+            <Route
+            path="/posts"
+            element={
+                <PrivateRoute>
                     <PostListPage />
-                    </PrivateRoute>
-                }
-                />
-                <Route
-                path="/posts/new"
-                element={
-                    <PrivateRoute>
+                </PrivateRoute>
+            }
+            />
+            <Route
+            path="/posts/new"
+            element={
+                <PrivateRoute>
                     <NewPostPage />
-                    </PrivateRoute>
-                }
-                />
-                <Route
+                </PrivateRoute>
+            }
+            />
+            <Route
                 path="/messages"
                 element={
-                    <PrivateRoute>
+                <PrivateRoute>
                     <MessagesPage />
-                    </PrivateRoute>
+                </PrivateRoute>
                 }
-                />
-                <Route
+            />
+            <Route
                 path="/friends"
                 element={
-                    <PrivateRoute>
+                <PrivateRoute>
                     <FriendsPage />
-                    </PrivateRoute>
+                </PrivateRoute>
                 }
-                />
-                <Route
+            />
+            <Route
                 path="/search"
                 element={
-                    <PrivateRoute>
+                <PrivateRoute>
                     <SearchPage />
-                    </PrivateRoute>
+                </PrivateRoute>
                 }
-                />
-                <Route
+            />
+            <Route
                 path="/edit-profile"
                 element={
-                    <PrivateRoute>
+                <PrivateRoute>
                     <EditProfilePage />
-                    </PrivateRoute>
+                </PrivateRoute>
                 }
             />
 
@@ -100,16 +99,15 @@ function PrivateRoute({ children }) {
             <Route path="/messages/:id" element={<MessagesPage />} />
             <Route path="/posts/:id" element={<PostDetailPage />} />
             <Route path="/edit-profile" element={<EditProfilePage />} />
+            <Route path="/posts/:id" element={<PostDetailPage />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
             </Routes>
-            </div>
-            <footer className="footer">
-            <p>
-                © {new Date().getFullYear()} Social Capital. All rights reserved.
-            </p>
-            </footer>
+        </div>
+        <footer className="footer">
+            <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+        </footer>
         </div>
     );
 }

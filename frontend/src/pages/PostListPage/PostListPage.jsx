@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import PostItem from "../../components/PostItem/PostItem";
+import { useAuth } from "../../context/AuthContext";
 import "./PostListPage.css";
 
 export default function PostListPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const { user } = useAuth();
   const token = localStorage.getItem("token");
 
   // Fetch all posts
@@ -20,12 +21,15 @@ export default function PostListPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/api/posts", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE || "http://localhost:3000"}/api/posts`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!res.ok) {
         const text = await res.text();
@@ -34,7 +38,7 @@ export default function PostListPage() {
 
       const data = await res.json();
 
-      // ✅ Ensure posts are always sorted (newest first)
+      // Sort posts newest first
       setPosts(
         data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       );
@@ -50,16 +54,25 @@ export default function PostListPage() {
     fetchPosts();
   }, []);
 
-  // Handler to update a single post after reply or like
+  // Handler to update or remove a post
   const handlePostUpdated = (updatedPost) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post._id === updatedPost._id ? updatedPost : post
-      )
-    );
+    if (updatedPost.deletedId) {
+      // Remove deleted post from list
+      setPosts((prev) => prev.filter((p) => p._id !== updatedPost.deletedId));
+    } else {
+      // Update edited/liked/replied post
+      setPosts((prev) =>
+        prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+      );
+    }
   };
 
-  // Handler to insert a new shared post at the top
+  // Handler to insert a new post at the top (from NewPostPage)
+  const handleNewPost = (newPost) => {
+    setPosts((prevPosts) => [newPost, ...prevPosts]);
+  };
+
+  // Handler to insert a shared post at the top
   const handlePostShared = (sharedPost) => {
     setPosts((prevPosts) => [sharedPost, ...prevPosts]);
   };
@@ -80,7 +93,9 @@ export default function PostListPage() {
               <PostItem
                 post={post}
                 onPostUpdated={handlePostUpdated}
-                onPostShared={handlePostShared} // ✅ Pass handler for shared posts
+                onNewPost={handleNewPost} // ✅ Allow NewPostPage to prepend
+                onPostShared={handlePostShared}
+                user={user}
               />
             </li>
           ))}

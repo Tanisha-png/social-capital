@@ -55,4 +55,49 @@ router.put("/read-all", ensureLoggedIn, async (req, res) => {
     }
 });
 
+// Mark a single notification as read
+router.put("/:id/read", checkToken, ensureLoggedIn, async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+        if (!notification) return res.status(404).json({ message: "Notification not found" });
+
+        // Only allow the owner to mark their notifications
+        if (notification.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        notification.read = true;
+        await notification.save();
+
+        res.json(notification);
+    } catch (err) {
+        console.error("Error marking notification as read:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
 export default router;
+
+// routes/notificationRoutes.js
+// import express from "express";
+// import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
+// import checkToken from "../middleware/checkToken.js";
+// import {
+//     getNotifications,
+//     getNotificationCounts,
+//     markAllNotificationsRead,
+// } from "../controllers/notifications.js";
+
+// const router = express.Router();
+
+// // ✅ Get all notifications
+// router.get("/", checkToken, ensureLoggedIn, getNotifications);
+
+// // ✅ Get unread counts (for bell + envelope badges)
+// router.get("/counts", checkToken, ensureLoggedIn, getNotificationCounts);
+
+// // ✅ Mark ALL as read
+// router.put("/read-all", checkToken, ensureLoggedIn, markAllNotificationsRead);
+
+// export default router;

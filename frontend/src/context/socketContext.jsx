@@ -1,5 +1,6 @@
 
 
+// src/context/socketContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { io as socketIOClient } from "socket.io-client";
 
@@ -13,16 +14,23 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const newSocket = socketIOClient("http://localhost:3001", {
+    const API_WS = import.meta.env.VITE_API_BASE || "http://localhost:3000";
+    const newSocket = socketIOClient(API_WS, {
       auth: { token },
     });
 
-    // Join the user-specific room
-    newSocket.emit("join", JSON.parse(atob(token.split(".")[1]))._id);
+    // If you want to join user-specific room, decode the token carefully
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const userId = payload._id || payload.id || payload.userId || null;
+      if (userId) newSocket.emit("join", userId);
+    } catch (err) {
+      console.warn("Socket: couldn't decode token to join room", err);
+    }
 
-    // Listen for new notifications
-    newSocket.on("notification", (notif) => {
-      setNotifications((prev) => [notif, ...prev]);
+    newSocket.on("notification", (notif) => setNotifications((prev) => [notif, ...prev]));
+    newSocket.on("newMessage", (msg) => {
+      // you can also setMessages here if you want to expose, but keep minimal
     });
 
     setSocket(newSocket);
@@ -30,12 +38,7 @@ export const SocketProvider = ({ children }) => {
     return () => newSocket.disconnect();
   }, []);
 
-  return (
-    <SocketContext.Provider value={{ socket, notifications, setNotifications }}>
-      {children}
-    </SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={{ socket, notifications, setNotifications }}>{children}</SocketContext.Provider>;
 };
 
 export const useSocket = () => useContext(SocketContext);
-

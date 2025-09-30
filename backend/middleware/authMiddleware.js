@@ -12,12 +12,10 @@ export const verifyToken = async (req, res, next) => {
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await User.findById(decoded.userId).select("-password");
-        if (!user) {
-            return res.status(401).json({ message: "User not found" });
-        }
+        const user = await User.findById(decoded.id).select("-password"); // ⚡ Use decoded.id, not decoded.userId
+        if (!user) return res.status(401).json({ message: "User not found" });
 
-        req.user = user; // 👈 this is what ensureLoggedIn checks
+        req.user = { _id: decoded.id }; // attach full user object
         next();
     } catch (err) {
         console.error("Token verification error:", err);

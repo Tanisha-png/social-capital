@@ -7,15 +7,16 @@ import path from "path";
 // GET current user profile
 export const getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password");
+        // Use _id from checkToken
+        const user = await User.findById(req.user._id).select("-password");
         if (!user) return res.status(404).json({ error: "User not found" });
+
         res.json(user);
     } catch (err) {
         console.error("Error fetching profile:", err);
         res.status(500).json({ error: "Failed to fetch profile" });
     }
 };
-
 // backend/controllers/userController.js
 export const updateMe = async (req, res) => {
     try {
@@ -81,21 +82,37 @@ export const updateMe = async (req, res) => {
 
 
 // GET connections for a user
+// GET connections for a user (fully safe)
 export const getConnections = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).populate("friends", "-password");
-        if (!user) return res.status(404).json({ error: "User not found" });
+        // Determine user ID: use :id param if present, otherwise logged-in user
+        const userId = req.params.id || req.user?._id;
 
-        const connections = user.friends.map(f => ({
+        if (!userId) {
+            // No ID available; return empty array
+            return res.json([]);
+        }
+
+        // Fetch user and populate friends
+        const user = await User.findById(userId).populate("friends", "-password");
+
+        if (!user || !Array.isArray(user.friends)) {
+            // User not found or friends not an array; return empty array
+            return res.json([]);
+        }
+
+        // Map friends to clean array
+        const connections = user.friends.map((f) => ({
             _id: f._id,
-            firstName: f.firstName,
-            lastName: f.lastName,
+            firstName: f.firstName || "",
+            lastName: f.lastName || "",
             profileImage: f.avatar || "/default-avatar.png",
         }));
 
         res.json(connections);
     } catch (err) {
         console.error("Error fetching connections:", err);
-        res.status(500).json({ error: "Failed to fetch connections" });
+        // Always return a safe empty array instead of crashing
+        res.status(500).json([]);
     }
 };

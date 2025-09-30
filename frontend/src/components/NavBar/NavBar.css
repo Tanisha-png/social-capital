@@ -150,3 +150,37 @@
   padding: 2px 6px;
   line-height: 1;
 }
+
+/* 🔽 Dropdown styling */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  /* drop directly below bell */
+  right: 0;
+  /* align right edge */
+  margin-top: 8px;
+  width: 260px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  /* stay above navbar */
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 10px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}

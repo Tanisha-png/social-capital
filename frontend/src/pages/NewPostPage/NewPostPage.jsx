@@ -16,14 +16,17 @@ export default function NewPostPage({ onNewPost }) {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("http://localhost:3000/api/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE || "http://localhost:3000"}/api/posts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ content }),
+        }
+      );
 
       if (!res.ok) {
         const text = await res.text();
@@ -32,7 +35,7 @@ export default function NewPostPage({ onNewPost }) {
 
       const newPost = await res.json();
 
-      // Prepend new post in PostListPage
+      // Prepend new post to PostListPage
       if (onNewPost) onNewPost(newPost);
 
       setContent(""); // clear textarea
@@ -60,7 +63,6 @@ export default function NewPostPage({ onNewPost }) {
     </form>
   );
 }
-
 
 
 

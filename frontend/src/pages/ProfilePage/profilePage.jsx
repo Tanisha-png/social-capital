@@ -29,22 +29,38 @@ export default function ProfilePage() {
     async function fetchProfile() {
       try {
         const token = getToken();
-        const profileRes = await fetch(
-          id && id !== authUser?.id ? `/api/users/${id}` : "/api/users/me",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+
+        // Use _id-safe comparison to decide endpoint
+        const profileUrl =
+          id && id !== authUser?._id ? `/api/users/${id}` : "/api/users/me";
+
+        const profileRes = await fetch(profileUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const profileData = await profileRes.json();
 
-        const connRes = await fetch(
-          `/api/users/${profileData._id}/connections`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        if (!profileData || profileData.error) {
+          setProfile(null);
+          return;
+        }
+
+        // Fetch connections
+        const connectionsUrl =
+          id && id !== authUser?._id
+            ? `/api/users/${id}/connections`
+            : "/api/users/me/connections";
+
+        const connRes = await fetch(connectionsUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const connData = await connRes.json();
 
         if (!isMounted) return;
 
+        // Normalize profile
         setProfile({
           ...profileData,
+          _id: profileData._id, // ensure _id exists
           avatar: getSafeAvatarUrl(profileData.avatar),
           canHelpWith: Array.isArray(profileData.canHelpWith)
             ? profileData.canHelpWith
@@ -54,14 +70,20 @@ export default function ProfilePage() {
             : [],
         });
 
+        // Normalize connections safely (always an array)
+        const connList = Array.isArray(connData) ? connData : [];
         setConnections(
-          (connData || []).map((c) => ({
-            ...c,
+          connList.map((c) => ({
+            _id: c._id,
+            firstName: c.firstName || "",
+            lastName: c.lastName || "",
             profileImage: getSafeAvatarUrl(c.profileImage),
           }))
         );
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching profile:", err);
+        setProfile(null);
+        setConnections([]);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -74,11 +96,12 @@ export default function ProfilePage() {
   }, [id, authUser]);
 
   if (loading) return <p>Loading profile...</p>;
+
   if (!profile)
     return (
       <div className="profile-empty">
         <p>No profile found.</p>
-        {!id && authUser && (
+        {!id && authUser?._id && (
           <Link to="/edit-profile">
             <button className="edit-btn">Create Profile</button>
           </Link>
@@ -88,10 +111,11 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
+      {/* Profile Info */}
       <div className="profile-card">
         <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" />
         <h2>
-          {profile.firstName} {profile.lastName}
+          {profile.firstName || "Unknown"} {profile.lastName || ""}
         </h2>
         {profile.occupation && (
           <p>
@@ -110,6 +134,7 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Connections */}
       <div className="profile-card">
         <h3>
           <Users size={18} /> Connections
@@ -134,6 +159,7 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Potential Connections */}
       <div className="profile-card">
         <h3>
           <Users size={18} /> People You May Know
@@ -141,6 +167,7 @@ export default function ProfilePage() {
         <PotentialConnections />
       </div>
 
+      {/* Help Sections */}
       <div className="profile-card">
         <h3>
           <MessageCircle size={18} /> Help Sections
@@ -156,14 +183,14 @@ export default function ProfilePage() {
         />
       </div>
 
-      {authUser &&
-        (authUser.id === profile._id || authUser._id === profile._id) && (
-          <div className="profile-actions">
-            <Link to="/edit-profile">
-              <button className="edit-btn">Edit Profile</button>
-            </Link>
-          </div>
-        )}
+      {/* Edit Profile Button */}
+      {authUser?._id === profile._id && (
+        <div className="profile-actions">
+          <Link to="/edit-profile">
+            <button className="edit-btn">Edit Profile</button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

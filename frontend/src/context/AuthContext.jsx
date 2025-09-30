@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // ✅ keep this
+  const [user, setUser] = useState(null);
   const [initialized, setInitialized] = useState(false);
 
   // Normalize user object to always have _id and id
@@ -19,16 +19,24 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (token && storedUser) setUser(normalizeUser(storedUser));
-    setInitialized(true); // mark context as ready
+    const storedUser = localStorage.getItem("user");
+    if (token && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(normalizeUser(parsedUser));
+      } catch (err) {
+        console.error("Failed to parse stored user:", err);
+        localStorage.removeItem("user");
+      }
+    }
+    setInitialized(true);
   }, []);
 
   function login(userData, token) {
     const normalized = normalizeUser(userData);
     setUser(normalized);
     localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(normalized));
+    localStorage.setItem("user", JSON.stringify(normalized)); // ✅ FIXED
   }
 
   function logOut() {

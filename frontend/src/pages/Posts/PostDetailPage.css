@@ -1,0 +1,120 @@
+.post-list-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.feed-title {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+    text-align: center;
+    color: #333;
+}
+
+.posts-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.post-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.post-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+}
+
+.post-author {
+    font-size: 12px;
+    color: #555;
+    margin: 0;
+}
+
+.post-link {
+    font-size: 12px;
+    color: #007bff;
+    text-decoration: none;
+    align-self: flex-start;
+}
+
+.post-link:hover {
+    text-decoration: underline;
+}
+
+.no-posts {
+    text-align: center;
+    color: #777;
+    font-size: 14px;
+    margin-top: 12px;
+}
+
+/* Container for Like and Reply buttons */
+.post-actions {
+    display: flex;
+    gap: 8px;
+    /* space between buttons */
+    margin-top: 8px;
+}
+
+.post-btn {
+    background-color: #0077cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* Like and Reply buttons */
+.post-actions button {
+    font-size: 0.8rem;
+    /* smaller text */
+    padding: 4px 8px;
+    /* compact size */
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #0077cc;
+    /* button color */
+    color: white;
+    /* text color */
+    border: none;
+    /* remove default border */
+    transition: background 0.2s;
+}
+
+/* Hover effect */
+.post-actions button:hover {
+    background-color: #005fa3;
+    /* slightly darker on hover */
+}
+
+/* Liked by list */
+.liked-by {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    color: #555;
+}
+
+/* Reply list */
+.reply-list {
+    margin-top: 8px;
+    padding-left: 16px;
+    font-size: 0.85rem;
+    border-left: 2px solid #eee;
+}
