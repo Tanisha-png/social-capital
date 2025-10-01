@@ -41,10 +41,18 @@ export default function App() {
             <Route
                 path="/profile"
                 element={
-                <PrivateRoute>
-                    <ProfilePage />
-                </PrivateRoute>
-            }
+                    <PrivateRoute>
+                        <ProfilePage />
+                    </PrivateRoute>
+                }
+            />
+            <Route
+                path="/profile/:id"
+                element={
+                    <PrivateRoute>
+                        <ProfilePage />
+                    </PrivateRoute>
+                }
             />
             <Route
             path="/posts"

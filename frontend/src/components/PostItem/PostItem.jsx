@@ -1,6 +1,7 @@
 
 
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import ReplyForm from "../ReplyForm/ReplyForm";
 import "../../pages/PostListPage/PostListPage.css";
 import "./PostItem.css";
@@ -222,20 +223,22 @@ export default function PostItem({
       {/* Post Header */}
       <div className="post-header">
         {localAuthor?.avatar && (
-          <img
-            src={
-              localAuthor.avatar.startsWith("http")
-                ? localAuthor.avatar
-                : `${API_BASE}${localAuthor.avatar}`
-            }
-            alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
-            className="post-avatar"
-          />
+          <Link to={`/profile/${localAuthor._id}`}>
+            <img
+              src={
+                localAuthor.avatar.startsWith("http")
+                  ? localAuthor.avatar
+                  : `${API_BASE}${localAuthor.avatar}`
+              }
+              alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
+              className="post-avatar"
+            />
+          </Link>
         )}
         <div className="post-meta">
-          <span className="post-author">
+          <Link to={`/profile/${localAuthor._id}`} className="post-author">
             {localAuthor?.firstName} {localAuthor?.lastName}
-          </span>
+          </Link>
           <span className="post-timestamp">
             {new Date(post.createdAt).toLocaleString()}
           </span>
@@ -272,19 +275,23 @@ export default function PostItem({
         <div className="shared-post">
           <div className="shared-header">
             {localSharedAuthor?.avatar && (
-              <img
-                src={
-                  localSharedAuthor.avatar.startsWith("http")
-                    ? localSharedAuthor.avatar
-                    : `${API_BASE}${localSharedAuthor.avatar}`
-                }
-                alt={`${localSharedAuthor.firstName} ${localSharedAuthor.lastName}`}
-                className="post-avatar"
-              />
+              <Link to={`/profile/${localSharedAuthor._id}`}>
+                <img
+                  src={
+                    localSharedAuthor.avatar.startsWith("http")
+                      ? localSharedAuthor.avatar
+                      : `${API_BASE}${localSharedAuthor.avatar}`
+                  }
+                  alt={`${localSharedAuthor.firstName} ${localSharedAuthor.lastName}`}
+                  className="post-avatar"
+                />
+              </Link>
             )}
             <small>
-              🔄 Shared from {localSharedAuthor?.firstName}{" "}
-              {localSharedAuthor?.lastName}
+              🔄 Shared from{" "}
+              <Link to={`/profile/${localSharedAuthor._id}`}>
+                {localSharedAuthor?.firstName} {localSharedAuthor?.lastName}
+              </Link>
             </small>
           </div>
           <p className="shared-content">
@@ -299,21 +306,25 @@ export default function PostItem({
                 return (
                   <li key={reply._id} className="reply-item">
                     {localReplyAuthor?.avatar && (
-                      <img
-                        src={
-                          localReplyAuthor.avatar.startsWith("http")
-                            ? localReplyAuthor.avatar
-                            : `${API_BASE}${localReplyAuthor.avatar}`
-                        }
-                        alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
-                        className="reply-avatar"
-                      />
+                      <Link to={`/profile/${localReplyAuthor._id}`}>
+                        <img
+                          src={
+                            localReplyAuthor.avatar.startsWith("http")
+                              ? localReplyAuthor.avatar
+                              : `${API_BASE}${localReplyAuthor.avatar}`
+                          }
+                          alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
+                          className="reply-avatar"
+                        />
+                      </Link>
                     )}
                     <div className="reply-content">
-                      <strong>
-                        {localReplyAuthor?.firstName}{" "}
-                        {localReplyAuthor?.lastName}
-                      </strong>
+                      <Link to={`/profile/${localReplyAuthor._id}`}>
+                        <strong>
+                          {localReplyAuthor?.firstName}{" "}
+                          {localReplyAuthor?.lastName}
+                        </strong>
+                      </Link>
                       {editingSharedReplyId === reply._id ? (
                         <>
                           <textarea
@@ -415,20 +426,24 @@ export default function PostItem({
             return (
               <li key={reply._id} className="reply-item">
                 {localReplyAuthor?.avatar && (
-                  <img
-                    src={
-                      localReplyAuthor.avatar.startsWith("http")
-                        ? localReplyAuthor.avatar
-                        : `${API_BASE}${localReplyAuthor.avatar}`
-                    }
-                    alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
-                    className="reply-avatar"
-                  />
+                  <Link to={`/profile/${localReplyAuthor._id}`}>
+                    <img
+                      src={
+                        localReplyAuthor.avatar.startsWith("http")
+                          ? localReplyAuthor.avatar
+                          : `${API_BASE}${localReplyAuthor.avatar}`
+                      }
+                      alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
+                      className="reply-avatar"
+                    />
+                  </Link>
                 )}
                 <div className="reply-content">
-                  <strong>
-                    {localReplyAuthor?.firstName} {localReplyAuthor?.lastName}
-                  </strong>
+                  <Link to={`/profile/${localReplyAuthor._id}`}>
+                    <strong>
+                      {localReplyAuthor?.firstName} {localReplyAuthor?.lastName}
+                    </strong>
+                  </Link>
                   {editingReplyId === reply._id ? (
                     <>
                       <textarea
@@ -487,7 +502,9 @@ export default function PostItem({
               {post.likes?.length > 0 ? (
                 post.likes.map((u) => (
                   <li key={u._id}>
-                    {u.firstName} {u.lastName}
+                    <Link to={`/profile/${u._id}`}>
+                      {u.firstName} {u.lastName}
+                    </Link>
                   </li>
                 ))
               ) : (
