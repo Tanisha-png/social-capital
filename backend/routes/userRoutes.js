@@ -1,6 +1,7 @@
 
+
 import express from "express";
-import { getMe, updateMe, getConnections } from "../controllers/userController.js";
+import { getMe, updateMe, getConnections, searchUsers } from "../controllers/userController.js";
 import checkToken from "../middleware/checkToken.js";
 import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import upload from "../middleware/upload.js";
@@ -18,6 +19,9 @@ router.put(
     upload.single("avatarFile"),
     updateMe
 );
+
+// Search users
+router.get("/search", checkToken, ensureLoggedIn, searchUsers);
 
 // Get any user's profile
 router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {

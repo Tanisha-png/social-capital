@@ -17,7 +17,7 @@ import "./ProfilePage.css";
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
-  const { id } = useParams();
+  const { id } = useParams(); // profile id from URL if present
 
   const [profile, setProfile] = useState(null);
   const [connections, setConnections] = useState([]);
@@ -30,7 +30,7 @@ export default function ProfilePage() {
       try {
         const token = getToken();
 
-        // Use _id-safe comparison to decide endpoint
+        // If id exists and isn't the logged-in user, fetch that user's profile
         const profileUrl =
           id && id !== authUser?._id ? `/api/users/${id}` : "/api/users/me";
 
@@ -40,11 +40,11 @@ export default function ProfilePage() {
         const profileData = await profileRes.json();
 
         if (!profileData || profileData.error) {
-          setProfile(null);
+          if (isMounted) setProfile(null);
           return;
         }
 
-        // Fetch connections
+        // Fetch connections depending on whose profile we are viewing
         const connectionsUrl =
           id && id !== authUser?._id
             ? `/api/users/${id}/connections`
@@ -60,7 +60,7 @@ export default function ProfilePage() {
         // Normalize profile
         setProfile({
           ...profileData,
-          _id: profileData._id, // ensure _id exists
+          _id: profileData._id,
           avatar: getSafeAvatarUrl(profileData.avatar),
           canHelpWith: Array.isArray(profileData.canHelpWith)
             ? profileData.canHelpWith
@@ -70,7 +70,7 @@ export default function ProfilePage() {
             : [],
         });
 
-        // Normalize connections safely (always an array)
+        // Normalize connections safely
         const connList = Array.isArray(connData) ? connData : [];
         setConnections(
           connList.map((c) => ({
@@ -82,8 +82,10 @@ export default function ProfilePage() {
         );
       } catch (err) {
         console.error("Error fetching profile:", err);
-        setProfile(null);
-        setConnections([]);
+        if (isMounted) {
+          setProfile(null);
+          setConnections([]);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -101,6 +103,7 @@ export default function ProfilePage() {
     return (
       <div className="profile-empty">
         <p>No profile found.</p>
+        {/* Only show create button if it's your own profile */}
         {!id && authUser?._id && (
           <Link to="/edit-profile">
             <button className="edit-btn">Create Profile</button>
@@ -160,12 +163,15 @@ export default function ProfilePage() {
       </div>
 
       {/* Potential Connections */}
-      <div className="profile-card">
-        <h3>
-          <Users size={18} /> People You May Know
-        </h3>
-        <PotentialConnections />
-      </div>
+      {/* Only show for your own profile */}
+      {authUser?._id === profile._id && (
+        <div className="profile-card">
+          <h3>
+            <Users size={18} /> People You May Know
+          </h3>
+          <PotentialConnections />
+        </div>
+      )}
 
       {/* Help Sections */}
       <div className="profile-card">
