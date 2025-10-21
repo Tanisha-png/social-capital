@@ -1,9 +1,11 @@
+
 .profile-page {
     max-width: 700px;
     margin: 0 auto;
     padding: 1rem;
 }
 
+/* --- Profile Card --- */
 .profile-card {
     background: #fff;
     border-radius: 12px;
@@ -42,12 +44,6 @@
     text-align: left;
 }
 
-.profile-actions {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-}
-
 .profile-card p,
 .profile-card h3 {
     display: flex;
@@ -56,24 +52,228 @@
     gap: 6px;
 }
 
-.edit-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 14px;
+/* --- Compact LinkedIn-Style Buttons --- */
+/* Make all buttons compact, not full width */
+.btn,
+.message-btn,
+.accept-btn,
+.reject-btn,
+.btn-edit,
+.btn-add {
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: 16px;
     font-weight: 500;
     cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: fit-content;
+    max-width: max-content;
+}
+
+/* --- Connect button (outline) --- */
+.btn-add {
+    background: #fff;
+    border: 1px solid #0a66c2;
+    color: #0a66c2;
+}
+
+.btn-add:hover {
+    background: #0a66c2;
+    color: #fff;
+}
+
+/* --- Message button (solid blue) --- */
+.message-btn,
+.btn-message {
+    background: #0a66c2;
+    border: 1px solid #0a66c2;
+    color: #fff;
+}
+
+.message-btn:hover,
+.btn-message:hover {
+    background: #004182;
+}
+
+/* --- Accept / Reject --- */
+.accept-btn,
+.reject-btn {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 14px;
+}
+
+.accept-btn {
+    background: #0a66c2;
+    color: #fff;
+    border: none;
+}
+
+.accept-btn:hover {
+    background: #004182;
+}
+
+.reject-btn {
+    background: #fff;
+    color: #555;
+    border: 1px solid #ccc;
+}
+
+.reject-btn:hover {
+    background: #f3f2ef;
+}
+
+/* --- Edit Profile --- */
+.btn-edit {
+    background: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.btn-edit:hover {
+    background: #f3f2ef;
+}
+
+/* --- Button Layout --- */
+.profile-actions,
+.request-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+/* --- Label Styling --- */
+.connected-label,
+.pending-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555;
+}
+
+/* --- Friend Request List --- */
+.requests-list {
+    list-style: none;
+    padding: 0;
+}
+
+.friend-request-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0.4rem 0;
+}
+
+.request-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+/* --- Connection Avatar --- */
+.connection-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Space between username and buttons in connections list */
+.connection-card,
+.friend-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure text (like username) has space before buttons */
+.connection-card .connection-info {
+    flex: 1;
+    margin-right: 10px;
+    /* ✅ adds spacing between name and buttons */
+}
+
+/* Button group layout inside connections */
+.connection-card .connection-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* ✅ space between Message / Connect buttons */
+}
+
+/* --- CONNECTIONS LIST STYLING --- */
+.connections-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.connection-item {
+    display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 0.8rem;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+}
+
+.connection-item:hover {
+    background-color: #f3f2ef;
+}
+
+.connection-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.connection-item:last-child {
+    border-bottom: none;
+}
+
+.connection-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.8rem;
+}
+
+.connection-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.connection-item span {
+    flex: 1;
+    font-weight: 500;
+    color: #333;
+    margin-left: 0.5rem;
+}
+
+/* Prevent button from stretching full width */
+.connection-item .message-btn {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    border-radius: 16px;
+    background-color: #0a66c2;
+    color: #fff;
+    border: 1px solid #0a66c2;
     transition: background-color 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.edit-btn:hover {
-    background-color: #0056b3;
-}
-
-.edit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.connection-item .message-btn:hover {
+    background-color: #004182;
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getFriends, removeFriend } from "../../api/userApi";
 
-const FriendList = ({ token, onMessage }) => {
+const FriendList = ({ token, onMessage, onSelectUser }) => {
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -38,21 +38,39 @@ const FriendList = ({ token, onMessage }) => {
             {friends.map((friend) => (
                 <li
                 key={friend._id}
-                className="p-3 flex justify-between items-center"
+                className="p-3 flex justify-between items-center hover:bg-gray-50 rounded-lg cursor-pointer"
+                onClick={() => onSelectUser && onSelectUser(friend)}
                 >
-                <div>
-                    <p className="font-semibold">{friend.name}</p>
+                <div className="flex items-center gap-3">
+                    <img
+                    src={friend.avatar || "/default-avatar.png"}
+                    alt={friend.username || friend.name}
+                    className="w-10 h-10 rounded-full border-2 border-blue-500"
+                    />
+                    <div>
+                    <p className="font-semibold">
+                        {friend.name || friend.username}
+                    </p>
                     <p className="text-sm text-gray-600">{friend.email}</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
+                    {onMessage && (
                     <button
-                    onClick={() => onMessage(friend)}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        onMessage(friend);
+                        }}
+                        className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                     >
-                    Message
+                        Message
                     </button>
+                    )}
                     <button
-                    onClick={() => handleRemove(friend._id)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(friend._id);
+                    }}
                     className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600"
                     >
                     Remove

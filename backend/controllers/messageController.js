@@ -1,64 +1,114 @@
 
-import { io } from "../server.js";
-import Message from "../models/Message.js";
 
-// Get all messages between logged-in user and another user
-export const getMessages = async (req, res) => {
+import Message from "../models/Message.js";
+import User from "../models/User.js";
+
+// 📩 Send a message
+export const sendMessage = async (req, res) => {
     try {
+        const sender = req.user._id;
+        const { recipientId, content } = req.body;
+
+        const message = await Message.create({
+            sender,
+            recipient: recipientId,
+            text: content,
+        });
+
+        const populatedMessage = await message.populate([
+            { path: "sender", select: "firstName lastName avatar" },
+            { path: "recipient", select: "firstName lastName avatar" },
+        ]);
+
+        if (req.io) {
+            req.io.to(recipientId).emit("newMessage", populatedMessage);
+        }
+
+        res.status(201).json(populatedMessage);
+    } catch (err) {
+        console.error("Error in sendMessage:", err);
+        res.status(500).json({ message: "Server error sending message" });
+    }
+};
+
+// 💬 Get all messages between two users
+export const getMessagesWithUser = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { userId: otherUserId } = req.params;
+
         const messages = await Message.find({
             $or: [
-                { sender: req.user._id, recipient: req.params.recipientId },
-                { sender: req.params.recipientId, recipient: req.user._id },
+                { sender: userId, recipient: otherUserId },
+                { sender: otherUserId, recipient: userId },
             ],
-        }).populate("sender recipient", "firstName lastName email");
+        })
+            .sort({ createdAt: 1 })
+            .populate("sender", "firstName lastName avatar")
+            .populate("recipient", "firstName lastName avatar");
 
         res.json(messages);
     } catch (err) {
-        res.status(500).json({ message: "Error fetching messages" });
+        console.error("Error in getMessagesWithUser:", err);
+        res.status(500).json({ message: "Server error fetching messages" });
     }
 };
 
-// Send a message
-export const sendMessage = async (req, res) => {
+// 🧭 Get user's recent conversations (sidebar)
+export const getConversations = async (req, res) => {
     try {
-        const { recipientId, text } = req.body;
-        const senderId = req.user._id;
+        const userId = req.user._id;
 
-        // Save message in DB
-        const message = new Message({
-            sender: senderId,
-            recipient: recipientId,
-            text,
-        });
-        await message.save();
+        const messages = await Message.find({
+            $or: [{ sender: userId }, { recipient: userId }],
+        })
+            .sort({ createdAt: -1 })
+            .populate("sender", "firstName lastName avatar")
+            .populate("recipient", "firstName lastName avatar");
 
-        // Notify recipient in real-time
-        io.to(recipientId).emit("notification", {
-            type: "message",
-            message: `New message from ${req.user.firstName}`,
-            messageId: message._id,
-        });
+        const conversations = [];
+        const seen = new Set();
 
-        res.status(201).json(message);
+        for (const msg of messages) {
+            const otherUser =
+                msg.sender._id.toString() === userId.toString()
+                    ? msg.recipient
+                    : msg.sender;
+
+            if (!seen.has(otherUser._id.toString())) {
+                seen.add(otherUser._id.toString());
+                conversations.push({ user: otherUser, lastMessage: msg });
+            }
+        }
+
+        res.json(conversations);
     } catch (err) {
-        res.status(500).json({ message: "Error sending message" });
+        console.error("Error in getConversations:", err);
+        res.status(500).json({ message: "Server error fetching conversations" });
     }
 };
 
-// Mark all messages from a conversation as read
+// controllers/messageController.js
 export const markMessagesRead = async (req, res) => {
     try {
-        const { otherUserId } = req.body;
-        await Message.updateMany(
-            {
-                sender: otherUserId,
-                recipient: req.user._id,
-                read: false,
-            },
+        const { senderId } = req.body; // user whose messages we’re marking as read
+
+        const updated = await Message.updateMany(
+            { sender: senderId, recipient: req.user._id, read: false },
             { $set: { read: true } }
         );
-        res.json({ success: true });
+
+        // Emit event to the sender so they see "Seen"
+        if (req.io) {
+            req.io.to(senderId.toString()).emit("messagesRead", {
+                from: req.user._id, // who read them
+            });
+        }
+
+        res.json({ success: true, updated });
     } catch (err) {
+        console.error("Error marking messages as read:", err);
         res.status(500).json({ message: "Error marking messages as read" });
     }
 };
+

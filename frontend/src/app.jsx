@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import NavBar from "./components/NavBar/NavBar";
@@ -8,7 +8,7 @@ import SignUpPage from "./pages/SignUpPage/SignUpPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import PostListPage from "./pages/PostListPage/PostListPage";
 import NewPostPage from "./pages/NewPostPage/NewPostPage";
-import MessagesPage from "./pages/MessagesPage/MessagesPage";
+import MessagesPage from "./pages/MessagesPage/messagesPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
 import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
@@ -26,12 +26,20 @@ function PrivateRoute({ children }) {
     return user ? children : <Navigate to="/login" />;
 }
 
+
+
 export default function App() {
+    useEffect(() => {
+      const handleClick = () => {}; // no-op
+        window.addEventListener("click", handleClick);
+        return () => window.removeEventListener("click", handleClick);
+    }, []);
+
     return (
-        <div className="page-container">
+      <div className="page-container">
         <NavBar />
         <div className="content-wrap">
-            <Routes>
+          <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -39,68 +47,68 @@ export default function App() {
 
             {/* Private */}
             <Route
-                path="/profile"
-                element={
-                    <PrivateRoute>
-                        <ProfilePage />
-                    </PrivateRoute>
-                }
-            />
-            <Route
-                path="/profile/:id"
-                element={
-                    <PrivateRoute>
-                        <ProfilePage />
-                    </PrivateRoute>
-                }
-            />
-            <Route
-            path="/posts"
-            element={
+              path="/profile"
+              element={
                 <PrivateRoute>
-                    <PostListPage />
+                  <ProfilePage />
                 </PrivateRoute>
-            }
+              }
             />
             <Route
-            path="/posts/new"
-            element={
+              path="/profile/:id"
+              element={
                 <PrivateRoute>
-                    <NewPostPage />
+                  <ProfilePage />
                 </PrivateRoute>
-            }
+              }
             />
             <Route
-                path="/messages"
-                element={
+              path="/posts"
+              element={
                 <PrivateRoute>
-                    <MessagesPage />
+                  <PostListPage />
                 </PrivateRoute>
-                }
+              }
             />
             <Route
-                path="/friends"
-                element={
+              path="/posts/new"
+              element={
                 <PrivateRoute>
-                    <FriendsPage />
+                  <NewPostPage />
                 </PrivateRoute>
-                }
+              }
             />
             <Route
-                path="/search"
-                element={
+              path="/messages"
+              element={
                 <PrivateRoute>
-                    <SearchPage />
+                  <MessagesPage />
                 </PrivateRoute>
-                }
+              }
             />
             <Route
-                path="/edit-profile"
-                element={
+              path="/friends"
+              element={
                 <PrivateRoute>
-                    <EditProfilePage />
+                  <FriendsPage />
                 </PrivateRoute>
-                }
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <PrivateRoute>
+                  <SearchPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/edit-profile"
+              element={
+                <PrivateRoute>
+                  <EditProfilePage />
+                </PrivateRoute>
+              }
             />
 
             <Route path="/posts/:id" element={<PostDetailPage />} />
@@ -108,14 +116,25 @@ export default function App() {
             <Route path="/posts/:id" element={<PostDetailPage />} />
             <Route path="/edit-profile" element={<EditProfilePage />} />
             <Route path="/posts/:id" element={<PostDetailPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route
+              path="/messages/:userId"
+              element={
+                <PrivateRoute>
+                  <MessagesPage />
+                </PrivateRoute>
+              }
+            />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+          </Routes>
         </div>
         <footer className="footer">
-            <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} Social Capital. All rights reserved.
+          </p>
         </footer>
-        </div>
+      </div>
     );
 }

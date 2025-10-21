@@ -1,10 +1,17 @@
 
-
 import express from "express";
-import { getMe, updateMe, getConnections, searchUsers } from "../controllers/userController.js";
+import {
+    getMe, updateMe, getConnections, searchUsers, sendFriendRequest,
+    getFriendRequests,
+    acceptFriendRequest,
+    declineFriendRequest,
+    removeFriend,
+    } from "../controllers/userController.js";
 import checkToken from "../middleware/checkToken.js";
 import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import upload from "../middleware/upload.js";
+import User from "../models/User.js";
+
 
 const router = express.Router();
 
@@ -38,5 +45,24 @@ router.get(
     ensureLoggedIn,
     getConnections
 );
+
+// ✅ Get all users (for messaging/friend search)
+router.get("/", ensureLoggedIn, async (req, res) => {
+    try {
+        const users = await User.find({}, "firstName lastName email avatar");
+        res.json(users);
+    } catch (err) {
+        console.error("Error fetching users:", err);
+        res.status(500).json({ error: "Failed to fetch users" });
+    }
+});
+
+
+// Friend request system
+router.post("/:userId/request", checkToken, ensureLoggedIn, sendFriendRequest);
+router.get("/me/requests", checkToken, ensureLoggedIn, getFriendRequests);
+router.post("/:userId/accept", checkToken, ensureLoggedIn, acceptFriendRequest);
+router.post("/:userId/decline", checkToken, ensureLoggedIn, declineFriendRequest);
+router.post("/friends/remove", checkToken, removeFriend);
 
 export default router;

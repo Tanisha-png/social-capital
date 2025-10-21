@@ -1,50 +1,5 @@
 
-
-/* .NavBar { */
-  /* background-color: #000000;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 2vmin;
-  font-size: 2vmin;
-  border: 2px solid red */
-/* } */
-
-/* .NavBar {
-  a {
-    border-radius: 0.8vmin;
-    padding: 0.5vmin 1.5vmin;
-    text-decoration: none;
-    color: #1a1a1a;
-  } */
-
-  /* a:hover {
-    background-color: #b3e6fa;
-    color: #000000;
-  } */
-
-  /* a.active {
-    background-color: #1d9bd6dc;
-    color: #000000;
-  } */
-
-  /* span {
-    background-color: #000000;
-    color: white;
-  } */
-/* } */
-
-/* .navlink-button { */
-  /* background-color: black;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  text-decoration: none;
-} */
-
-/* === src/components/NavBar/NavBar.css === */
-
+/* === Navbar Container === */
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -54,6 +9,7 @@
   border-bottom: 1px solid #ddd;
 }
 
+/* === Logo === */
 .nav-logo {
   font-size: 1.2rem;
   font-weight: bold;
@@ -61,12 +17,14 @@
   color: #333;
 }
 
+/* === Right side === */
 .navbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+/* === Buttons (e.g. Login / Logout) === */
 .nav-button {
   background-color: #0077cc;
   color: white;
@@ -83,16 +41,7 @@
   background-color: #005fa3;
 }
 
-.nav-username {
-  background-color: #000;
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* 🔔 Notifications Bell */
+/* === Notifications Bell === */
 .nav-notifications {
   position: relative;
   display: flex;
@@ -130,34 +79,13 @@
   justify-content: center;
   border-radius: 50%;
   border: 1px solid #fff;
-  /* small white border for contrast */
 }
 
-.nav-icon-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.nav-counter {
-  position: absolute;
-  top: -5px;
-  right: -8px;
-  background: red;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  border-radius: 50%;
-  padding: 2px 6px;
-  line-height: 1;
-}
-
-/* 🔽 Dropdown styling */
+/* === Dropdown Menu === */
 .dropdown-menu {
   position: absolute;
   top: 100%;
-  /* drop directly below bell */
   right: 0;
-  /* align right edge */
   margin-top: 8px;
   width: 260px;
   background: #fff;
@@ -165,7 +93,6 @@
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  /* stay above navbar */
   max-height: 300px;
   overflow-y: auto;
 }
@@ -184,3 +111,66 @@
 .dropdown-item:last-child {
   border-bottom: none;
 }
+
+/* 👤 Avatar + Name Container (always visible, no hover) */
+.nav-user-info {
+  display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+    background: transparent;
+    padding: 4px 10px;
+}
+
+/* 🖼️ Profile Picture */
+.nav-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+  background: none;
+  filter: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+}
+
+/* 👤 Username text */
+.nav-username {
+  color: #555;
+  font-weight: 400;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+}
+
+/* 🧼 Remove any accidental overlay from global nav */
+.nav-avatar::after,
+.nav-user-info::before,
+.nav-user-info::after {
+  content: none !important;
+  background: none !important;
+}
+
+.message-notification-dot {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+}
+

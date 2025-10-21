@@ -1,6 +1,9 @@
+
+// src/pages/ProfilePage/profilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { rejectFriendRequest as declineFriendRequest } from "../../api/userApi";
 import PotentialConnections from "../../components/PotentialConnections/PotentialConnections";
 import HelpSections from "../../components/HelpSections/HelpSections";
 import Avatar from "../../components/Avatar/Avatar.jsx";
@@ -13,43 +16,60 @@ import {
 } from "lucide-react";
 import { getToken } from "../../services/authService";
 import { getSafeAvatarUrl } from "../../utils/avatar";
+import {
+  sendFriendRequest,
+  getFriendRequests,
+  acceptFriendRequest,
+  getFriends,
+} from "../../api/userApi";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
-  const { id } = useParams(); // profile id from URL if present
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [connections, setConnections] = useState([]);
+  const [incomingRequests, setIncomingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestSent, setRequestSent] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchProfile() {
+    async function fetchProfileAndConnections() {
+      setLoading(true);
       try {
         const token = getToken();
+        if (!token) {
+          if (isMounted) {
+            setProfile(null);
+            setConnections([]);
+            setIncomingRequests([]);
+            setLoading(false);
+          }
+          return;
+        }
 
-        // If id exists and isn't the logged-in user, fetch that user's profile
         const profileUrl =
           id && id !== authUser?._id ? `/api/users/${id}` : "/api/users/me";
-
         const profileRes = await fetch(profileUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const profileData = await profileRes.json();
-
-        if (!profileData || profileData.error) {
+        if (!profileRes.ok || !profileData) {
+          console.error("Profile fetch failed:", profileData);
           if (isMounted) setProfile(null);
           return;
         }
 
-        // Fetch connections depending on whose profile we are viewing
         const connectionsUrl =
           id && id !== authUser?._id
             ? `/api/users/${id}/connections`
             : "/api/users/me/connections";
-
         const connRes = await fetch(connectionsUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -57,11 +77,10 @@ export default function ProfilePage() {
 
         if (!isMounted) return;
 
-        // Normalize profile
         setProfile({
           ...profileData,
           _id: profileData._id,
-          avatar: getSafeAvatarUrl(profileData.avatar),
+          avatar: profileData.avatar,
           canHelpWith: Array.isArray(profileData.canHelpWith)
             ? profileData.canHelpWith
             : [],
@@ -70,7 +89,6 @@ export default function ProfilePage() {
             : [],
         });
 
-        // Normalize connections safely
         const connList = Array.isArray(connData) ? connData : [];
         setConnections(
           connList.map((c) => ({
@@ -80,22 +98,94 @@ export default function ProfilePage() {
             profileImage: getSafeAvatarUrl(c.profileImage),
           }))
         );
+
+        setIsFriend(
+          connList.some((c) => String(c._id) === String(authUser?._id))
+        );
+
+        if (!id || id === authUser?._id) {
+          const requests = await getFriendRequests(token);
+          setIncomingRequests(Array.isArray(requests) ? requests : []);
+        } else {
+          const otherProfileRes = await fetch(`/api/users/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const otherProfile = await otherProfileRes.json();
+          if (otherProfile && Array.isArray(otherProfile.friendRequests)) {
+            setRequestSent(
+              otherProfile.friendRequests
+                .map(String)
+                .includes(String(authUser?._id))
+            );
+          } else {
+            setRequestSent(false);
+          }
+        }
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error("Error loading profile page:", err);
         if (isMounted) {
           setProfile(null);
           setConnections([]);
+          setIncomingRequests([]);
         }
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
-    fetchProfile();
+    fetchProfileAndConnections();
     return () => {
       isMounted = false;
     };
   }, [id, authUser]);
+
+  const handleMessageUser = (userId) => navigate(`/messages/${userId}`);
+
+  const handleSendRequest = async () => {
+    if (!profile?._id) return;
+    setBusy(true);
+    try {
+      await sendFriendRequest(profile._id, getToken());
+      setRequestSent(true);
+    } catch (err) {
+      console.error("Failed to send request:", err);
+      alert("❌ Failed to send connection request.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requesterId) => {
+    setBusy(true);
+    try {
+      await acceptFriendRequest(requesterId, getToken());
+      setIncomingRequests((prev) =>
+        prev.filter((r) => String(r._id) !== String(requesterId))
+      );
+      alert("✅ Friend request accepted!");
+    } catch (err) {
+      console.error("Failed to accept request:", err);
+      alert("❌ Failed to accept request.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeclineRequest = async (requesterId) => {
+    setBusy(true);
+    try {
+      await declineFriendRequest(requesterId, getToken());
+      setIncomingRequests((prev) =>
+        prev.filter((r) => String(r._id) !== String(requesterId))
+      );
+      alert("❌ Friend request declined.");
+    } catch (err) {
+      console.error("Failed to decline request:", err);
+      alert("❌ Failed to decline request.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) return <p>Loading profile...</p>;
 
@@ -103,7 +193,6 @@ export default function ProfilePage() {
     return (
       <div className="profile-empty">
         <p>No profile found.</p>
-        {/* Only show create button if it's your own profile */}
         {!id && authUser?._id && (
           <Link to="/edit-profile">
             <button className="edit-btn">Create Profile</button>
@@ -114,11 +203,11 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      {/* Profile Info */}
-      <div className="profile-card">
+      {/* MAIN PROFILE CARD */}
+      <div className="profile-card main">
         <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" />
         <h2>
-          {profile.firstName || "Unknown"} {profile.lastName || ""}
+          {profile.firstName} {profile.lastName}
         </h2>
         {profile.occupation && (
           <p>
@@ -135,9 +224,76 @@ export default function ProfilePage() {
             <MessageCircle size={16} /> {profile.bio}
           </p>
         )}
+
+        {/* Buttons */}
+        {authUser?._id !== profile._id && (
+          <div className="profile-actions">
+            {isFriend ? (
+              <>
+                <span className="connected-label">✅ Connected</span>
+                <button
+                  onClick={() => handleMessageUser(profile._id)}
+                  className="btn btn-message"
+                >
+                  💬 Message
+                </button>
+              </>
+            ) : requestSent ? (
+              <span className="pending-label">⏳ Request pending</span>
+            ) : (
+              <button
+                onClick={handleSendRequest}
+                disabled={requestSent || busy}
+                className="btn btn-add"
+              >
+                ➕ Connect
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Connections */}
+      {/* INCOMING REQUESTS */}
+      {authUser?._id === profile._id && (
+        <div className="profile-card">
+          <h3>Connection Requests</h3>
+          {incomingRequests.length === 0 ? (
+            <p>No connection requests yet.</p>
+          ) : (
+            <ul className="requests-list">
+              {incomingRequests.map((r) => (
+                <li key={r._id} className="friend-request-item">
+                  <Avatar
+                    src={getSafeAvatarUrl(r.avatar)}
+                    alt={`${r.firstName} ${r.lastName}`}
+                    className="connection-avatar"
+                  />
+                  <span>
+                    {r.firstName} {r.lastName}
+                  </span>
+                  <div className="request-buttons">
+                    <button
+                      onClick={() => handleAcceptRequest(r._id)}
+                      className="accept-btn"
+                    >
+                      Accept
+                    </button>
+
+                    <button
+                      onClick={() => handleDeclineRequest(r._id)}
+                      className="reject-btn"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* CONNECTIONS */}
       <div className="profile-card">
         <h3>
           <Users size={18} /> Connections
@@ -147,23 +303,38 @@ export default function ProfilePage() {
         ) : (
           <ul className="connections-list">
             {connections.map((c) => (
-              <li key={c._id}>
-                <Avatar
-                  src={c.profileImage}
-                  alt={`${c.firstName} ${c.lastName}`}
-                  className="connection-avatar"
-                />
-                <span>
-                  {c.firstName} {c.lastName}
-                </span>
+              <li
+                key={c._id}
+                className="connection-item"
+                onClick={() => navigate(`/profile/${c._id}`)}
+              >
+                <div className="connection-left">
+                  <Avatar
+                    src={c.profileImage}
+                    alt={`${c.firstName} ${c.lastName}`}
+                    className="connection-avatar"
+                  />
+                  <span className="connection-name">
+                    {c.firstName} {c.lastName}
+                  </span>
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevents triggering profile navigation
+                    handleMessageUser(c._id);
+                  }}
+                  className="message-btn"
+                >
+                  Message
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      {/* Potential Connections */}
-      {/* Only show for your own profile */}
+      {/* POTENTIAL CONNECTIONS */}
       {authUser?._id === profile._id && (
         <div className="profile-card">
           <h3>
@@ -173,27 +344,22 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Help Sections */}
+      {/* HELP SECTIONS */}
       <div className="profile-card">
         <h3>
-          <MessageCircle size={18} /> Help Sections
+          <HeartHandshake size={18} /> Help Sections
         </h3>
-        {profile.canHelpWith.length > 0 && (
-          <div>
-            <HeartHandshake size={16} /> I can help with:
-          </div>
-        )}
         <HelpSections
           canHelpWith={profile.canHelpWith}
           needHelpWith={profile.needHelpWith}
         />
       </div>
 
-      {/* Edit Profile Button */}
+      {/* EDIT PROFILE */}
       {authUser?._id === profile._id && (
         <div className="profile-actions">
           <Link to="/edit-profile">
-            <button className="edit-btn">Edit Profile</button>
+            <button className="btn btn-edit">✏️ Edit Profile</button>
           </Link>
         </div>
       )}
