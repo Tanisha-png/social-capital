@@ -5,7 +5,6 @@ const notificationSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // recipient
         fromUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        // type: { type: String, enum: ["post_reply", "post_like", "message"], required: true },
         type: { type: String, required: true },
         message: { type: String, required: true },
         post: { type: mongoose.Schema.Types.ObjectId, ref: "Post" },
@@ -19,6 +18,5 @@ const Notification =
     mongoose.models.Notification ||
     mongoose.model("Notification", notificationSchema);
 
-// export default mongoose.model("Notification", notificationSchema);
 export default Notification;
 
