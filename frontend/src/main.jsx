@@ -1,25 +1,54 @@
 
+// import { StrictMode } from "react";
+// import { createRoot } from "react-dom/client";
+// import { BrowserRouter } from "react-router-dom";
+// import "./index.css";
+// import App from "./app";
+// import { AuthProvider } from "./context/AuthContext";
+// import {MessageProvider} from "./context/MessageContext";
+// import { SocketProvider } from "./context/socketContext";
+// import { NotificationProvider } from "./context/NotificationContext";
+
+
+// createRoot(document.getElementById("root")).render(
+//   <StrictMode>
+//     <AuthProvider>
+//       <SocketProvider>
+//         <MessageProvider>
+//           <BrowserRouter>
+//             <NotificationProvider>
+//             <App />
+//             </NotificationProvider>
+//           </BrowserRouter>
+//         </MessageProvider>
+//       </SocketProvider>
+//     </AuthProvider>
+//   </StrictMode>
+// );
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./app";
-import { AuthProvider } from "./context/AuthContext";
-import { SocketProvider } from "./context/socketContext";
-// import { NotificationProvider } from "./context/NotificationContext";
 
+import { AuthProvider } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { SocketProvider } from "./context/socketContext";
+import { MessageProvider } from "./context/MessageContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
-      <SocketProvider>
-        <BrowserRouter>
-          {/* <NotificationProvider> */}
-            <App />
-          {/* </NotificationProvider> */}
-        </BrowserRouter>
-      </SocketProvider>
+      <NotificationProvider>
+        <SocketProvider>
+          <MessageProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </MessageProvider>
+        </SocketProvider>
+      </NotificationProvider>
     </AuthProvider>
   </StrictMode>
 );
-

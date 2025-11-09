@@ -1,0 +1,26 @@
+.nav-envelope-icon {
+    position: relative;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+.nav-envelope-icon:hover {
+    color: #0a66c2;
+    /* LinkedIn blue */
+}
+
+.nav-envelope-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    background-color: #e60023;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #fff;
+    pointer-events: none;
+}

@@ -34,6 +34,7 @@ a {
     margin: 0 12px;
     color: white;
     font-weight: 500;
+    position: sticky;
 }
 
 .navbar button {
@@ -92,7 +93,7 @@ form button:hover {
 
 .content-wrap {
     flex: 1;
-    padding-bottom: 60px;
+    /* padding-bottom: 60px; */
 }
 
 .footer {

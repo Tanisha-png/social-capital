@@ -1,15 +1,25 @@
 
 /* === Navbar Container === */
-.navbar {
+/* .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #ddd;
+} */
+
+/* .navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  position: relative;
+  z-index: 20;
 }
 
-/* === Logo === */
 .nav-logo {
   font-size: 1.2rem;
   font-weight: bold;
@@ -17,14 +27,12 @@
   color: #333;
 }
 
-/* === Right side === */
 .navbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* === Buttons (e.g. Login / Logout) === */
 .nav-button {
   background-color: #0077cc;
   color: white;
@@ -41,7 +49,6 @@
   background-color: #005fa3;
 }
 
-/* === Notifications Bell === */
 .nav-notifications {
   position: relative;
   display: flex;
@@ -79,10 +86,10 @@
   justify-content: center;
   border-radius: 50%;
   border: 1px solid #fff;
-}
+} */
 
 /* === Dropdown Menu === */
-.dropdown-menu {
+/* .dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
@@ -95,13 +102,38 @@
   z-index: 1000;
   max-height: 300px;
   overflow-y: auto;
-}
+} */
 
-.dropdown-item {
+/* .dropdown-menu {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 280px;
+  max-height: 360px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  z-index: 1000;
+} */
+
+/* .dropdown-item {
   padding: 10px;
   font-size: 0.9rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
+} */
+
+/* .dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
 .dropdown-item:hover {
@@ -112,7 +144,35 @@
   border-bottom: none;
 }
 
-/* 👤 Avatar + Name Container (always visible, no hover) */
+.dropdown-item img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dropdown-item .notification-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dropdown-item .notification-text .post-preview {
+  color: #555;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-item .notification-text .timestamp {
+  color: #999;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
 .nav-user-info {
   display: flex;
     align-items: center;
@@ -123,7 +183,6 @@
     padding: 4px 10px;
 }
 
-/* 🖼️ Profile Picture */
 .nav-avatar {
   width: 36px;
   height: 36px;
@@ -137,7 +196,6 @@
   mix-blend-mode: normal !important;
 }
 
-/* 👤 Username text */
 .nav-username {
   color: #555;
   font-weight: 400;
@@ -145,7 +203,6 @@
   letter-spacing: 0.2px;
 }
 
-/* 🧼 Remove any accidental overlay from global nav */
 .nav-avatar::after,
 .nav-user-info::before,
 .nav-user-info::after {
@@ -174,3 +231,307 @@
   }
 }
 
+.nav-icon {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.nav-envelope {
+  font-size: 1.5rem;
+  color: #666;
+  transition: color 0.2s ease;
+}
+
+.nav-envelope:hover {
+  color: #0a66c2;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e63946;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  line-height: 1;
+  font-weight: bold;
+  pointer-events: none;
+} */
+
+/* Wrapper for envelope icon to position the badge */
+/* .nav-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+} */
+
+/* .nav-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  z-index: 30;
+}
+
+.nav-envelope-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nav-envelope-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ff3b30;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid white;
+  pointer-events: none;
+}
+
+.message-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #e63946;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  line-height: 1;
+  font-weight: bold;
+  pointer-events: none;
+} */
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  position: relative;
+  z-index: 20;
+  /* ensures dropdown is above other elements */
+}
+
+/* === Logo === */
+.nav-logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+}
+
+/* === Right side === */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* === Buttons (Login / Logout) === */
+.nav-button {
+  background-color: #0077cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s ease-in-out;
+}
+
+.nav-button:hover {
+  background-color: #005fa3;
+}
+
+/* === Notifications Bell === */
+.nav-notifications {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #0077cc;
+  transition: background 0.2s ease-in-out;
+}
+
+.nav-notifications:hover {
+  background-color: #005fa3;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e63946;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  line-height: 1;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* === Notifications Dropdown === */
+.notifications-dropdown {
+  position: absolute;
+  top: 36px;
+  /* below bell icon */
+  right: 0;
+  width: 280px;
+  max-height: 360px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  z-index: 200;
+}
+
+/* Optional small arrow above dropdown */
+.notifications-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 1rem;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+  transform: rotate(45deg);
+  z-index: 201;
+}
+
+/* Dropdown items */
+.dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dropdown-item .notification-text {
+  display: flex;
+  color: #333;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dropdown-item .notification-text .post-preview {
+  color: #555;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-item .notification-text .timestamp {
+  color: #999;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+/* User info (always visible) */
+.nav-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  padding: 4px 10px;
+}
+
+/* Profile avatar */
+.nav-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+  background: none;
+}
+
+/* Username text */
+.nav-username {
+  color: #555;
+  font-weight: 400;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+}
+
+/* Nav icon wrapper */
+.nav-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  z-index: 30;
+  /* ensures dropdown appears above other elements */
+}
+
+/* Message badge */
+.message-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #e63946;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  line-height: 1;
+  font-weight: bold;
+  pointer-events: none;
+}

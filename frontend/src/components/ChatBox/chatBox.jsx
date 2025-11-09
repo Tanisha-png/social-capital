@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
 import { getConversation, saveMessage } from "../api/messageApi";
+import "../styles/chatBox.css"; // make sure this path matches your setup
 
 export default function ChatBox({ otherId }) {
     const { user, token } = useAuth();
@@ -29,7 +30,6 @@ export default function ChatBox({ otherId }) {
         };
         socket.on("receive_message", handler);
         socket.on("message_saved", (msg) => {
-        // appended ACK from server for messages you sent
         setMessages((prev) => [...prev.filter((m) => m._id !== msg._id), msg]);
         });
         return () => {
@@ -39,11 +39,9 @@ export default function ChatBox({ otherId }) {
     }, [socket, otherId]);
 
     const handleSend = async () => {
-        if (!text || !otherId) return;
+        if (!text.trim() || !otherId) return;
         const payload = { sender: user.id, receiver: otherId, content: text };
-        // emit via socket for real-time
         socket.emit("send_message", payload);
-        // optimistic update
         setMessages((prev) => [
         ...prev,
         {
@@ -53,7 +51,6 @@ export default function ChatBox({ otherId }) {
         },
         ]);
         setText("");
-        // optionally also call REST to ensure saved (socket server already saves)
         try {
         await saveMessage(payload, token);
         } catch (e) {
@@ -62,39 +59,37 @@ export default function ChatBox({ otherId }) {
     };
 
     return (
-        <div style={{ border: "1px solid #ccc", padding: 12, width: 600 }}>
-        <div style={{ height: 300, overflowY: "auto", marginBottom: 8 }}>
-            {messages.map((m) => (
-            <div
-                key={m._id}
-                style={{
-                textAlign:
-                    String(m.sender) === String(user.id) ? "right" : "left",
-                margin: "6px 0",
-                }}
-            >
+        <div className="chat-section">
+        <div className="chat-messages">
+            {messages.length === 0 ? (
+            <div className="no-messages">No messages yet</div>
+            ) : (
+            messages.map((m) => (
                 <div
-                style={{
-                    display: "inline-block",
-                    padding: 8,
-                    borderRadius: 8,
-                    background: "#eee",
-                }}
+                key={m._id}
+                className={`message-bubble ${
+                    String(m.sender) === String(user.id) ? "sent" : "received"
+                }`}
                 >
                 {m.content}
+                <span className="timestamp">
+                    {new Date(m.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    })}
+                </span>
                 </div>
-                <div style={{ fontSize: 10 }}>
-                {new Date(m.createdAt).toLocaleString()}
-                </div>
-            </div>
-            ))}
+            ))
+            )}
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="chat-input">
             <input
+            type="text"
+            placeholder="Write a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            style={{ flex: 1 }}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
             />
             <button onClick={handleSend}>Send</button>
         </div>

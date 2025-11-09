@@ -1,10 +1,12 @@
-
+// routes/posts.js
+import { notifyUser } from "../server.js";
 import express from "express";
 import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import checkToken from "../middleware/checkToken.js";
 import Notification from "../models/Notification.js";
 import Post from "../models/post.js";
 import User from "../models/User.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -12,31 +14,31 @@ const router = express.Router();
 router.get("/", checkToken, ensureLoggedIn, async (req, res) => {
     try {
         const posts = await Post.find()
-        .sort({ createdAt: -1 })
-        .populate("author", "firstName lastName avatar")
-        .populate("replies.author", "firstName lastName avatar")
-        .populate({
-            path: "sharedFrom",
-            populate: [
-            { path: "author", select: "firstName lastName avatar" },
-            { path: "replies.author", select: "firstName lastName avatar" },
-            ],
-        });
+            .sort({ createdAt: -1 })
+            .populate("author", "firstName lastName avatar")
+            .populate("replies.author", "firstName lastName avatar")
+            .populate({
+                path: "sharedFrom",
+                populate: [
+                    { path: "author", select: "firstName lastName avatar" },
+                    { path: "replies.author", select: "firstName lastName avatar" },
+                ],
+            });
 
         res.json(posts);
     } catch (err) {
         console.error("Error fetching posts:", err);
         res.status(500).json({ message: "Server error" });
     }
-    });
+});
 
-// GET /api/posts/:id
+// ✅ GET single post
 router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id)
             .populate("author", "firstName lastName avatar")
             .populate("replies.author", "firstName lastName avatar")
-            .populate("likes", "firstName lastName avatar") // ✅ include likes
+            .populate("likes", "firstName lastName avatar")
             .populate({
                 path: "sharedFrom",
                 populate: [
@@ -54,16 +56,15 @@ router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
     }
 });
 
-
-    // ✅ CREATE a post
-    router.post("/", checkToken, ensureLoggedIn, async (req, res) => {
+// ✅ CREATE a post
+router.post("/", checkToken, ensureLoggedIn, async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select("firstName lastName avatar");
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const newPost = new Post({
-        content: req.body.content,
-        author: user._id,
+            content: req.body.content,
+            author: user._id,
         });
 
         await newPost.save();
@@ -74,55 +75,70 @@ router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
         console.error("Error creating post:", err);
         res.status(500).json({ message: "Server error" });
     }
-    });
+});
 
-    // ✅ LIKE / UNLIKE a post
-    router.put("/:id/like", checkToken, ensureLoggedIn, async (req, res) => {
+// ✅ LIKE / UNLIKE a post
+router.post("/:id/like", verifyToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id).populate("author");
-        if (!post) return res.status(404).json({ message: "Post not found" });
+        if (!post) return res.status(404).json({ error: "Post not found" });
 
-        const userId = req.user._id;
+        const userId = req.user._id.toString();
+        const liked = post.likes.some(id => id.toString() === userId);
 
-        if (post.likes.includes(userId)) {
-        // unlike
-        post.likes = post.likes.filter((id) => id.toString() !== userId.toString());
+        if (liked) {
+            post.likes = post.likes.filter(id => id.toString() !== userId);
         } else {
-        // like
-        post.likes.push(userId);
+            post.likes.push(userId);
 
-        if (post.author._id.toString() !== userId.toString()) {
-            const liker = await User.findById(userId).select("firstName lastName");
-            const notif = await Notification.create({
-            user: post.author._id,
-            type: "post_like",
-            message: `${ liker.firstName } ${ liker.lastName } liked your post.`,
-            post: post._id,
-            });
-            if (req.io) req.io.to(post.author._id.toString()).emit("notification", notif);
-        }
+            if (post.author._id.toString() !== userId) {
+                const notification = await Notification.create({
+                    user: post.author._id,
+                    fromUser: req.user._id,
+                    post: post._id,
+                    type: "post_like",
+                    message: `${req.user.firstName} liked your post`,
+                    read: false,
+                });
+
+                notifyUser(post.author._id, {
+                    ...notification.toObject(),
+                    fromUser: {
+                        _id: req.user._id,
+                        firstName: req.user.firstName,
+                        lastName: req.user.lastName,
+                    },
+                    post: { _id: post._id, content: post.content },
+                });
+            }
         }
 
         await post.save();
 
         const populatedPost = await Post.findById(post._id)
-        .populate("author", "firstName lastName avatar")
-        .populate("replies.author", "firstName lastName avatar");
+            .populate("author", "firstName lastName avatar")
+            .populate("replies.author", "firstName lastName avatar")
+            .populate("likes", "firstName lastName avatar")
+            .populate({
+                path: "sharedFrom",
+                populate: [
+                    { path: "author", select: "firstName lastName avatar" },
+                    { path: "replies.author", select: "firstName lastName avatar" },
+                ],
+            });
 
         res.json(populatedPost);
     } catch (err) {
-        console.error("Error liking post:", err);
-        res.status(500).json({ message: "Server error" });
+        console.error("Like error:", err);
+        res.status(500).json({ error: "Server error" });
     }
-    });
+});
 
-    // ✅ ADD a reply
-    router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
+// ✅ ADD a reply (with notification)
+router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
     try {
         const { text } = req.body;
-        if (!text || text.trim() === "") {
-        return res.status(400).json({ message: "Reply text is required" });
-        }
+        if (!text || text.trim() === "") return res.status(400).json({ message: "Reply text is required" });
 
         const post = await Post.findById(req.params.id).populate("author");
         if (!post) return res.status(404).json({ message: "Post not found" });
@@ -132,16 +148,25 @@ router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
         await post.save();
         await post.populate("replies.author", "firstName lastName avatar");
 
-        // 🔔 Notify post author (if replying to someone else)
         if (post.author._id.toString() !== req.user._id.toString()) {
-        const replier = await User.findById(req.user._id).select("firstName lastName");
-        const notif = await Notification.create({
-            user: post.author._id,
-            type: "post_reply",
-            message: `${ replier.firstName } ${ replier.lastName } replied to your post.`,
-            post: post._id,
-        });
-        if (req.io) req.io.to(post.author._id.toString()).emit("notification", notif);
+            const notification = await Notification.create({
+                user: post.author._id,
+                fromUser: req.user._id,
+                post: post._id,
+                type: "post_reply",
+                message: `${req.user.firstName} replied to your post`,
+                read: false,
+            });
+
+            notifyUser(post.author._id, {
+                ...notification.toObject(),
+                fromUser: {
+                    _id: req.user._id,
+                    firstName: req.user.firstName,
+                    lastName: req.user.lastName,
+                },
+                post: { _id: post._id, content: post.content },
+            });
         }
 
         res.json(post.replies[post.replies.length - 1]);
@@ -149,27 +174,21 @@ router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
         console.error("Error replying:", err);
         res.status(500).json({ message: "Server error" });
     }
-    });
+});
 
 // ✅ SHARE a post
 router.post("/:id/share", checkToken, ensureLoggedIn, async (req, res) => {
     try {
-        // Make sure req.user._id is present
-        if (!req.user?._id) {
-            return res.status(401).json({ message: "Unauthorized: user ID missing" });
-        }
+        if (!req.user?._id) return res.status(401).json({ message: "Unauthorized: user ID missing" });
 
         const originalPost = await Post.findById(req.params.id)
             .populate("author", "firstName lastName avatar")
             .populate("replies.author", "firstName lastName avatar");
 
-        if (!originalPost) {
-            return res.status(404).json({ message: "Original post not found" });
-        }
+        if (!originalPost) return res.status(404).json({ message: "Original post not found" });
 
-        // Create the shared post
         const newPost = new Post({
-            content: req.body?.content?.trim() || originalPost.content, // ✅ use original content if empty
+            content: req.body?.content?.trim() || originalPost.content,
             author: req.user._id,
             sharedFrom: originalPost._id,
         });
@@ -189,22 +208,17 @@ router.post("/:id/share", checkToken, ensureLoggedIn, async (req, res) => {
 
         res.status(201).json(populatedPost);
     } catch (err) {
-        console.error("Error sharing post:", err); // ✅ full error
-        res.status(500).json({ message: err.message || "Server error" }); // send exact error message
+        console.error("Error sharing post:", err);
+        res.status(500).json({ message: err.message || "Server error" });
     }
 });
 
-
-// DELETE post
+// ✅ DELETE a post
 router.delete("/:id", checkToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: "Post not found" });
-
-        // ✅ Consistent with your middleware
-        if (post.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
+        if (post.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
         await post.deleteOne();
         res.json({ message: "Post deleted", id: post._id });
@@ -214,16 +228,12 @@ router.delete("/:id", checkToken, async (req, res) => {
     }
 });
 
-// UPDATE post
+// ✅ UPDATE a post
 router.put("/:id", checkToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: "Post not found" });
-
-        // ✅ always use req.user._id
-        if (post.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
+        if (post.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
         post.content = req.body.content || post.content;
         await post.save();
@@ -238,20 +248,14 @@ router.put("/:id", checkToken, async (req, res) => {
 router.put("/:postId/replies/:replyId", checkToken, async (req, res) => {
     try {
         const { text } = req.body;
-        if (!text || text.trim() === "") {
-            return res.status(400).json({ message: "Reply text is required" });
-        }
+        if (!text || text.trim() === "") return res.status(400).json({ message: "Reply text is required" });
 
         const post = await Post.findById(req.params.postId);
         if (!post) return res.status(404).json({ message: "Post not found" });
 
         const reply = post.replies.id(req.params.replyId);
         if (!reply) return res.status(404).json({ message: "Reply not found" });
-
-        // Only author can edit
-        if (reply.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
+        if (reply.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
         reply.text = text;
         await post.save();
@@ -272,13 +276,8 @@ router.delete("/:postId/replies/:replyId", checkToken, ensureLoggedIn, async (re
 
         const reply = post.replies.id(req.params.replyId);
         if (!reply) return res.status(404).json({ message: "Reply not found" });
+        if (reply.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
-        // Only the author of the reply can delete it
-        if (reply.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
-
-        // Remove reply safely
         reply.deleteOne();
         await post.save();
 
@@ -289,8 +288,4 @@ router.delete("/:postId/replies/:replyId", checkToken, ensureLoggedIn, async (re
     }
 });
 
-
-
-
 export default router;
-

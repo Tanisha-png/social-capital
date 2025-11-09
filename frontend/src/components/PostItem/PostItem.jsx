@@ -36,17 +36,19 @@ export default function PostItem({
   const handleLikeToggle = async () => {
     const token = localStorage.getItem("token");
     if (!token) return console.error("No token found");
+
     try {
       const res = await fetch(`${API_BASE}/api/posts/${post._id}/like`, {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
       if (!res.ok) throw new Error(await res.text());
+
       const updatedPost = await res.json();
-      onPostUpdated(updatedPost);
+      onPostUpdated(updatedPost); // ✅ now has full likes array
     } catch (err) {
       console.error("Error in handleLikeToggle:", err);
     }

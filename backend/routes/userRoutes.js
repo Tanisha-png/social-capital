@@ -47,7 +47,7 @@ router.get(
 );
 
 // ✅ Get all users (for messaging/friend search)
-router.get("/", ensureLoggedIn, async (req, res) => {
+router.get("/", checkToken, ensureLoggedIn, async (req, res) => {
     try {
         const users = await User.find({}, "firstName lastName email avatar");
         res.json(users);

@@ -2,9 +2,10 @@ import Notification from "../models/Notification.js";
 import { io } from "../server.js";
 import nodemailer from "nodemailer";
 
-export async function notifyUser({ userId, type, message, post, messageRef }) {
+export async function notifyUser({ userId, fromUserId, type, message, post, messageRef }) {
     const notif = await Notification.create({
-        user: userId,
+        user: userId,            // recipient
+        fromUser: fromUserId,    // who triggered notification
         type,
         message,
         post,

@@ -45,8 +45,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
   }
 
+  function getToken() {
+    return localStorage.getItem("token") || null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logOut, initialized }}>
+    <AuthContext.Provider
+      value={{ user, setUser, login, logOut, initialized, getToken }}
+    >
       {children}
     </AuthContext.Provider>
   );

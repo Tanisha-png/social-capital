@@ -1,4 +1,145 @@
-import React, {useEffect} from "react";
+// import React, {useEffect} from "react";
+// import { Routes, Route, Navigate } from "react-router-dom";
+// import { useAuth } from "./context/AuthContext";
+// import NavBar from "./components/NavBar/NavBar";
+// import HomePage from "./pages/HomePage/HomePage";
+// import LoginPage from "./pages/LoginPage/LoginPage";
+// import SignUpPage from "./pages/SignUpPage/SignUpPage";
+// import ProfilePage from "./pages/ProfilePage/ProfilePage";
+// import PostListPage from "./pages/PostListPage/PostListPage";
+// import NewPostPage from "./pages/NewPostPage/NewPostPage";
+// import MessagesPage from "./pages/MessagesPage/messagesPage";
+// import SearchPage from "./pages/SearchPage/SearchPage";
+// import FriendsPage from "./pages/FriendsPage/FriendsPage";
+// import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
+// import PostDetailPage from "./pages/Posts/PostDetailPage";
+
+// import "./App.css";
+
+// // Private Route
+// function PrivateRoute({ children }) {
+//     const { user, initialized } = useAuth();
+
+//     // Show nothing (or a spinner) until AuthContext finishes initializing
+//     if (!initialized) return <p>Loading...</p>;
+
+//     return user ? children : <Navigate to="/login" />;
+// }
+
+
+
+// export default function App() {
+//     useEffect(() => {
+//       const handleClick = () => {}; // no-op
+//         window.addEventListener("click", handleClick);
+//         return () => window.removeEventListener("click", handleClick);
+//     }, []);
+
+//     return (
+//       <div className="page-container">
+//         <NavBar />
+//         <div className="content-wrap">
+//           <Routes>
+//             {/* Public */}
+//             <Route path="/" element={<HomePage />} />
+//             <Route path="/login" element={<LoginPage />} />
+//             <Route path="/signup" element={<SignUpPage />} />
+
+//             {/* Private */}
+//             <Route
+//               path="/profile"
+//               element={
+//                 <PrivateRoute>
+//                   <ProfilePage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/profile/:id"
+//               element={
+//                 <PrivateRoute>
+//                   <ProfilePage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/posts"
+//               element={
+//                 <PrivateRoute>
+//                   <PostListPage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/posts/new"
+//               element={
+//                 <PrivateRoute>
+//                   <NewPostPage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/messages"
+//               element={
+//                 <PrivateRoute>
+//                   <MessagesPage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/friends"
+//               element={
+//                 <PrivateRoute>
+//                   <FriendsPage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/search"
+//               element={
+//                 <PrivateRoute>
+//                   <SearchPage />
+//                 </PrivateRoute>
+//               }
+//             />
+//             <Route
+//               path="/edit-profile"
+//               element={
+//                 <PrivateRoute>
+//                   <EditProfilePage />
+//                 </PrivateRoute>
+//               }
+//             />
+
+//             <Route path="/posts/:id" element={<PostDetailPage />} />
+//             <Route path="/messages/:id" element={<MessagesPage />} />
+//             <Route path="/posts/:id" element={<PostDetailPage />} />
+//             <Route path="/edit-profile" element={<EditProfilePage />} />
+//             <Route path="/posts/:id" element={<PostDetailPage />} />
+//             <Route path="/messages" element={<MessagesPage />} />
+//             <Route
+//               path="/messages/:userId"
+//               element={
+//                 <PrivateRoute>
+//                   <MessagesPage />
+//                 </PrivateRoute>
+//               }
+//             />
+
+//             {/* Fallback */}
+//             <Route path="*" element={<Navigate to="/" />} />
+//           </Routes>
+//         </div>
+//         <footer className="footer">
+//           <p>
+//             © {new Date().getFullYear()} Social Capital. All rights reserved.
+//           </p>
+//         </footer>
+//       </div>
+//     );
+// }
+
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import NavBar from "./components/NavBar/NavBar";
@@ -14,127 +155,132 @@ import FriendsPage from "./pages/FriendsPage/FriendsPage";
 import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
 import PostDetailPage from "./pages/Posts/PostDetailPage";
 
+import { initSocket } from "./socket"; // ✅ Import socket init
 import "./App.css";
 
 // Private Route
 function PrivateRoute({ children }) {
-    const { user, initialized } = useAuth();
-
-    // Show nothing (or a spinner) until AuthContext finishes initializing
-    if (!initialized) return <p>Loading...</p>;
-
-    return user ? children : <Navigate to="/login" />;
+  const { user, initialized } = useAuth();
+  if (!initialized) return <p>Loading...</p>;
+  return user ? children : <Navigate to="/login" />;
 }
 
-
-
 export default function App() {
-    useEffect(() => {
-      const handleClick = () => {}; // no-op
-        window.addEventListener("click", handleClick);
-        return () => window.removeEventListener("click", handleClick);
-    }, []);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState([]);
 
-    return (
-      <div className="page-container">
-        <NavBar />
-        <div className="content-wrap">
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
+  // Initialize socket for notifications
+  useEffect(() => {
+    if (user?._id) {
+      initSocket(user._id, (notif) => {
+        // Add new notifications to state (so UI can update immediately)
+        setNotifications((prev) => [notif, ...prev]);
+      });
+    }
+  }, [user]);
 
-            {/* Private */}
-            <Route
-              path="/profile"
-              element={
-                <PrivateRoute>
-                  <ProfilePage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/profile/:id"
-              element={
-                <PrivateRoute>
-                  <ProfilePage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/posts"
-              element={
-                <PrivateRoute>
-                  <PostListPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/posts/new"
-              element={
-                <PrivateRoute>
-                  <NewPostPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <PrivateRoute>
-                  <MessagesPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/friends"
-              element={
-                <PrivateRoute>
-                  <FriendsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/search"
-              element={
-                <PrivateRoute>
-                  <SearchPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/edit-profile"
-              element={
-                <PrivateRoute>
-                  <EditProfilePage />
-                </PrivateRoute>
-              }
-            />
+  // Optional: existing click listener
+  useEffect(() => {
+    const handleClick = () => {}; // no-op
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, []);
 
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-            <Route path="/messages/:id" element={<MessagesPage />} />
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-            <Route path="/edit-profile" element={<EditProfilePage />} />
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route
-              path="/messages/:userId"
-              element={
-                <PrivateRoute>
-                  <MessagesPage />
-                </PrivateRoute>
-              }
-            />
+  return (
+    <div className="page-container">
+      <NavBar notifications={notifications} />{" "}
+      {/* Pass notifications to NavBar */}
+      <div className="content-wrap">
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-        <footer className="footer">
-          <p>
-            © {new Date().getFullYear()} Social Capital. All rights reserved.
-          </p>
-        </footer>
+          {/* Private */}
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile/:id"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/posts"
+            element={
+              <PrivateRoute>
+                <PostListPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/posts/new"
+            element={
+              <PrivateRoute>
+                <NewPostPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <PrivateRoute>
+                <MessagesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <PrivateRoute>
+                <FriendsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <PrivateRoute>
+                <SearchPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/edit-profile"
+            element={
+              <PrivateRoute>
+                <EditProfilePage />
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="/posts/:id" element={<PostDetailPage />} />
+          <Route path="/messages/:id" element={<MessagesPage />} />
+          <Route
+            path="/messages/:userId"
+            element={
+              <PrivateRoute>
+                <MessagesPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </div>
-    );
+      <footer className="footer">
+        <p>© {new Date().getFullYear()} Social Capital. All rights reserved.</p>
+      </footer>
+    </div>
+  );
 }

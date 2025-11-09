@@ -4,7 +4,9 @@ import mongoose from "mongoose";
 const notificationSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // recipient
-        type: { type: String, enum: ["post_reply", "post_like", "message"], required: true },
+        fromUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        // type: { type: String, enum: ["post_reply", "post_like", "message"], required: true },
+        type: { type: String, required: true },
         message: { type: String, required: true },
         post: { type: mongoose.Schema.Types.ObjectId, ref: "Post" },
         messageRef: { type: mongoose.Schema.Types.ObjectId, ref: "Message" },
@@ -13,5 +15,10 @@ const notificationSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model("Notification", notificationSchema);
+const Notification =
+    mongoose.models.Notification ||
+    mongoose.model("Notification", notificationSchema);
+
+// export default mongoose.model("Notification", notificationSchema);
+export default Notification;
 

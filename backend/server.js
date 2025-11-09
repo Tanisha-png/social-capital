@@ -1,4 +1,126 @@
 
+// import express from "express";
+// import http from "http";
+// import { Server } from "socket.io";
+// import dotenv from "dotenv";
+// import cors from "cors";
+// import helmet from "helmet";
+// import Message from "./models/Message.js";
+// import rateLimit from "express-rate-limit";
+// import mongoSanitize from "express-mongo-sanitize";
+// import connectDB from "./config/db.js";
+// import userRoutes from "./routes/userRoutes.js";
+// import posts from "./routes/posts.js";
+// import authRoutes from "./routes/auth.js";
+// import notificationRoutes from "./routes/notificationRoutes.js";
+// import messageRoutes from "./routes/messageRoutes.js";
+// import connectionRoutes from "./routes/connectionRoutes.js";
+
+// dotenv.config();
+// await connectDB();
+
+// const app = express();
+// const server = http.createServer(app);
+
+// // --- CORS GLOBAL CONFIG ---
+// const corsOptions = {
+//   origin: "http://localhost:5173",
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+// };
+
+// app.use(cors(corsOptions));
+// app.options("*", cors(corsOptions));
+
+// // --- SECURITY & BODY PARSING ---
+// app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+// app.use(express.json());
+// app.use(mongoSanitize());
+// app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+
+// // --- SOCKET.IO ---
+// export const io = new Server(server, {
+//   cors: corsOptions,
+// });
+
+// const onlineUsers = new Map(); // ✅ store userId => socket.id
+
+// io.on("connection", (socket) => {
+//   console.log("User connected:", socket.id);
+
+//   socket.on("sendMessage", async (data) => {
+//     try {
+//       // data should include senderId, recipientId, text
+//       const { senderId, recipientId, text } = data;
+
+//       if (!senderId || !recipientId || !text) return;
+
+//       // Save to DB
+//       const newMessage = await Message.create({
+//         sender: senderId,
+//         recipient: recipientId,
+//         text,
+//         read: false // ✅ add this
+//       });
+
+//       // Emit to recipient if online
+//       const recipientSocketId = onlineUsers.get(recipientId);
+//       if (recipientSocketId) {
+//         io.to(recipientSocketId).emit("newMessage", {
+//           ...newMessage._doc,
+//           receiverId: recipientId.toString(), // ✅ normalize key your frontend checks
+//         });
+//       }
+//     } catch (err) {
+//       console.error("Socket sendMessage error:", err);
+//     }
+//   });
+
+//   socket.on("join", (userId) => {
+//     if (userId) {
+//       onlineUsers.set(userId, socket.id);
+//       io.emit("userOnline", userId); // ✅ broadcast online
+//       socket.join(userId);
+//     }
+//   });
+
+//   socket.on("disconnect", () => {
+//     for (const [userId, id] of onlineUsers.entries()) {
+//       if (id === socket.id) {
+//         onlineUsers.delete(userId);
+//         io.emit("userOffline", userId); // ✅ broadcast offline
+//         break;
+//       }
+//     }
+//     console.log("User disconnected:", socket.id);
+//   });
+// });
+
+// // Attach socket.io instance to requests
+// app.use((req, _res, next) => {
+//   req.io = io;
+//   next();
+// });
+
+
+// // --- ROUTES ---
+// app.use("/api/auth", authRoutes);
+// app.use("/api/users", userRoutes);
+// app.use("/api/posts", posts);
+// app.use("/api/notifications", notificationRoutes);
+// app.use("/api/messages", messageRoutes);
+// app.use("/api/connections", connectionRoutes);
+// app.use("/uploads", express.static("uploads"));
+// app.use("/api", connectionRoutes);
+
+// // --- HEALTH CHECK ---
+// app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// // --- START SERVER ---
+// const PORT = process.env.PORT || 3000;
+// server.listen(PORT, () => console.log(`✅ API listening on ${PORT}`));
+import jwt from "jsonwebtoken";
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -8,8 +130,12 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import connectDB from "./config/db.js";
+import Message from "./models/Message.js";
+import checkToken from "./middleware/checkToken.js";
+void checkToken;
+
 import userRoutes from "./routes/userRoutes.js";
-import posts from "./routes/posts.js";
+import postRoutes from "./routes/posts.js";
 import authRoutes from "./routes/auth.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
@@ -21,7 +147,6 @@ await connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// --- CORS GLOBAL CONFIG ---
 const corsOptions = {
   origin: "http://localhost:5173",
   credentials: true,
@@ -31,62 +156,97 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-
-// --- SECURITY & BODY PARSING ---
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json());
 app.use(mongoSanitize());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
-// --- SOCKET.IO ---
-export const io = new Server(server, {
-  cors: corsOptions,
+// ---------------- SOCKET.IO ----------------
+export const io = new Server(server, { cors: corsOptions });
+const onlineUsers = new Map();
+
+// ✅ This is the helper we will use across the app
+export function notifyUser(userId, notification) {
+  if (!userId) return;
+
+  // Send to user room
+  io.to(userId.toString()).emit("notification", notification);
+
+  // Also send to active socket if tracked
+  const socketId = onlineUsers.get(userId.toString());
+  if (socketId) io.to(socketId).emit("notification", notification);
+}
+
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("No token provided"));
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (err) {
+    console.error("Socket auth failed:", err);
+    next(new Error("Unauthorized"));
+  }
 });
 
-const onlineUsers = new Map(); // ✅ store userId => socket.id
-
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("✅ Socket connected:", socket.id, "User:", socket.userId);
 
-  socket.on("join", (userId) => {
-    if (userId) {
-      onlineUsers.set(userId, socket.id);
-      io.emit("userOnline", userId); // ✅ broadcast online
-      socket.join(userId);
+  // Join user's personal room
+  socket.join(socket.userId.toString());
+  onlineUsers.set(socket.userId.toString(), socket.id);
+
+  console.log(`✅ User joined notification room: ${socket.userId}`);
+
+  socket.on("sendMessage", async (data) => {
+    const { senderId, recipientId, text } = data;
+    if (!senderId || !recipientId || !text) return;
+
+    try {
+      const newMessage = await Message.create({
+        sender: senderId,
+        recipient: recipientId,
+        text,
+        read: false,
+      });
+
+      const recipientSocket = onlineUsers.get(recipientId.toString());
+      if (recipientSocket) {
+        io.to(recipientSocket).emit("newMessage", newMessage);
+      }
+    } catch (err) {
+      console.error("Socket sendMessage error:", err);
     }
   });
 
   socket.on("disconnect", () => {
-    for (const [userId, id] of onlineUsers.entries()) {
-      if (id === socket.id) {
-        onlineUsers.delete(userId);
-        io.emit("userOffline", userId); // ✅ broadcast offline
-        break;
-      }
-    }
-    console.log("User disconnected:", socket.id);
+    onlineUsers.forEach((socketId, userId) => {
+      if (socketId === socket.id) onlineUsers.delete(userId);
+    });
+    console.log("👋 User disconnected:", socket.userId);
   });
 });
 
-// Attach socket.io instance to requests
 app.use((req, _res, next) => {
   req.io = io;
   next();
 });
 
-// --- ROUTES ---
+// ---------------- ROUTES ----------------
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/posts", posts);
+app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/uploads", express.static("uploads"));
-app.use("/api", connectionRoutes);
 
-// --- HEALTH CHECK ---
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// --- START SERVER ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`✅ API listening on ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`✅ API listening on ${PORT}`)
+);

@@ -2,63 +2,21 @@
 
 // backend/controllers/posts.js
 import Post from "../models/post.js";
-import { sendEmail, notifyUser } from "./notifications.js";
-
-const migratePosts = async () => {
-  await mongoose.connect("mongodb://127.0.0.1:27017/yourdbname");
-
-  const posts = await Post.find({ author: { $exists: true } });
-  for (let post of posts) {
-    post.user = post.author;  // move author into user
-    post.author = undefined;  // remove old field
-    await post.save();
-  }
-
-  console.log("Migration complete!");
-  process.exit();
-};
-
-// migratePosts();
+import { notifyUser } from "./notifications.js";
 
 // Get all posts
 export const getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate("user", "firstName lastName avatar") // ✅ populate user details
-      .populate("replies.author", "firstName lastName avatar") // ✅ replies too
+      .populate("author", "firstName lastName avatar")
+      .populate("replies.author", "firstName lastName avatar")
+      .populate("likes", "firstName lastName avatar")
       .sort({ createdAt: -1 });
 
     res.json(posts);
   } catch (err) {
     console.error("Error fetching posts:", err.message);
     res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Create a new post
-export const createPost = async (req, res) => {
-  try {
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ message: "User not found" });
-    }
-
-    const post = new Post({
-      author: req.user._id, // 🔹 use author consistently
-      content: req.body.content,
-    });
-
-    await post.save();
-
-    // Populate author for frontend display
-    const populatedPost = await Post.findById(post._id)
-      .populate("author", "firstName lastName email avatar")
-      .populate("replies.author", "firstName lastName email avatar")
-      .populate("likes", "firstName lastName email avatar");
-
-    res.status(201).json(populatedPost);
-  } catch (err) {
-    console.error("Error creating post:", err);
-    res.status(500).json({ message: "Error creating post" });
   }
 };
 
@@ -85,15 +43,32 @@ export const getPostById = async (req, res) => {
   }
 };
 
+// Create a new post
+export const createPost = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) return res.status(401).json({ message: "User not found" });
+
+    const post = new Post({ author: req.user._id, content: req.body.content });
+    await post.save();
+
+    const populatedPost = await Post.findById(post._id)
+      .populate("author", "firstName lastName email avatar")
+      .populate("replies.author", "firstName lastName email avatar")
+      .populate("likes", "firstName lastName email avatar");
+
+    res.status(201).json(populatedPost);
+  } catch (err) {
+    console.error("Error creating post:", err);
+    res.status(500).json({ message: "Error creating post" });
+  }
+};
+
 // Delete post
 export const deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: "Post not found" });
-
-    if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
+    if (post.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Not authorized" });
 
     await post.deleteOne();
     res.json({ message: "Post deleted successfully" });
@@ -103,43 +78,30 @@ export const deletePost = async (req, res) => {
   }
 };
 
-// Add reply
+// Add a reply
 export const addReply = async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text || text.trim() === "") {
-      return res.status(400).json({ message: "Reply text is required" });
-    }
+    if (!text || !text.trim()) return res.status(400).json({ message: "Reply text is required" });
 
-    const post = await Post.findById(req.params.id).populate(
-      "author",
-      "firstName lastName email avatar"
-    );
+    const post = await Post.findById(req.params.id).populate("author", "firstName lastName email avatar");
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    // ✅ Keep reply shape consistent: { author, text, createdAt }
-    const reply = {
-      author: req.user._id,
-      text,
-      createdAt: new Date(),
-    };
-
+    const reply = { author: req.user._id, text, createdAt: new Date() };
     post.replies.push(reply);
     await post.save();
 
-    // ✅ Notify post author if someone else replied
+    // Notify author
     if (post.author._id.toString() !== req.user._id.toString()) {
-      const message = `${req.user.firstName} ${req.user.lastName} replied to your post.`;
-      await sendEmail(post.author.email, "New Reply", message);
       await notifyUser({
         userId: post.author._id,
+        fromUserId: req.user._id,
         type: "post_reply",
-        message,
+        message: `${req.user.firstName} ${req.user.lastName} replied to your post.`,
         post: post._id,
       });
     }
 
-    // ✅ Re-fetch post with populated replies for frontend
     const populatedPost = await Post.findById(post._id)
       .populate("author", "firstName lastName email avatar")
       .populate("replies.author", "firstName lastName email avatar")
@@ -155,26 +117,25 @@ export const addReply = async (req, res) => {
 // Toggle like/unlike
 export const toggleLike = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("author", "firstName lastName email");
+    const post = await Post.findById(req.params.id)
+      .populate("author", "firstName lastName email")
+      .populate("likes", "firstName lastName email");
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const userId = req.user._id;
-    const alreadyLiked = post.likes.includes(userId);
+    const alreadyLiked = post.likes.some(id => id.toString() === userId.toString());
 
     if (alreadyLiked) {
-      // Unlike
-      post.likes = post.likes.filter((id) => id.toString() !== userId.toString());
+      post.likes = post.likes.filter(id => id.toString() !== userId.toString());
     } else {
-      // Like
       post.likes.push(userId);
 
       if (post.author._id.toString() !== userId.toString()) {
-        const message = `${req.user.firstName} ${req.user.lastName} liked your post.`;
-        await sendEmail(post.author.email, "New Like", message);
         await notifyUser({
           userId: post.author._id,
+          fromUserId: req.user._id,
           type: "post_like",
-          message,
+          message: `${req.user.firstName} ${req.user.lastName} liked your post.`,
           post: post._id,
         });
       }
@@ -184,7 +145,7 @@ export const toggleLike = async (req, res) => {
 
     const populatedPost = await Post.findById(post._id)
       .populate("author", "firstName lastName email")
-      .populate("replies.user", "firstName lastName email")
+      .populate("replies.author", "firstName lastName email")
       .populate("likes", "firstName lastName email");
 
     res.json(populatedPost);
@@ -194,13 +155,11 @@ export const toggleLike = async (req, res) => {
   }
 };
 
-// ✅ EDIT a reply
+// Edit a reply
 export const editReply = async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text || text.trim() === "") {
-      return res.status(400).json({ message: "Reply text is required" });
-    }
+    if (!text || !text.trim()) return res.status(400).json({ message: "Reply text is required" });
 
     const post = await Post.findById(req.params.postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -208,10 +167,7 @@ export const editReply = async (req, res) => {
     const reply = post.replies.id(req.params.replyId);
     if (!reply) return res.status(404).json({ message: "Reply not found" });
 
-    // ✅ Only author can edit
-    if (reply.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
+    if (reply.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
     reply.text = text;
     await post.save();
@@ -228,7 +184,7 @@ export const editReply = async (req, res) => {
   }
 };
 
-// ✅ DELETE a reply
+// Delete a reply
 export const deleteReply = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
@@ -237,12 +193,9 @@ export const deleteReply = async (req, res) => {
     const reply = post.replies.id(req.params.replyId);
     if (!reply) return res.status(404).json({ message: "Reply not found" });
 
-    // ✅ Only author can delete
-    if (reply.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
+    if (reply.author.toString() !== req.user._id.toString()) return res.status(403).json({ message: "Unauthorized" });
 
-    reply.deleteOne(); // ✅ safe removal
+    reply.deleteOne();
     await post.save();
 
     const populatedPost = await Post.findById(post._id)

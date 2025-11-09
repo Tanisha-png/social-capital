@@ -9,22 +9,22 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI;
 
 const usersToSeed = [
-    {
-        firstName: "Alice",
-        lastName: "Example",
-        email: "alice@example.com",
-        password: "password123",
-        occupation: "Engineer",
-        location: "New York",
-    },
-    {
-        firstName: "Bob",
-        lastName: "Example",
-        email: "bob@example.com",
-        password: "password123",
-        occupation: "Designer",
-        location: "Los Angeles",
-    },
+    // {
+    //     firstName: "Alice",
+    //     lastName: "Example",
+    //     email: "alice@example.com",
+    //     password: "password123",
+    //     occupation: "Engineer",
+    //     location: "New York",
+    // },
+    // {
+    //     firstName: "Bob",
+    //     lastName: "Example",
+    //     email: "bob@example.com",
+    //     password: "password123",
+    //     occupation: "Designer",
+    //     location: "Los Angeles",
+    // },
 ];
 
 async function seed() {
