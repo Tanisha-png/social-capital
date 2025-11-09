@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-// import { signup, login } from "../controllers/auth.js";
 
 // SIGNUP
 export const signUp = async (req, res) => {
