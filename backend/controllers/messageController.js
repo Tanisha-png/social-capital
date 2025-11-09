@@ -115,36 +115,6 @@ export const getUnreadMessageCount = async (req, res) => {
     }
 };
 
-// Mark messages as read
-// export const markMessagesRead = async (req, res) => {
-//     try {
-//         const userId = req.user?._id;
-//         if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-//         const { senderId } = req.body; // frontend should send senderId
-
-//         const filter = senderId
-//             ? { sender: senderId, recipient: userId, read: false }
-//             : { recipient: userId, read: false };
-
-//         const result = await Message.updateMany(filter, { read: true });
-
-//         await Notification.updateMany(
-//             { fromUser: senderId || { $exists: true }, user: userId, type: "message", read: false },
-//             { read: true }
-//         );
-
-//         if (req.io && senderId) {
-//             req.io.to(senderId.toString()).emit("messagesRead", { from: userId });
-//         }
-
-//         res.json({ modifiedCount: result.modifiedCount });
-//     } catch (err) {
-//         console.error("Error marking messages as read:", err);
-//         res.status(500).json({ message: "Error marking messages as read" });
-//     }
-// };
-
 export const markMessagesRead = async (req, res) => {
     try {
         const userId = req.user._id; // logged-in user
