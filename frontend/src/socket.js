@@ -1,12 +1,4 @@
 
-// import { io } from "socket.io-client";
-
-// // Connect to the backend API port (3000)
-// const socket = io("http://localhost:3000", {
-//     transports: ["websocket"], // faster & avoids polling errors
-// });
-
-// export default socket;
 
 import { io } from "socket.io-client";
 
