@@ -5,7 +5,7 @@ import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import checkToken from "../middleware/checkToken.js";
 import Notification from "../models/Notification.js";
 import Post from "../models/post.js";
-import User from "../models/User.js";
+import User from "../models/user.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
