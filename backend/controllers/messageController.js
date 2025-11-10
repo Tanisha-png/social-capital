@@ -1,6 +1,6 @@
 import Notification from "../models/Notification.js";
-import Message from "../models/Message.js";
-import User from "../models/User.js";
+import Message from "../models/message.js";
+import User from "../models/user.js";
 
 // Send message with duplicate prevention
 export const sendMessage = async (req, res) => {
