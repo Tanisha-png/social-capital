@@ -16,7 +16,7 @@ import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
 import PostDetailPage from "./pages/Posts/PostDetailPage";
 
 import { initSocket } from "./socket"; // ✅ Import socket init
-import "./App.css";
+import "./app.css";
 
 // Private Route
 function PrivateRoute({ children }) {
