@@ -6,7 +6,7 @@ import NavBar from "./components/NavBar/NavBar";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LogInPage/LogInPage";
 import SignUpPage from "./pages/SignUpPage/SignUpPage";
-import ProfilePage from "./pages/ProfilePage/ProfilePage";
+import ProfilePage from "./pages/ProfilePage/profilePage";
 import PostListPage from "./pages/PostListPage/PostListPage";
 import NewPostPage from "./pages/NewPostPage/NewPostPage";
 import MessagesPage from "./pages/MessagesPage/messagesPage";
