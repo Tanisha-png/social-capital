@@ -5,7 +5,7 @@ import { getMessagesWithUser, sendMessage } from "../../api/messageApi";
 import { useMessageNotifications } from "../../context/MessageContext";
 import { getAllUsers } from "../../api/userApi";
 import socket from "../../socket";
-import "./messagesPage.css";
+import "./MessagesPage.css";
 
 export default function MessagesPage() {
   const { user } = useAuth();
