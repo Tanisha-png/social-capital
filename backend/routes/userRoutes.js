@@ -10,7 +10,7 @@ import {
 import checkToken from "../middleware/checkToken.js";
 import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import upload from "../middleware/upload.js";
-import User from "../models/User.js";
+import User from "../models/user.js";
 
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.get("/search", checkToken, ensureLoggedIn, searchUsers);
 
 // Get any user's profile
 router.get("/:id", checkToken, ensureLoggedIn, async (req, res) => {
-    const User = (await import("../models/User.js")).default;
+    const User = (await import("../models/user.js")).default;
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
