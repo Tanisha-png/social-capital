@@ -1,7 +1,7 @@
 
-import Reac, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./HomePage.css";
-import logo from "../HomePage/sc_logo.png";
+import logo from "../HomePage/SC_Logo.png";
 
 const HomePage = () => {
   return (
