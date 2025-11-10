@@ -1,6 +1,6 @@
 
 // userController.js
-import User from "../models/User.js";
+import User from "../models/user.js";
 import path from "path";
 
 // GET current user profile
