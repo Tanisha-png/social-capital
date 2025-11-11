@@ -39,7 +39,7 @@ export default function NavBar() {
           <>
             <Link to="/profile" className="nav-user-info">
               <img
-                src={user.avatar || "/default-avatar.png"}
+                src={user.avatar || "default-avatar.png"}
                 alt={displayName}
                 className="nav-avatar"
               />
