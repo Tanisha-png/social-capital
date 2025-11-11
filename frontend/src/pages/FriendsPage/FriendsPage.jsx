@@ -12,7 +12,7 @@ export default function FriendsPage() {
     const [loading, setLoading] = useState(true);
     const [openMenuId, setOpenMenuId] = useState(null); // dropdown tracker
     const menuRefs = useRef({}); // store refs for dropdowns
-
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     // Fetch user's connections
     useEffect(() => {
         if (!user) return;
@@ -20,8 +20,8 @@ export default function FriendsPage() {
         async function fetchFriends() {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:3000/api/connections", {
-            headers: { Authorization: `Bearer ${token}` },
+            const res = await fetch(`${BACKEND_URL}/api/connections`, {
+                headers: { Authorization: `Bearer ${token}` },
             });
 
             if (!res.ok) throw new Error("Failed to fetch connections");

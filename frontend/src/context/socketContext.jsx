@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext();
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 export function SocketProvider({ children }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
@@ -15,7 +15,7 @@ export function SocketProvider({ children }) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const newSocket = io("http://localhost:3000", {
+    const newSocket = io(`${BACKEND_URL}`, {
       transports: ["websocket"],
       auth: { token },
     });

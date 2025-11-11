@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 export default function ReplyForm({ postId, onReplyAdded }) {
   const [content, setContent] = useState("");
-
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
@@ -11,7 +11,7 @@ export default function ReplyForm({ postId, onReplyAdded }) {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/posts/${postId}/replies`,
+        `${BACKEND_URL}/api/posts/${postId}/replies`,
         {
           method: "POST",
           headers: {

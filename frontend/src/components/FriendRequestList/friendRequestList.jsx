@@ -4,11 +4,11 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function FriendRequestList({ requests = [] }) {
     const { token } = useAuth();
-
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const respond = async (fromId, action) => {
         try {
         await axios.post(
-            `http://localhost:5000/api/connections/${fromId}/respond`,
+            `${BACKEND_URL}/api/connections/${fromId}/respond`,
             { action },
             { headers: { Authorization: `Bearer ${token}` } }
         );

@@ -1,14 +1,14 @@
 
 
 import { io } from "socket.io-client";
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 let socket;
 
 export function initSocket(token, userId, onNotification) {
     if (!userId || !token) return;
 
     if (!socket) {
-        socket = io("http://localhost:3000", {
+        socket = io(`${BACKEND_URL}`, {
             transports: ["websocket"],
             auth: { token },
         });

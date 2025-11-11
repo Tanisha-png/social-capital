@@ -1,6 +1,6 @@
 
 import axios from "axios";
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const token = localStorage.getItem("token");
 const config = {
     headers: {
@@ -9,7 +9,7 @@ const config = {
 };
 
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/messages",
+    baseURL: import.meta.env.VITE_API_URL || `${BACKEND_URL}/api/messages`,
     withCredentials: true,
 });
 
