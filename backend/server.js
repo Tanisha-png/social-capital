@@ -115,6 +115,17 @@ app.use((req, _res, next) => {
   next();
 });
 
+const __dirname = path.resolve();
+frontendDistPath = path.join(__dirname, 'frontend', 'dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(frontendDistPath, 'index.html'));
+  });
+} else {
+  app.get("/", (_req, res) => res.json({ message: "API is operational." }));
+}
+
 // ---------------- ROUTES ----------------
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -123,7 +134,6 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/uploads", express.static("uploads"));
-app.get("/", (_req, res) => { res.json({ message: "API operational" }); });
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
