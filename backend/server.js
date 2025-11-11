@@ -123,7 +123,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/uploads", express.static("uploads"));
-
+app.get("/", (_req, res) => { res.json({ message: "API operational" }); });
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
