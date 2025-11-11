@@ -116,7 +116,7 @@ app.use((req, _res, next) => {
 });
 
 const __dirname = path.resolve();
-frontendDistPath = path.join(__dirname, 'frontend', 'dist');
+const frontendDistPath = path.join(__dirname, 'frontend', 'dist');
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(frontendDistPath));
   app.get('*', (req, res) => {
