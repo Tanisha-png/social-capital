@@ -24,10 +24,11 @@ dotenv.config();
 await connectDB();
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://social-capital-1f13c371b2ba.herokuapp.com/"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
