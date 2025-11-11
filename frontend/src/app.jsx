@@ -18,6 +18,8 @@ import PostDetailPage from "./pages/Posts/PostDetailPage";
 import { initSocket } from "./socket"; // ✅ Import socket init
 import "./app.css";
 
+
+
 // Private Route
 function PrivateRoute({ children }) {
   const { user, initialized } = useAuth();
