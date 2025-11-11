@@ -39,7 +39,7 @@ export default function NavBar() {
           <>
             <Link to="/profile" className="nav-user-info">
               <img
-                src={user.avatar || "default-avatar.png"}
+                src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                 alt={displayName}
                 className="nav-avatar"
               />
