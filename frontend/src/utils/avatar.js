@@ -1,9 +1,13 @@
 // frontend/src/utils/avatar.js
 export function getSafeAvatarUrl(path) {
-    if (!path) return "/default-avatar.png";
+    if (!path) return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`;
 
     // If already a full URL, just return it
-    if (path.startsWith("http")) return path;
+    if (path.startsWith("http://")) return path;
+
+    if (path.includes("localhost")) {
+        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`;
+    }
 
     // Ensure it starts with a slash
     if (!path.startsWith("/")) path = "/" + path;
@@ -15,7 +19,7 @@ export function getSafeAvatarUrl(path) {
 }
 
 export function getAvatarPreview(file) {
-    return file ? URL.createObjectURL(file) : "/default-avatar.png";
+    return file ? URL.createObjectURL(file) : `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`;
 }
 
 export function cleanupPreview(preview) {

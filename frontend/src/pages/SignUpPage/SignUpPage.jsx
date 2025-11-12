@@ -20,6 +20,10 @@ export default function SignUpPage() {
 
   useEffect(() => () => cleanupPreview(avatarPreview), [avatarPreview]);
 
+  const avatarUrl = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(
+    formData.name || "user"
+  )}`;
+
   function handleChange(e) {
     const { name, value, files } = e.target;
     if (name === "avatarFile" && files?.[0]) {
@@ -82,7 +86,7 @@ export default function SignUpPage() {
         onChange={handleChange}
       />
       <Avatar
-        src={avatarPreview}
+        src={avatarUrl}
         alt="Avatar preview"
         className="avatar-preview"
       />
