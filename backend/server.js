@@ -26,6 +26,7 @@ await connectDB();
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
+const herokuAppUrl = process.env.HEROKU_APP_URL || "https://social-capital-1f13c371b2ba.herokuapp.com";
 
 const corsOptions = {
   origin: ["http://localhost:5173", "https://social-capital-1f13c371b2ba.herokuapp.com"],
@@ -57,6 +58,7 @@ app.use(
           "'self'",
           "data:",
           "blob:",
+          herokuAppUrl,
           "https://api.dicebear.com",
           "https://*.herokuapp.com",
           "https://social-capital-1f13c371b2ba.herokuapp.com",
@@ -66,11 +68,13 @@ app.use(
           "https://res.cloudinary.com",
           "https://images.unsplash.com",
           "https://cdn.pixabay.com",
+          "*", // ← allows fallback images from any source (safe for img only)
         ],
         connectSrc: [
           "'self'",
           "ws://localhost:3000",
           "wss://social-capital-1f13c371b2ba.herokuapp.com",
+          herokuAppUrl,
         ],
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
