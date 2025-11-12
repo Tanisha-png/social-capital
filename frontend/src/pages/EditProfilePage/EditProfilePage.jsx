@@ -141,10 +141,15 @@ export default function EditProfilePage() {
         accept="image/png,image/jpeg"
         onChange={handleChange}
       />
-      <Avatar
+      {/* <Avatar
         src={avatarPreview}
         alt="Avatar Preview"
         className="avatar-preview"
+      /> */}
+      <Avatar
+        src={getSafeAvatarUrl(c.profileImage, c._id)}
+        alt={`${c.firstName} ${c.lastName}`}
+        className="connection-avatar"
       />
       <button type="submit">Save Changes</button>
     </form>

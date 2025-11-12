@@ -205,7 +205,12 @@ export default function ProfilePage() {
     <div className="profile-page">
       {/* MAIN PROFILE CARD */}
       <div className="profile-card main">
-        <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" />
+        {/* <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" /> */}
+        <Avatar
+          src={getSafeAvatarUrl(profile.avatar, profile._id)}
+          alt="Profile"
+          className="profile-avatar"
+        />
         <h2>
           {profile.firstName} {profile.lastName}
         </h2>
@@ -263,9 +268,14 @@ export default function ProfilePage() {
             <ul className="requests-list">
               {incomingRequests.map((r) => (
                 <li key={r._id} className="friend-request-item">
-                  <Avatar
+                  {/* <Avatar
                     src={getSafeAvatarUrl(r.avatar)}
                     alt={`${r.firstName} ${r.lastName}`}
+                    className="connection-avatar"
+                  /> */}
+                  <Avatar
+                    src={getSafeAvatarUrl(c.profileImage, c._id)}
+                    alt={`${c.firstName} ${c.lastName}`}
                     className="connection-avatar"
                   />
                   <span>
@@ -309,8 +319,13 @@ export default function ProfilePage() {
                 onClick={() => navigate(`/profile/${c._id}`)}
               >
                 <div className="connection-left">
-                  <Avatar
+                  {/* <Avatar
                     src={c.profileImage}
+                    alt={`${c.firstName} ${c.lastName}`}
+                    className="connection-avatar"
+                  /> */}
+                  <Avatar
+                    src={getSafeAvatarUrl(c.profileImage, c._id)}
                     alt={`${c.firstName} ${c.lastName}`}
                     className="connection-avatar"
                   />

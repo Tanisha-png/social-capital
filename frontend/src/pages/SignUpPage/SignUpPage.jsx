@@ -1,5 +1,6 @@
 // frontend/src/pages/SignUpPage/SignUpPage.jsx
 import React, { useState, useEffect } from "react";
+import { getAvatarPreview, cleanupPreview } from "../../utils/avatar";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
@@ -20,9 +21,12 @@ export default function SignUpPage() {
 
   useEffect(() => () => cleanupPreview(avatarPreview), [avatarPreview]);
 
-  const avatarUrl = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(
-    formData.name || "user"
-  )}`;
+  // const avatarUrl = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(
+  //   formData.name || "user"
+  // )}`;
+  const avatarUrl = avatarPreview
+    ? avatarPreview
+    : getAvatarPreview(null, formData.name || "user");
 
   function handleChange(e) {
     const { name, value, files } = e.target;
