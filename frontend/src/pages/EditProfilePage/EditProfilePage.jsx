@@ -39,10 +39,7 @@ export default function EditProfilePage() {
         canHelpWith: (user.canHelpWith || []).join(", "),
         needHelpWith: (user.needHelpWith || []).join(", "),
       });
-      setAvatarPreview(
-        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}` ||
-          "/default-avatar.png"
-      );
+      setAvatarPreview(user.avatar || "/default-avatar.png");
     }
   }, [user]);
 
