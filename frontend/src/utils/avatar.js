@@ -28,35 +28,33 @@
 
 // utils/avatar.js
 
-export function getSafeAvatarUrl(path, userId = "guest") {
-    // ✅ If no avatar, return a DiceBear image based on userId
+export function getSafeAvatarUrl(path, userId) {
     if (!path) {
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-            userId
+            userId || "user"
         )}`;
     }
 
-    // ✅ If it's already a valid external URL, allow it
-    if (path.startsWith("https://") || path.startsWith("http://")) {
-        // Block localhost images when deployed
-        if (path.includes("localhost")) {
-            return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-                userId
-            )}`;
-        }
-        return path;
+    // If it's already a Dicebear URL, return it
+    if (path.includes("api.dicebear.com")) return path;
+
+    // If it starts with localhost, replace with your Heroku backend URL
+    if (path.includes("localhost")) {
+        return path.replace(
+            "http://localhost:3000",
+            "https://social-capital-1f13c371b2ba.herokuapp.com"
+        );
     }
 
-    // ✅ Ensure path starts with a slash
-    if (!path.startsWith("/")) path = "/" + path;
+    // If it’s a relative path, prefix with backend
+    if (!path.startsWith("http")) {
+        const backendUrl =
+            import.meta.env.VITE_BACKEND_URL ||
+            "https://social-capital-1f13c371b2ba.herokuapp.com";
+        return `${backendUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    }
 
-    // ✅ Use backend URL from environment variable
-    const backendUrl =
-        import.meta.env.VITE_BACKEND_URL ||
-        "https://social-capital-backend.herokuapp.com"; // replace with your backend URL
-
-    // ✅ Return safe full URL
-    return `${backendUrl}${path}`;
+    return path;
 }
 
 export function getAvatarPreview(file, userId = "guest") {
