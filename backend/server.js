@@ -36,16 +36,48 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: {
-    directives: {
-      // Keep existing directives, and ADD 'https://api.dicebear.com' to img-src
-      imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
-      // Also need to allow websocket connection for socket.io
-      connectSrc: ["'self'", "ws://localhost:3000", "wss://social-capital-1f13c371b2ba.herokuapp.com"],
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: {
+//     directives: {
+//       // Keep existing directives, and ADD 'https://api.dicebear.com' to img-src
+//       imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
+//       // Also need to allow websocket connection for socket.io
+//       connectSrc: ["'self'", "ws://localhost:3000", "wss://social-capital-1f13c371b2ba.herokuapp.com"],
+//     },
+//   },
+// }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+
+        // ✅ Expanded image sources
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://api.dicebear.com",
+          "https://www.trekmate.org.uk",
+          "https://social-capital-1f13c371b2ba.herokuapp.com",
+        ],
+
+        // ✅ WebSocket & API connections
+        connectSrc: [
+          "'self'",
+          "https://social-capital-1f13c371b2ba.herokuapp.com",
+          "wss://social-capital-1f13c371b2ba.herokuapp.com",
+        ],
+
+        // ✅ Keep scripts and styles safe
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
     },
-  },
-}));
+  })
+);
+
 app.use(express.json());
 app.use(mongoSanitize());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
