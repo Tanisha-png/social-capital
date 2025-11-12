@@ -59,20 +59,27 @@ app.use(
           "blob:",
           "https://api.dicebear.com",
           "https://*.herokuapp.com",
+          "https://social-capital-1f13c371b2ba.herokuapp.com",
           "https://*.wp.com",
           "https://*.wordpress.com",
           "https://*.trekmate.org.uk",
-          "https://res.cloudinary.com", // if you ever use Cloudinary later
+          "https://res.cloudinary.com",
+          "https://images.unsplash.com",
+          "https://cdn.pixabay.com",
         ],
         connectSrc: [
           "'self'",
           "ws://localhost:3000",
           "wss://social-capital-1f13c371b2ba.herokuapp.com",
         ],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        fontSrc: ["'self'", "data:"],
       },
     },
   })
 );
+
 
 app.use(express.json());
 app.use(mongoSanitize());
