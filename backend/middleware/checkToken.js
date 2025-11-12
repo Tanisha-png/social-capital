@@ -24,7 +24,7 @@ const checkToken = async (req, res, next) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      avatar: user.avatar,
+      avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`,
     };
 
     next();

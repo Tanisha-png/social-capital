@@ -58,15 +58,15 @@ export const updateMe = async (req, res) => {
         // If file was uploaded, set full URL
         if (req.file) {
             const avatarPath = `/uploads/avatars/${req.file.filename}`;
-            user.avatar = `${req.protocol}://${req.get("host")}${avatarPath}`;
+            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}` = `${req.protocol}://${req.get("host")}${avatarPath}`;
 
             
-            console.log("Serving avatar URL:", user.avatar);
+            console.log("Serving avatar URL:", `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`);
         }
 
         // If front-end sends avatar (rare), allow it but prefer file
         if (!req.file && req.body.avatar) {
-            user.avatar = req.body.avatar;
+            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}` = req.body.avatar;
         }
 
         // Update other fields (safe list)

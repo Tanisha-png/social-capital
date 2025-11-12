@@ -40,9 +40,12 @@ export default function Avatar({ src, alt, className }) {
             // Placeholder while image loads
             <div className="avatar-placeholder" />
         ) : (
-            <img src={loadedSrc} alt={alt} className="avatar-image" />
+            <img
+            src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
+            alt={alt}
+            className="avatar-image"
+            />
         )}
         </div>
     );
 }
-
