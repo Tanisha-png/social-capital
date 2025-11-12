@@ -1,6 +1,6 @@
 // frontend/src/pages/SignUpPage/SignUpPage.jsx
 import React, { useState, useEffect } from "react";
-import { getAvatarPreview, cleanupPreview } from "../../utils/avatar";
+// import { getAvatarPreview, cleanupPreview } from "../../utils/avatar";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import * as authService from "../../services/authService";
