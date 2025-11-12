@@ -205,7 +205,12 @@ export default function ProfilePage() {
     <div className="profile-page">
       {/* MAIN PROFILE CARD */}
       <div className="profile-card main">
-        <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" />
+        {/* <Avatar src={profile.avatar} alt="Profile" className="profile-avatar" /> */}
+        <img
+          src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
+          alt={displayName}
+          className="nav-avatar"
+        />
         <h2>
           {profile.firstName} {profile.lastName}
         </h2>
