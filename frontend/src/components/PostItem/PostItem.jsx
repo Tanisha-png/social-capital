@@ -226,11 +226,25 @@ export default function PostItem({
       <div className="post-header">
         {localAuthor?.avatar && (
           <Link to={`/profile/${localAuthor._id}`}>
-            <img
+            {/* <img
               src={
                 localAuthor.avatar.startsWith("http")
                   ? localAuthor.avatar
                   : `${API_BASE}${localAuthor.avatar}`
+              }
+              alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
+              className="post-avatar"
+            /> */}
+            
+            <img
+              src={
+                localAuthor.avatar.startsWith("http")
+                  ? localAuthor.avatar
+                  : // --- MODIFIED LOGIC HERE ---
+                    // If it's NOT an "http" link (meaning it's an old local path or a relative path),
+                    // we ignore the local path and use the DiceBear fallback instead.
+                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                // You can use localAuthor._id if your ID is named that
               }
               alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
               className="post-avatar"
@@ -278,13 +292,27 @@ export default function PostItem({
           <div className="shared-header">
             {localSharedAuthor?.avatar && (
               <Link to={`/profile/${localSharedAuthor._id}`}>
-                <img
+                {/* <img
                   src={
                     localSharedAuthor.avatar.startsWith("http")
                       ? localSharedAuthor.avatar
                       : `${API_BASE}${localSharedAuthor.avatar}`
                   }
                   alt={`${localSharedAuthor.firstName} ${localSharedAuthor.lastName}`}
+                  className="post-avatar"
+                /> */}
+                
+                <img
+                  src={
+                    localAuthor.avatar.startsWith("http")
+                      ? localAuthor.avatar
+                      : // --- MODIFIED LOGIC HERE ---
+                        // If it's NOT an "http" link (meaning it's an old local path or a relative path),
+                        // we ignore the local path and use the DiceBear fallback instead.
+                        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                    // You can use localAuthor._id if your ID is named that
+                  }
+                  alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
                   className="post-avatar"
                 />
               </Link>
@@ -309,7 +337,7 @@ export default function PostItem({
                   <li key={reply._id} className="reply-item">
                     {localReplyAuthor?.avatar && (
                       <Link to={`/profile/${localReplyAuthor._id}`}>
-                        <img
+                        {/* <img
                           src={
                             localReplyAuthor.avatar.startsWith("http")
                               ? localReplyAuthor.avatar
@@ -317,6 +345,20 @@ export default function PostItem({
                           }
                           alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                           className="reply-avatar"
+                        /> */}
+                        
+                        <img
+                          src={
+                            localAuthor.avatar.startsWith("http")
+                              ? localAuthor.avatar
+                              : // --- MODIFIED LOGIC HERE ---
+                                // If it's NOT an "http" link (meaning it's an old local path or a relative path),
+                                // we ignore the local path and use the DiceBear fallback instead.
+                                `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                            // You can use localAuthor._id if your ID is named that
+                          }
+                          alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
+                          className="post-avatar"
                         />
                       </Link>
                     )}
@@ -429,7 +471,7 @@ export default function PostItem({
               <li key={reply._id} className="reply-item">
                 {localReplyAuthor?.avatar && (
                   <Link to={`/profile/${localReplyAuthor._id}`}>
-                    <img
+                    {/* <img
                       src={
                         localReplyAuthor.avatar.startsWith("http")
                           ? localReplyAuthor.avatar
@@ -437,6 +479,20 @@ export default function PostItem({
                       }
                       alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                       className="reply-avatar"
+                    /> */}
+                    
+                    <img
+                      src={
+                        localAuthor.avatar.startsWith("http")
+                          ? localAuthor.avatar
+                          : // --- MODIFIED LOGIC HERE ---
+                            // If it's NOT an "http" link (meaning it's an old local path or a relative path),
+                            // we ignore the local path and use the DiceBear fallback instead.
+                            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                        // You can use localAuthor._id if your ID is named that
+                      }
+                      alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
+                      className="post-avatar"
                     />
                   </Link>
                 )}
