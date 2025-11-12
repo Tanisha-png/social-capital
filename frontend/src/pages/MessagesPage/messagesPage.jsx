@@ -128,10 +128,6 @@ export default function MessagesPage() {
             <div className="chat-header">
               <div className="chat-user-info">
                 <img
-                  // src={
-                  //   selectedUser.avatar ||
-                  //   "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  // }
                   src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                   alt="avatar"
                   className="chat-header-avatar"
