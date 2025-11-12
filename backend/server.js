@@ -36,16 +36,44 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: {
-    directives: {
-      // Keep existing directives, and ADD 'https://api.dicebear.com' to img-src
-      imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
-      // Also need to allow websocket connection for socket.io
-      connectSrc: ["'self'", "ws://localhost:3000", "wss://social-capital-1f13c371b2ba.herokuapp.com"],
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: {
+//     directives: {
+//       // Keep existing directives, and ADD 'https://api.dicebear.com' to img-src
+//       imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
+//       // Also need to allow websocket connection for socket.io
+//       connectSrc: ["'self'", "ws://localhost:3000", "wss://social-capital-1f13c371b2ba.herokuapp.com"],
+//     },
+//   },
+// }));
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://api.dicebear.com",
+          "https://*.herokuapp.com",
+          "https://*.wp.com",
+          "https://*.wordpress.com",
+          "https://*.trekmate.org.uk",
+          "https://res.cloudinary.com", // if you ever use Cloudinary later
+        ],
+        connectSrc: [
+          "'self'",
+          "ws://localhost:3000",
+          "wss://social-capital-1f13c371b2ba.herokuapp.com",
+        ],
+      },
     },
-  },
-}));
+  })
+);
+
 app.use(express.json());
 app.use(mongoSanitize());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
