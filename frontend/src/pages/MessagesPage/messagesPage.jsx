@@ -95,11 +95,10 @@ export default function MessagesPage() {
               onClick={() => handleSelectUser(u)}
             >
               <img
-                // src={
-                //   u.avatar ||
-                //   "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                // }
-                src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
+                src={
+                  u.avatar ||
+                  "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                }
                 alt="avatar"
                 className="sidebar-avatar"
               />
