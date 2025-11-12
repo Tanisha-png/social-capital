@@ -243,7 +243,7 @@ export default function PostItem({
                   : // --- MODIFIED LOGIC HERE ---
                     // If it's NOT an "http" link (meaning it's an old local path or a relative path),
                     // we ignore the local path and use the DiceBear fallback instead.
-                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
                 // You can use localAuthor._id if your ID is named that
               }
               alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
@@ -309,7 +309,7 @@ export default function PostItem({
                       : // --- MODIFIED LOGIC HERE ---
                         // If it's NOT an "http" link (meaning it's an old local path or a relative path),
                         // we ignore the local path and use the DiceBear fallback instead.
-                        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
                     // You can use localAuthor._id if your ID is named that
                   }
                   alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
@@ -354,7 +354,7 @@ export default function PostItem({
                               : // --- MODIFIED LOGIC HERE ---
                                 // If it's NOT an "http" link (meaning it's an old local path or a relative path),
                                 // we ignore the local path and use the DiceBear fallback instead.
-                                `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                                `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
                             // You can use localAuthor._id if your ID is named that
                           }
                           alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
@@ -488,7 +488,7 @@ export default function PostItem({
                           : // --- MODIFIED LOGIC HERE ---
                             // If it's NOT an "http" link (meaning it's an old local path or a relative path),
                             // we ignore the local path and use the DiceBear fallback instead.
-                            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor.id}`
+                            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
                         // You can use localAuthor._id if your ID is named that
                       }
                       alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
