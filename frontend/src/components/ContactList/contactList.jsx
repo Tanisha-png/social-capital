@@ -28,7 +28,8 @@ export default function ContactList({ onSelectUser }) {
             onClick={() => onSelectUser(friend)}
             >
             <img
-                src={friend.avatar || "/default-avatar.png"}
+                // src={friend.avatar || "/default-avatar.png"}
+                src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                 alt={friend.username}
                 style={styles.avatar}
             />

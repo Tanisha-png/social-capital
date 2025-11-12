@@ -20,17 +20,18 @@ export default function ProfileCard({ profile, currentUser }) {
     };
 
     return (
-        <div style={{ border: "1px solid #ddd", padding: 12, width: 400 }}>
+      <div style={{ border: "1px solid #ddd", padding: 12, width: 400 }}>
         <img
-            src={profile.avatar || "https://via.placeholder.com/80"}
-            alt="avatar"
-            style={{ width: 80, height: 80, borderRadius: 40 }}
+          // src={profile.avatar || "https://via.placeholder.com/80"}
+          src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
+          alt="avatar"
+          style={{ width: 80, height: 80, borderRadius: 40 }}
         />
         <h2>{profile.username}</h2>
         <p>{profile.bio}</p>
         {String(profile._id) !== String(currentUser.id) && (
-            <button onClick={sendRequest}>Add Friend</button>
+          <button onClick={sendRequest}>Add Friend</button>
         )}
-        </div>
+      </div>
     );
 }

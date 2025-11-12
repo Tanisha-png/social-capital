@@ -227,11 +227,12 @@ export default function PostItem({
         {localAuthor?.avatar && (
           <Link to={`/profile/${localAuthor._id}`}>
             <img
-              src={
-                localAuthor.avatar.startsWith("http")
-                  ? localAuthor.avatar
-                  : `${API_BASE}${localAuthor.avatar}`
-              }
+              // src={
+              //   localAuthor.avatar.startsWith("http")
+              //     ? localAuthor.avatar
+              //     : `${API_BASE}${localAuthor.avatar}`
+              // }
+              src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
               alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
               className="post-avatar"
             />
@@ -279,11 +280,12 @@ export default function PostItem({
             {localSharedAuthor?.avatar && (
               <Link to={`/profile/${localSharedAuthor._id}`}>
                 <img
-                  src={
-                    localSharedAuthor.avatar.startsWith("http")
-                      ? localSharedAuthor.avatar
-                      : `${API_BASE}${localSharedAuthor.avatar}`
-                  }
+                  // src={
+                  //   localSharedAuthor.avatar.startsWith("http")
+                  //     ? localSharedAuthor.avatar
+                  //     : `${API_BASE}${localSharedAuthor.avatar}`
+                  // }
+                  src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                   alt={`${localSharedAuthor.firstName} ${localSharedAuthor.lastName}`}
                   className="post-avatar"
                 />
@@ -310,11 +312,12 @@ export default function PostItem({
                     {localReplyAuthor?.avatar && (
                       <Link to={`/profile/${localReplyAuthor._id}`}>
                         <img
-                          src={
-                            localReplyAuthor.avatar.startsWith("http")
-                              ? localReplyAuthor.avatar
-                              : `${API_BASE}${localReplyAuthor.avatar}`
-                          }
+                          // src={
+                          //   localReplyAuthor.avatar.startsWith("http")
+                          //     ? localReplyAuthor.avatar
+                          //     : `${API_BASE}${localReplyAuthor.avatar}`
+                          // }
+                          src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                           alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                           className="reply-avatar"
                         />
@@ -430,11 +433,12 @@ export default function PostItem({
                 {localReplyAuthor?.avatar && (
                   <Link to={`/profile/${localReplyAuthor._id}`}>
                     <img
-                      src={
-                        localReplyAuthor.avatar.startsWith("http")
-                          ? localReplyAuthor.avatar
-                          : `${API_BASE}${localReplyAuthor.avatar}`
-                      }
+                      // src={
+                      //   localReplyAuthor.avatar.startsWith("http")
+                      //     ? localReplyAuthor.avatar
+                      //     : `${API_BASE}${localReplyAuthor.avatar}`
+                      // }
+                      src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
                       alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                       className="reply-avatar"
                     />
