@@ -235,17 +235,9 @@ export default function PostItem({
               alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
               className="post-avatar"
             /> */}
-            
+
             <img
-              src={
-                localAuthor.avatar.startsWith("http")
-                  ? localAuthor.avatar
-                  : // --- MODIFIED LOGIC HERE ---
-                    // If it's NOT an "http" link (meaning it's an old local path or a relative path),
-                    // we ignore the local path and use the DiceBear fallback instead.
-                    `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
-                // You can use localAuthor._id if your ID is named that
-              }
+              src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor._id}`}
               alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
               className="post-avatar"
             />
@@ -301,17 +293,9 @@ export default function PostItem({
                   alt={`${localSharedAuthor.firstName} ${localSharedAuthor.lastName}`}
                   className="post-avatar"
                 /> */}
-                
+
                 <img
-                  src={
-                    localAuthor.avatar.startsWith("http")
-                      ? localAuthor.avatar
-                      : // --- MODIFIED LOGIC HERE ---
-                        // If it's NOT an "http" link (meaning it's an old local path or a relative path),
-                        // we ignore the local path and use the DiceBear fallback instead.
-                        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
-                    // You can use localAuthor._id if your ID is named that
-                  }
+                  src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor._id}`}
                   alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
                   className="post-avatar"
                 />
@@ -346,17 +330,9 @@ export default function PostItem({
                           alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                           className="reply-avatar"
                         /> */}
-                        
+
                         <img
-                          src={
-                            localAuthor.avatar.startsWith("http")
-                              ? localAuthor.avatar
-                              : // --- MODIFIED LOGIC HERE ---
-                                // If it's NOT an "http" link (meaning it's an old local path or a relative path),
-                                // we ignore the local path and use the DiceBear fallback instead.
-                                `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
-                            // You can use localAuthor._id if your ID is named that
-                          }
+                          src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor._id}`}
                           alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
                           className="post-avatar"
                         />
@@ -480,17 +456,9 @@ export default function PostItem({
                       alt={`${localReplyAuthor.firstName} ${localReplyAuthor.lastName}`}
                       className="reply-avatar"
                     /> */}
-                    
+
                     <img
-                      src={
-                        localAuthor.avatar.startsWith("http")
-                          ? localAuthor.avatar
-                          : // --- MODIFIED LOGIC HERE ---
-                            // If it's NOT an "http" link (meaning it's an old local path or a relative path),
-                            // we ignore the local path and use the DiceBear fallback instead.
-                            `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`
-                        // You can use localAuthor._id if your ID is named that
-                      }
+                      src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor._id}`}
                       alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
                       className="post-avatar"
                     />

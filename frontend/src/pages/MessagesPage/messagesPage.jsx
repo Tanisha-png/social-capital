@@ -94,11 +94,18 @@ export default function MessagesPage() {
               }`}
               onClick={() => handleSelectUser(u)}
             >
-              <img
+              {/* <img
                 src={
                   u.avatar ||
                   "https://cdn-icons-png.flaticon.com/512/149/149071.png"
                 }
+                alt="avatar"
+                className="sidebar-avatar"
+              /> */}
+
+              <img
+                // Direct DiceBear URL, ensuring a working image every time
+                src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${u._id}`}
                 alt="avatar"
                 className="sidebar-avatar"
               />
@@ -127,8 +134,13 @@ export default function MessagesPage() {
           <>
             <div className="chat-header">
               <div className="chat-user-info">
-                <img
+                {/* <img
                   src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${user.id}`}
+                  alt="avatar"
+                  className="chat-header-avatar"
+                /> */}
+                <img
+                  src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${selectedUser._id}`}
                   alt="avatar"
                   className="chat-header-avatar"
                 />
