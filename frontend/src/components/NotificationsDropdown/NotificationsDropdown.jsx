@@ -71,9 +71,14 @@ export default function NotificationsDropdown() {
                 }`}
                 onClick={() => handleNotificationClick(n)}
               >
-                <img
+                {/* <img
                   src={n.fromUser?.avatar || "/default-avatar.png"}
                   alt={n.fromUser?.firstName || "User"}
+                /> */}
+                <img
+                  src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${localAuthor._id}`}
+                  alt={`${localAuthor.firstName} ${localAuthor.lastName}`}
+                  className="post-avatar"
                 />
                 <div className="notification-text">
                   <span>
