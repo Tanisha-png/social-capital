@@ -39,8 +39,37 @@ export async function sendEmail(to, subject, message) {
 }
 
 // --- IN-APP NOTIFICATION ---
+// export async function createNotification({
+//     userId,
+//     type,
+//     message,
+//     postId = null,
+//     messageId = null,
+// }) {
+//     try {
+//         const notification = new Notification({
+//             user: userId,
+//             type,
+//             message,
+//             post: postId,
+//             messageRef: messageId,
+//         });
+//         await notification.save();
+
+//         // ✅ Emit socket event (real-time)
+//         if (io) {
+//             io.to(userId.toString()).emit("notification", notification);
+//         }
+
+//         return notification;
+//     } catch (err) {
+//         console.error("Notification save error:", err);
+//     }
+// }
+
 export async function createNotification({
     userId,
+    fromUserId,   // <--- add this
     type,
     message,
     postId = null,
@@ -49,14 +78,15 @@ export async function createNotification({
     try {
         const notification = new Notification({
             user: userId,
+            fromUser: fromUserId || null,   // <--- include it
             type,
             message,
             post: postId,
             messageRef: messageId,
         });
+
         await notification.save();
 
-        // ✅ Emit socket event (real-time)
         if (io) {
             io.to(userId.toString()).emit("notification", notification);
         }
@@ -66,6 +96,7 @@ export async function createNotification({
         console.error("Notification save error:", err);
     }
 }
+
 
 export const markAllNotificationsRead = async (req, res) => {
     try {
@@ -80,10 +111,24 @@ export const markAllNotificationsRead = async (req, res) => {
 };
 
 // --- GET all notifications for logged-in user ---
+// export const getNotifications = async (req, res) => {
+//     try {
+//         const notifications = await Notification.find({ user: req.user._id })
+//             .sort({ createdAt: -1 })
+//             .populate("post", "content")
+//             .populate("messageRef", "content");
+
+//         res.json(notifications);
+//     } catch (err) {
+//         res.status(500).json({ message: "Error fetching notifications" });
+//     }
+// };
+
 export const getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ user: req.user._id })
             .sort({ createdAt: -1 })
+            .populate("fromUser", "firstName lastName avatar _id")
             .populate("post", "content")
             .populate("messageRef", "content");
 
