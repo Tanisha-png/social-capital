@@ -193,7 +193,11 @@ export async function notifyUser({ userId, fromUserId, type, message, post, mess
         });
 
         // Populate fromUser for frontend
-        notif = await notif.populate("fromUser", "firstName lastName _id");
+        // notif = await notif.populate("fromUser", "firstName lastName _id");
+        notif = await notif.populate(
+            "fromUser",
+            "firstName lastName _id avatar"
+        );
 
         // Emit real-time notification via socket
         io.to(userId.toString()).emit("notification", notif);
@@ -278,7 +282,8 @@ export const getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ user: req.user._id })
             .sort({ createdAt: -1 })
-            .populate("fromUser", "firstName lastName _id") // ✅ populate fromUser
+            // .populate("fromUser", "firstName lastName _id") // ✅ populate fromUser
+            .populate("fromUser", "firstName lastName _id avatar")
             .populate("post", "content")
             .populate("messageRef", "content");
 
