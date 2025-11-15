@@ -146,10 +146,15 @@ export default function EditProfilePage() {
         alt="Avatar Preview"
         className="avatar-preview"
       /> */}
-      <Avatar
+      {/* <Avatar
         src={getSafeAvatarUrl(c.profileImage, c._id)}
         alt={`${c.firstName} ${c.lastName}`}
         className="connection-avatar"
+      /> */}
+      <Avatar
+        src={avatarPreview}
+        alt={`${formData.firstName} ${formData.lastName}`}
+        className="avatar-preview"
       />
       <button type="submit">Save Changes</button>
     </form>
