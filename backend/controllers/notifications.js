@@ -192,8 +192,7 @@ export async function notifyUser({ userId, fromUserId, type, message, post, mess
             messageRef,
         });
 
-        // Populate fromUser for frontend
-        // notif = await notif.populate("fromUser", "firstName lastName _id");
+        // Populate fromUser so UI always has name + id + avatar
         notif = await notif.populate(
             "fromUser",
             "firstName lastName _id avatar"
@@ -210,7 +209,7 @@ export async function notifyUser({ userId, fromUserId, type, message, post, mess
 
 // --- EMAIL TRANSPORTER ---
 const transporter = nodemailer.createTransport({
-    service: "Gmail", // Or use Outlook/SMTP
+    service: "Gmail",
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -250,10 +249,13 @@ export async function createNotification({
 
         await notification.save();
 
-        // Populate fromUser if exists
-        notification = await notification.populate("fromUser", "firstName lastName _id");
+        // Populate fromUser
+        notification = await notification.populate(
+            "fromUser",
+            "firstName lastName _id avatar"
+        );
 
-        // Emit socket event (real-time)
+        // Emit real-time socket event
         if (io) {
             io.to(userId.toString()).emit("notification", notification);
         }
@@ -282,8 +284,10 @@ export const getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ user: req.user._id })
             .sort({ createdAt: -1 })
-            // .populate("fromUser", "firstName lastName _id") // ✅ populate fromUser
-            .populate("fromUser", "firstName lastName _id avatar")
+            .populate(
+                "fromUser",
+                "firstName lastName _id avatar"
+            ) // <-- now includes avatar + id
             .populate("post", "content")
             .populate("messageRef", "content");
 
