@@ -128,7 +128,7 @@ export const getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ user: req.user._id })
             .sort({ createdAt: -1 })
-            .populate("fromUser", "firstName lastName avatar _id")
+            .populate("fromUser", "firstName lastName _id")
             .populate("post", "content")
             .populate("messageRef", "content");
 
