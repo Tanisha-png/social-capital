@@ -2,15 +2,31 @@ import Notification from "../models/Notification.js";
 import { io } from "../server.js";
 import nodemailer from "nodemailer";
 
+// export async function notifyUser({ userId, fromUserId, type, message, post, messageRef }) {
+//     const notif = await Notification.create({
+//         user: userId,            // recipient
+//         fromUser: fromUserId,    // who triggered notification
+//         type,
+//         message,
+//         post,
+//         messageRef,
+//     });
+
+//     io.to(userId.toString()).emit("notification", notif);
+// }
+
 export async function notifyUser({ userId, fromUserId, type, message, post, messageRef }) {
-    const notif = await Notification.create({
-        user: userId,            // recipient
-        fromUser: fromUserId,    // who triggered notification
+    let notif = await Notification.create({
+        user: userId,
+        fromUser: fromUserId,
         type,
         message,
         post,
         messageRef,
     });
+
+    // Populate fromUser for frontend
+    notif = await notif.populate("fromUser", "firstName lastName _id");
 
     io.to(userId.toString()).emit("notification", notif);
 }
