@@ -231,8 +231,44 @@ export async function sendEmail(to, subject, message) {
 }
 
 // --- CREATE NOTIFICATION (IN-APP) ---
+// export async function createNotification({
+//     userId,
+//     type,
+//     message,
+//     postId = null,
+//     messageId = null,
+// }) {
+//     try {
+//         let notification = new Notification({
+//             user: userId,
+//             type,
+//             message,
+//             post: postId,
+//             messageRef: messageId,
+//         });
+
+//         await notification.save();
+
+//         // Populate fromUser
+//         notification = await notification.populate(
+//             "fromUser",
+//             "firstName lastName _id avatar"
+//         );
+
+//         // Emit real-time socket event
+//         if (io) {
+//             io.to(userId.toString()).emit("notification", notification);
+//         }
+
+//         return notification;
+//     } catch (err) {
+//         console.error("Notification save error:", err);
+//     }
+// }
+
 export async function createNotification({
     userId,
+    fromUserId,   // <-- ADD THIS
     type,
     message,
     postId = null,
@@ -241,6 +277,7 @@ export async function createNotification({
     try {
         let notification = new Notification({
             user: userId,
+            fromUser: fromUserId,   // <-- ADD THIS
             type,
             message,
             post: postId,
@@ -255,7 +292,7 @@ export async function createNotification({
             "firstName lastName _id avatar"
         );
 
-        // Emit real-time socket event
+        // Emit socket event
         if (io) {
             io.to(userId.toString()).emit("notification", notification);
         }
