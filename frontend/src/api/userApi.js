@@ -95,10 +95,8 @@
 
 import axios from "axios";
 
-// Use VITE_BACKEND_URL if set; otherwise fallback to same-origin relative paths
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
-
-// Users endpoint
+// Use relative /api path if env variable not set
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "/api";
 const USERS_URL = `${BASE_URL}/users`;
 
 // ==============================
