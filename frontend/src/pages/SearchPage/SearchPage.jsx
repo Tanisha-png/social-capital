@@ -14,25 +14,30 @@ export default function SearchPage() {
     const debounceRef = useRef(null);
 
     const highlightMatch = (text) => {
-    if (!query) return text;
+        if (!query) return text;
 
-    // Split search into words, escape regex special chars
-    const words = query.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) return text;
+        // Split search into words, escape regex special chars
+        const words = query.trim().split(/\s+/).filter(Boolean);
+        if (words.length === 0) return text;
 
-    const regex = new RegExp(`(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
-    const parts = text.split(regex);
+        const regex = new RegExp(
+        `(${words
+            .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            .join("|")})`,
+        "gi"
+        );
+        const parts = text.split(regex);
 
-    return parts.map((part, i) =>
+        return parts.map((part, i) =>
         regex.test(part) ? (
-        <mark key={i} style={{ backgroundColor: "#fffb91" }}>
+            <mark key={i} style={{ backgroundColor: "#fffb91" }}>
             {part}
-        </mark>
+            </mark>
         ) : (
-        part
+            part
         )
-    );
-};
+        );
+    };
 
     const fetchResults = async (searchQuery) => {
         if (!user || !searchQuery.trim()) {
@@ -103,7 +108,7 @@ export default function SearchPage() {
                     }}
                 >
                     <Avatar
-                    src={getSafeAvatarUrl(u.avatar)}
+                    src={getSafeAvatarUrl(u.avatar, u._id)} // ✅ Fix broken image
                     alt={`${u.firstName || ""} ${u.lastName || ""}`}
                     className="result-avatar"
                     style={{ width: "40px", height: "40px", marginRight: "12px" }}
