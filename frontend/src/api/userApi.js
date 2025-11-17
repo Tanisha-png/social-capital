@@ -97,7 +97,7 @@ import axios from "axios";
 
 // Use relative /api path if env variable not set
 const BASE_URL = import.meta.env.VITE_BACKEND_URL
-    ? import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "") // remove trailing slash
+    ? import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "") + "/api"
     : "/api";
 const USERS_URL = `${BASE_URL}/users`;
 
