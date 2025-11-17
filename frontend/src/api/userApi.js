@@ -122,9 +122,9 @@ export async function sendFriendRequest(friendId, token) {
     if (!friendId) throw new Error("Friend ID is required");
     if (!token) throw new Error("Auth token is required");
 
-    // ✅ Correct full URL including /api
-    const url = `${BASE_URL}/connections/request`;
-    console.log("Sending friend request to:", url); // Log the URL for debugging
+    // Force /api prefix
+    const url = `${BASE_URL.replace(/\/$/, "")}/connections/request`;
+    console.log("Sending friend request to:", url); // should now log /api/connections/request
 
     try {
         const res = await axios.post(
@@ -141,6 +141,7 @@ export async function sendFriendRequest(friendId, token) {
         throw err;
     }
 }
+
 
 export async function acceptFriendRequest(requestId, token) {
     const res = await axios.post(
