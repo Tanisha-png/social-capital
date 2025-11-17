@@ -121,7 +121,7 @@ export async function sendFriendRequest(friendId, token) {
     if (!token) throw new Error("Auth token is required");
 
     try {
-        // Ensure proper URL and avoid double slashes
+        // Ensure proper URL, always includes /api/connections/request
         const url = `${BASE_URL.replace(/\/$/, "")}/connections/request`;
         const res = await axios.post(
             url,
