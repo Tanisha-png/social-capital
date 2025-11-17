@@ -116,13 +116,31 @@ export async function getFriendRequests(token) {
     return res.data;
 }
 
+// export async function sendFriendRequest(friendId, token) {
+//     const res = await axios.post(
+//         `${BASE_URL}/connections/request`,
+//         { userId: friendId },
+//         { headers: { Authorization: `Bearer ${token}` } }
+//     );
+//     return res.data;
+// }
+
 export async function sendFriendRequest(friendId, token) {
-    const res = await axios.post(
-        `${BASE_URL}/connections/request`,
-        { userId: friendId },
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return res.data;
+    if (!friendId) throw new Error("Friend ID is required");
+    if (!token) throw new Error("Auth token is required");
+
+    try {
+        const url = `${BASE_URL.replace(/\/$/, "")}/connections/request`; // ensures no double slashes
+        const res = await axios.post(
+            url,
+            { userId: friendId },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        return res.data;
+    } catch (err) {
+        console.error("Failed to send friend request:", err.response?.data || err.message);
+        throw err;
+    }
 }
 
 export async function acceptFriendRequest(requestId, token) {
