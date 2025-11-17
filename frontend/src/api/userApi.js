@@ -95,15 +95,15 @@
 
 import axios from "axios";
 
-// Use environment variable if set, otherwise default to relative /api
-const BASE_URL = (import.meta.env.VITE_BACKEND_URL || "/api").replace(/\/$/, "");
+// Use relative /api path if env variable not set
+const BASE_URL = import.meta.env.VITE_BACKEND_URL
+    ? import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "") // remove trailing slash
+    : "/api";
 const USERS_URL = `${BASE_URL}/users`;
 
 // ==============================
 // 🔹 FRIEND & CONNECTION ACTIONS
 // ==============================
-
-// Get friends
 export async function getFriends(token) {
     const res = await axios.get(`${BASE_URL}/connections`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -111,7 +111,6 @@ export async function getFriends(token) {
     return res.data;
 }
 
-// Get incoming friend requests
 export async function getFriendRequests(token) {
     const res = await axios.get(`${BASE_URL}/connections/requests`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -119,29 +118,30 @@ export async function getFriendRequests(token) {
     return res.data;
 }
 
-// Send friend request
 export async function sendFriendRequest(friendId, token) {
     if (!friendId) throw new Error("Friend ID is required");
     if (!token) throw new Error("Auth token is required");
 
-    try {
-        // Full URL with proper /api prefix
-        const url = `${BASE_URL}/connections/request`;
+    // ✅ Correct full URL including /api
+    const url = `${BASE_URL}/connections/request`;
+    console.log("Sending friend request to:", url); // Log the URL for debugging
 
+    try {
         const res = await axios.post(
             url,
             { userId: friendId },
             { headers: { Authorization: `Bearer ${token}` } }
         );
-
         return res.data;
     } catch (err) {
-        console.error("Failed to send friend request:", err.response?.data || err.message);
+        console.error(
+            "Failed to send friend request:",
+            err.response?.data || err.message
+        );
         throw err;
     }
 }
 
-// Accept friend request
 export async function acceptFriendRequest(requestId, token) {
     const res = await axios.post(
         `${BASE_URL}/connections/accept`,
@@ -151,7 +151,6 @@ export async function acceptFriendRequest(requestId, token) {
     return res.data;
 }
 
-// Reject friend request
 export async function rejectFriendRequest(requestId, token) {
     const res = await axios.post(
         `${BASE_URL}/connections/reject`,
@@ -161,7 +160,6 @@ export async function rejectFriendRequest(requestId, token) {
     return res.data;
 }
 
-// Remove friend
 export async function removeFriend(friendId, token) {
     const res = await axios.delete(`${BASE_URL}/connections/remove`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -169,3 +167,40 @@ export async function removeFriend(friendId, token) {
     });
     return res.data;
 }
+
+// ==============================
+// 🔹 USER PROFILE ACTIONS
+// ==============================
+export async function getUserProfile(userId, token) {
+    const res = await axios.get(`${USERS_URL}/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+}
+
+export async function getMyProfile(token) {
+    const res = await axios.get(`${USERS_URL}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+}
+
+export async function updateUserProfile(formData, token) {
+    const res = await axios.put(`${USERS_URL}/me`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+}
+
+// ✅ Get all users
+export const getAllUsers = async (token) => {
+    try {
+        const res = await axios.get(`${USERS_URL}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return res.data;
+    } catch (err) {
+        console.error("Failed to fetch users:", err.response?.data || err);
+        throw err;
+    }
+};
