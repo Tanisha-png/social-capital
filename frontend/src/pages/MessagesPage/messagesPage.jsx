@@ -216,7 +216,6 @@ import {
   getMessagesWithUser,
   sendMessage,
   getConversations,
-  markMessagesRead,
 } from "../../api/messageApi";
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
@@ -225,8 +224,7 @@ import "./MessagesPage.css";
 
 export default function MessagesPage() {
   const { user, token } = useAuth();
-  const { markMessagesRead: markLocalRead, unreadByUser } =
-    useMessageNotifications();
+  const { markMessagesRead, unreadByUser } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -242,12 +240,14 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket
+  // Initialize socket once
   useEffect(() => {
-    if (token && user?._id) initSocket(token, user._id);
+    if (token && user?._id) {
+      initSocket(token, user._id);
+    }
   }, [token, user?._id]);
 
-  // Load conversations + friends
+  // Load conversations + friends on mount
   useEffect(() => {
     if (!token) return;
 
@@ -258,6 +258,7 @@ export default function MessagesPage() {
           getConversations(token),
           getFriends(token),
         ]);
+
         setConversations(convos || []);
         setFriends(friendsList || []);
       } catch (err) {
@@ -270,7 +271,7 @@ export default function MessagesPage() {
     loadData();
   }, [token]);
 
-  // Merge conversations + friends for sidebar
+  // Merge friends + conversations for sidebar
   const getSidebarUsers = () => {
     if (!friends || !conversations) return [];
 
@@ -283,9 +284,12 @@ export default function MessagesPage() {
       }
     });
 
+    // Sort: newest messages first, friends with no messages last
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
-        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        return (
+          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
+        );
       } else if (a.lastMessage) return -1;
       else if (b.lastMessage) return 1;
       else return 0;
@@ -300,8 +304,7 @@ export default function MessagesPage() {
     try {
       const msgs = await getMessagesWithUser(token, otherUser._id);
       setMessages(msgs || []);
-      markMessagesRead(token, otherUser._id);
-      markLocalRead(otherUser._id);
+      markMessagesRead(otherUser._id);
     } catch (err) {
       console.error("Failed to load messages:", err);
     }
@@ -332,13 +335,14 @@ export default function MessagesPage() {
         }
       });
 
+      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Listen for incoming messages & new friends
+  // Listen for incoming messages + new friends
   useEffect(() => {
     if (!token) return;
 
@@ -346,6 +350,7 @@ export default function MessagesPage() {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -357,10 +362,10 @@ export default function MessagesPage() {
         }
       });
 
+      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
-        markMessagesRead(token, otherUser._id);
-        markLocalRead(otherUser._id);
+        markMessagesRead(otherUser._id);
       }
     };
 
@@ -378,7 +383,7 @@ export default function MessagesPage() {
       socket.off("newMessage", handleIncomingMessage);
       socket.off("friend-added", handleFriendAdded);
     };
-  }, [selectedUser, user._id, markLocalRead, token]);
+  }, [selectedUser, user._id, markMessagesRead, token]);
 
   return (
     <div className="linkedin-messages">
@@ -412,7 +417,9 @@ export default function MessagesPage() {
                   </p>
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
-                      {unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}
+                      {unreadByUser[other._id] > 9
+                        ? "9+"
+                        : unreadByUser[other._id]}
                     </span>
                   )}
                 </div>
