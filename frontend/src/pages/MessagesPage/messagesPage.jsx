@@ -217,15 +217,17 @@ import {
   sendMessage,
   getConversations,
 } from "../../api/messageApi";
+import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
 import socket from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { markMessagesRead, unreadByUser } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -233,27 +235,55 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll down when messages change
+  // Auto scroll down
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations list on mount
+  // Load conversations + friends
   useEffect(() => {
-    const loadConvos = async () => {
+    const loadData = async () => {
       try {
         const convos = await getConversations();
-        setConversations(convos);
+        const friendsList = await getFriends(token);
+
+        setConversations(convos || []);
+        setFriends(friendsList || []);
       } catch (err) {
-        console.error("Error loading conversations:", err);
+        console.error("Error loading messages/friends:", err);
       } finally {
         setLoading(false);
       }
     };
-    loadConvos();
-  }, []);
+    loadData();
+  }, [token]);
 
-  // Select a conversation
+  // Merge friends + conversations for sidebar
+  const getSidebarUsers = () => {
+    const convUserIds = conversations.map((c) => c.otherUser._id);
+    const merged = [...conversations];
+
+    friends.forEach((f) => {
+      if (!convUserIds.includes(f._id)) {
+        merged.push({ otherUser: f, lastMessage: null });
+      }
+    });
+
+    // Sort by last message timestamp (newest first), friends with no messages go last
+    merged.sort((a, b) => {
+      if (a.lastMessage && b.lastMessage) {
+        return (
+          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
+        );
+      } else if (a.lastMessage) return -1;
+      else if (b.lastMessage) return 1;
+      else return 0;
+    });
+
+    return merged;
+  };
+
+  // Select a user
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
@@ -275,7 +305,6 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      // Update sidebar with new message
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
@@ -290,20 +319,18 @@ export default function MessagesPage() {
         }
       });
 
-      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Listen for incoming messages in real-time
+  // Listen for incoming messages
   useEffect(() => {
     const handleIncomingMessage = (msg) => {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -315,15 +342,27 @@ export default function MessagesPage() {
         }
       });
 
-      // If currently chatting with this user, append message
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
       }
     };
 
+    const handleFriendAdded = (newFriend) => {
+      // Add new friend to friends list if not already present
+      setFriends((prev) => {
+        if (prev.some((f) => f._id === newFriend._id)) return prev;
+        return [...prev, newFriend];
+      });
+    };
+
     socket.on("newMessage", handleIncomingMessage);
-    return () => socket.off("newMessage", handleIncomingMessage);
+    socket.on("friend-added", handleFriendAdded);
+
+    return () => {
+      socket.off("newMessage", handleIncomingMessage);
+      socket.off("friend-added", handleFriendAdded);
+    };
   }, [selectedUser, user._id, markMessagesRead]);
 
   return (
@@ -336,8 +375,8 @@ export default function MessagesPage() {
 
         {loading ? (
           <p className="loading">Loading...</p>
-        ) : conversations.length ? (
-          conversations.map((c) => {
+        ) : getSidebarUsers().length ? (
+          getSidebarUsers().map((c) => {
             const other = c.otherUser;
             return (
               <div
