@@ -274,10 +274,28 @@ export default function MessagesPage() {
     try {
       const msg = await sendMessage(selectedUser._id, newMessage.trim(), token);
 
+      // Add message to chat window
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
+      // Emit via socket
       socket.emit("sendMessage", msg);
+
+      // Update conversations sidebar if this is a new conversation
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.otherUser._id === selectedUser._id);
+        if (exists) {
+          // Update lastMessage for existing conversation
+          return prev.map((c) =>
+            c.otherUser._id === selectedUser._id
+              ? { ...c, lastMessage: msg }
+              : c
+          );
+        } else {
+          // Add new conversation for this user
+          return [...prev, { otherUser: selectedUser, lastMessage: msg }];
+        }
+      });
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -316,8 +334,7 @@ export default function MessagesPage() {
                     {other.firstName} {other.lastName}
                   </p>
 
-                  {/* Show unread badge only if there are unread messages */}
-                  {unreadByUser[other._id] > 0 && (
+                  {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
                       {unreadByUser[other._id] > 9
                         ? "9+"
