@@ -296,6 +296,7 @@ export default function MessagesPage() {
         ) : conversations.length ? (
           conversations.map((c) => {
             const other = c.otherUser;
+
             return (
               <div
                 key={other._id}
@@ -315,7 +316,7 @@ export default function MessagesPage() {
                     {other.firstName} {other.lastName}
                   </p>
 
-                  {unreadByUser[other._id] > 0 && (
+                  {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
                       {unreadByUser[other._id] > 9
                         ? "9+"
