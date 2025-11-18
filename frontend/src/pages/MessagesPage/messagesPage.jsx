@@ -219,7 +219,7 @@ import {
 } from "../../api/messageApi";
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
-import socket from "../../socket";
+import socket, { initSocket } from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
@@ -235,17 +235,29 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll down
+  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations + friends
+  // Initialize socket once
   useEffect(() => {
+    if (token && user?._id) {
+      initSocket(token, user._id);
+    }
+  }, [token, user?._id]);
+
+  // Load conversations + friends on mount
+  useEffect(() => {
+    if (!token) return;
+
     const loadData = async () => {
+      setLoading(true);
       try {
-        const convos = await getConversations();
-        const friendsList = await getFriends(token);
+        const [convos, friendsList] = await Promise.all([
+          getConversations(),
+          getFriends(token),
+        ]);
 
         setConversations(convos || []);
         setFriends(friendsList || []);
@@ -255,21 +267,24 @@ export default function MessagesPage() {
         setLoading(false);
       }
     };
+
     loadData();
   }, [token]);
 
   // Merge friends + conversations for sidebar
   const getSidebarUsers = () => {
-    const convUserIds = conversations.map((c) => c.otherUser._id);
+    if (!friends || !conversations) return [];
+
+    const convUserIds = conversations.map((c) => c.otherUser._id.toString());
     const merged = [...conversations];
 
     friends.forEach((f) => {
-      if (!convUserIds.includes(f._id)) {
+      if (!convUserIds.includes(f._id.toString())) {
         merged.push({ otherUser: f, lastMessage: null });
       }
     });
 
-    // Sort by last message timestamp (newest first), friends with no messages go last
+    // Sort: newest messages first, friends with no messages last
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
         return (
@@ -283,7 +298,7 @@ export default function MessagesPage() {
     return merged;
   };
 
-  // Select a user
+  // Select conversation
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
@@ -308,6 +323,7 @@ export default function MessagesPage() {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -319,18 +335,22 @@ export default function MessagesPage() {
         }
       });
 
+      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Listen for incoming messages
+  // Listen for incoming messages + new friends
   useEffect(() => {
+    if (!token) return;
+
     const handleIncomingMessage = (msg) => {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -342,6 +362,7 @@ export default function MessagesPage() {
         }
       });
 
+      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
@@ -349,7 +370,6 @@ export default function MessagesPage() {
     };
 
     const handleFriendAdded = (newFriend) => {
-      // Add new friend to friends list if not already present
       setFriends((prev) => {
         if (prev.some((f) => f._id === newFriend._id)) return prev;
         return [...prev, newFriend];
@@ -363,7 +383,7 @@ export default function MessagesPage() {
       socket.off("newMessage", handleIncomingMessage);
       socket.off("friend-added", handleFriendAdded);
     };
-  }, [selectedUser, user._id, markMessagesRead]);
+  }, [selectedUser, user._id, markMessagesRead, token]);
 
   return (
     <div className="linkedin-messages">
@@ -391,12 +411,10 @@ export default function MessagesPage() {
                   alt="avatar"
                   className="sidebar-avatar"
                 />
-
                 <div className="sidebar-user-info">
                   <p className="sidebar-username">
                     {other.firstName} {other.lastName}
                   </p>
-
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
                       {unreadByUser[other._id] > 9
