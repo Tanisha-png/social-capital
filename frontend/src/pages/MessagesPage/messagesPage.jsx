@@ -235,19 +235,19 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll to bottom
+  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket once
+  // Initialize socket
   useEffect(() => {
     if (token && user?._id) {
       initSocket(token, user._id);
     }
   }, [token, user?._id]);
 
-  // Load conversations + friends on mount
+  // Load conversations + friends
   useEffect(() => {
     if (!token) return;
 
@@ -255,7 +255,7 @@ export default function MessagesPage() {
       setLoading(true);
       try {
         const [convos, friendsList] = await Promise.all([
-          getConversations(),
+          getConversations(token), // <-- pass token
           getFriends(token),
         ]);
 
@@ -302,7 +302,7 @@ export default function MessagesPage() {
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
-      const msgs = await getMessagesWithUser(otherUser._id);
+      const msgs = await getMessagesWithUser(otherUser._id, token);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -316,7 +316,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedUser) return;
 
     try {
-      const msg = await sendMessage(selectedUser._id, newMessage.trim());
+      const msg = await sendMessage(selectedUser._id, newMessage.trim(), token);
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
@@ -335,7 +335,6 @@ export default function MessagesPage() {
         }
       });
 
-      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
@@ -350,7 +349,6 @@ export default function MessagesPage() {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -362,7 +360,6 @@ export default function MessagesPage() {
         }
       });
 
-      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
@@ -431,7 +428,7 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* RIGHT CHAT SECTION */}
+      {/* RIGHT CHAT */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
