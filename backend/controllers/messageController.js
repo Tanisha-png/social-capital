@@ -72,34 +72,6 @@ export const getMessagesWithUser = async (req, res) => {
     }
 };
 
-// Get conversations
-// export const getConversations = async (req, res) => {
-//     try {
-//         const userId = req.user?._id;
-//         if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-//         const messages = await Message.find({ $or: [{ sender: userId }, { recipient: userId }] })
-//             .sort({ createdAt: -1 })
-//             .populate("sender", "firstName lastName avatar")
-//             .populate("recipient", "firstName lastName avatar");
-
-//         const conversations = [];
-//         const seen = new Set();
-
-//         for (const msg of messages) {
-//             const otherUser = msg.sender._id.toString() === userId.toString() ? msg.recipient : msg.sender;
-//             if (!seen.has(otherUser._id.toString())) {
-//                 seen.add(otherUser._id.toString());
-//                 conversations.push({ user: otherUser, lastMessage: msg });
-//             }
-//         }
-
-//         res.json(conversations);
-//     } catch (err) {
-//         console.error("Error in getConversations:", err);
-//         res.status(500).json({ message: "Server error fetching conversations" });
-//     }
-// };
 
 export const getConversations = async (req, res) => {
     try {
@@ -126,8 +98,8 @@ export const getConversations = async (req, res) => {
                 seen.add(otherUser._id.toString());
 
                 conversations.push({
-                    user: otherUser,      // ⭐ FIX: frontend expects "user"
-                    lastMessage: msg,     // ⭐ last message is already populated
+                    otherUser,      // ⭐ FIXED
+                    lastMessage: msg,
                 });
             }
         }
