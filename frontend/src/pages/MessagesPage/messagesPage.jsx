@@ -236,12 +236,12 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom
+  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket once
+  // Initialize socket
   useEffect(() => {
     if (token && user?._id) {
       initSocket(token, user._id);
@@ -285,10 +285,12 @@ export default function MessagesPage() {
       }
     });
 
-    // Sort: newest messages first, friends with no messages last
+    // Sort: newest last message first, friends with no messages last
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
-        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        return (
+          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
+        );
       } else if (a.lastMessage) return -1;
       else if (b.lastMessage) return 1;
       else return 0;
@@ -305,7 +307,7 @@ export default function MessagesPage() {
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
-      console.error("Failed to load messages:", err.response || err);
+      console.error("Failed to load messages:", err);
     }
   };
 
@@ -319,9 +321,9 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      const otherUser = msg.sender._id === user._id ? msg.recipient : msg.sender;
+      const otherUser =
+        msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -333,10 +335,9 @@ export default function MessagesPage() {
         }
       });
 
-      // Emit via socket
-      socket?.emit("sendMessage", msg);
+      socket.emit("sendMessage", msg);
     } catch (err) {
-      console.error("Error sending message:", err.response || err);
+      console.error("Error sending message:", err);
     }
   };
 
@@ -345,7 +346,8 @@ export default function MessagesPage() {
     if (!token) return;
 
     const handleIncomingMessage = (msg) => {
-      const otherUser = msg.sender._id === user._id ? msg.recipient : msg.sender;
+      const otherUser =
+        msg.sender._id === user._id ? msg.recipient : msg.sender;
 
       // Update sidebar
       setConversations((prev) => {
@@ -359,7 +361,6 @@ export default function MessagesPage() {
         }
       });
 
-      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
@@ -373,12 +374,12 @@ export default function MessagesPage() {
       });
     };
 
-    socket?.on("newMessage", handleIncomingMessage);
-    socket?.on("friend-added", handleFriendAdded);
+    socket.on("newMessage", handleIncomingMessage);
+    socket.on("friend-added", handleFriendAdded);
 
     return () => {
-      socket?.off("newMessage", handleIncomingMessage);
-      socket?.off("friend-added", handleFriendAdded);
+      socket.off("newMessage", handleIncomingMessage);
+      socket.off("friend-added", handleFriendAdded);
     };
   }, [selectedUser, user._id, markMessagesRead, token]);
 
@@ -398,7 +399,9 @@ export default function MessagesPage() {
             return (
               <div
                 key={other._id}
-                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
+                className={`sidebar-user ${
+                  selectedUser?._id === other._id ? "active" : ""
+                }`}
                 onClick={() => handleSelectUser(other)}
               >
                 <img
@@ -412,7 +415,9 @@ export default function MessagesPage() {
                   </p>
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
-                      {unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}
+                      {unreadByUser[other._id] > 9
+                        ? "9+"
+                        : unreadByUser[other._id]}
                     </span>
                   )}
                 </div>
@@ -446,11 +451,16 @@ export default function MessagesPage() {
                 messages.map((msg) => (
                   <div
                     key={msg._id}
-                    className={`chat-bubble ${msg.sender._id === user._id ? "sent" : "received"}`}
+                    className={`chat-bubble ${
+                      msg.sender._id === user._id ? "sent" : "received"
+                    }`}
                   >
                     <p>{msg.text}</p>
                     <span className="chat-time">
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
                 ))
@@ -475,7 +485,9 @@ export default function MessagesPage() {
                 />
                 <button
                   type="submit"
-                  className={`chat-send-btn ${newMessage.trim() ? "active" : ""}`}
+                  className={`chat-send-btn ${
+                    newMessage.trim() ? "active" : ""
+                  }`}
                   disabled={!newMessage.trim()}
                 >
                   <i className="fas fa-paper-plane"></i>
