@@ -104,12 +104,25 @@ const USERS_URL = `${BASE_URL}/users`;
 // ==============================
 // 🔹 FRIEND & CONNECTION ACTIONS
 // ==============================
-export async function getFriends(token) {
-    const res = await axios.get(`${BASE_URL}/connections`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.data;
-}
+// export async function getFriends(token) {
+//     const res = await axios.get(`${BASE_URL}/connections`, {
+//         headers: { Authorization: `Bearer ${token}` },
+//     });
+//     return res.data;
+// }
+
+export const getFriends = async (token) => {
+    if (!token) throw new Error("Auth token required for getFriends");
+    try {
+        const res = await axios.get(`${BASE_URL}/connections`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return res.data;
+    } catch (err) {
+        console.error("Failed to fetch friends:", err.response?.data || err.message);
+        throw err;
+    }
+};
 
 export async function getFriendRequests(token) {
     const res = await axios.get(`${BASE_URL}/connections/requests`, {
