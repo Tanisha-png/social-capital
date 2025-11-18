@@ -110,8 +110,8 @@ export const getConversations = async (req, res) => {
             $or: [{ sender: userId }, { recipient: userId }],
         })
             .sort({ createdAt: -1 })
-            .populate("sender", "firstName lastName")
-            .populate("recipient", "firstName lastName");
+            .populate("sender", "firstName lastName avatar")
+            .populate("recipient", "firstName lastName avatar");
 
         const conversations = [];
         const seen = new Set();
@@ -125,10 +125,9 @@ export const getConversations = async (req, res) => {
             if (!seen.has(otherUser._id.toString())) {
                 seen.add(otherUser._id.toString());
 
-                // ⭐ IMPORTANT: Must return "otherUser" because your frontend expects it
                 conversations.push({
-                    otherUser,
-                    lastMessage: msg,
+                    user: otherUser,      // ⭐ FIX: frontend expects "user"
+                    lastMessage: msg,     // ⭐ last message is already populated
                 });
             }
         }
@@ -136,11 +135,10 @@ export const getConversations = async (req, res) => {
         return res.json(conversations);
     } catch (err) {
         console.error("Error in getConversations:", err);
-        return res
-            .status(500)
-            .json({ message: "Server error fetching conversations" });
+        return res.status(500).json({ message: "Server error fetching conversations" });
     }
 };
+
 
 
 // Get unread count
