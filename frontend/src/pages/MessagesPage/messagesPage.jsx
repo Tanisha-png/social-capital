@@ -235,7 +235,7 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll to bottom
+  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -247,7 +247,7 @@ export default function MessagesPage() {
     }
   }, [token, user?._id]);
 
-  // Load conversations and friends
+  // Load conversations + friends
   useEffect(() => {
     if (!token) return;
 
@@ -255,7 +255,7 @@ export default function MessagesPage() {
       setLoading(true);
       try {
         const [convos, friendsList] = await Promise.all([
-          getConversations(token),
+          getConversations(token), // <-- pass token
           getFriends(token),
         ]);
 
@@ -275,13 +275,7 @@ export default function MessagesPage() {
   const getSidebarUsers = () => {
     if (!friends || !conversations) return [];
 
-    const convUserIds = conversations.map((c) => {
-      // Ensure we always get the other user
-      const otherUser =
-        c.otherUser || (c.sender._id !== user._id ? c.sender : c.recipient);
-      return otherUser._id.toString();
-    });
-
+    const convUserIds = conversations.map((c) => c.otherUser._id.toString());
     const merged = [...conversations];
 
     friends.forEach((f) => {
@@ -290,12 +284,10 @@ export default function MessagesPage() {
       }
     });
 
-    // Sort by last message timestamp (newest first)
+    // Sort: newest messages first, friends with no messages last
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
-        return (
-          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
-        );
+        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
       } else if (a.lastMessage) return -1;
       else if (b.lastMessage) return 1;
       else return 0;
@@ -329,6 +321,7 @@ export default function MessagesPage() {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -346,7 +339,7 @@ export default function MessagesPage() {
     }
   };
 
-  // Listen for incoming messages and friend additions
+  // Listen for incoming messages + new friends
   useEffect(() => {
     if (!token) return;
 
@@ -419,9 +412,7 @@ export default function MessagesPage() {
                   </p>
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
-                      {unreadByUser[other._id] > 9
-                        ? "9+"
-                        : unreadByUser[other._id]}
+                      {unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}
                     </span>
                   )}
                 </div>
@@ -433,7 +424,7 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* RIGHT CHAT SECTION */}
+      {/* RIGHT CHAT */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
