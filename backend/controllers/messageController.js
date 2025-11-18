@@ -1,4 +1,5 @@
 import Notification from "../models/Notification.js";
+import FriendRequest from "../models/FriendRequest.js";
 import Message from "../models/message.js";
 import User from "../models/user.js";
 
@@ -78,6 +79,19 @@ export const getConversations = async (req, res) => {
         const userId = req.user?._id;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+        // 1️⃣ Get all accepted friends
+        const friendsRequests = await FriendRequest.find({
+            $or: [
+                { requester: userId, status: "accepted" },
+                { recipient: userId, status: "accepted" },
+            ],
+        }).populate("requester recipient", "firstName lastName avatar");
+
+        const friends = friendsRequests.map((fr) =>
+            fr.requester._id.toString() === userId.toString() ? fr.recipient : fr.requester
+        );
+
+        // 2️⃣ Get all messages involving this user
         const messages = await Message.find({
             $or: [{ sender: userId }, { recipient: userId }],
         })
@@ -88,19 +102,22 @@ export const getConversations = async (req, res) => {
         const conversations = [];
         const seen = new Set();
 
+        // 3️⃣ Add conversations from messages first
         for (const msg of messages) {
             const otherUser =
-                msg.sender._id.toString() === userId.toString()
-                    ? msg.recipient
-                    : msg.sender;
+                msg.sender._id.toString() === userId.toString() ? msg.recipient : msg.sender;
 
             if (!seen.has(otherUser._id.toString())) {
                 seen.add(otherUser._id.toString());
+                conversations.push({ otherUser, lastMessage: msg });
+            }
+        }
 
-                conversations.push({
-                    otherUser,      // ⭐ FIXED
-                    lastMessage: msg,
-                });
+        // 4️⃣ Add friends without messages
+        for (const friend of friends) {
+            if (!seen.has(friend._id.toString())) {
+                seen.add(friend._id.toString());
+                conversations.push({ otherUser: friend, lastMessage: null });
             }
         }
 
@@ -110,7 +127,6 @@ export const getConversations = async (req, res) => {
         return res.status(500).json({ message: "Server error fetching conversations" });
     }
 };
-
 
 
 // Get unread count
