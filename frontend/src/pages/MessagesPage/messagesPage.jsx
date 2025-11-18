@@ -234,7 +234,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef(null);
   const token = localStorage.getItem("token");
 
-  // Auto scroll down
+  // Auto scroll down when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -281,7 +281,7 @@ export default function MessagesPage() {
       // Emit via socket
       socket.emit("sendMessage", msg);
 
-      // Update conversations sidebar if this is a new conversation
+      // Update conversations sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === selectedUser._id);
         if (exists) {
