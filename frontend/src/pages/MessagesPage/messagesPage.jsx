@@ -233,12 +233,12 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Auto scroll down
+  // Auto scroll down when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations list including all friends
+  // Load conversations list on mount
   useEffect(() => {
     const loadConvos = async () => {
       try {
@@ -272,15 +272,13 @@ export default function MessagesPage() {
 
     try {
       const msg = await sendMessage(selectedUser._id, newMessage.trim());
+      setMessages((prev) => [...prev, msg]);
+      setNewMessage("");
 
-      // Determine the other user from the populated message
+      // Update sidebar with new message
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update messages for current conversation
-      setMessages((prev) => [...prev, msg]);
-
-      // Update conversations list
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -292,12 +290,41 @@ export default function MessagesPage() {
         }
       });
 
-      setNewMessage("");
+      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
+
+  // Listen for incoming messages in real-time
+  useEffect(() => {
+    const handleIncomingMessage = (msg) => {
+      const otherUser =
+        msg.sender._id === user._id ? msg.recipient : msg.sender;
+
+      // Update sidebar
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
+        if (exists) {
+          return prev.map((c) =>
+            c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+          );
+        } else {
+          return [...prev, { otherUser, lastMessage: msg }];
+        }
+      });
+
+      // If currently chatting with this user, append message
+      if (selectedUser?._id === otherUser._id) {
+        setMessages((prev) => [...prev, msg]);
+        markMessagesRead(otherUser._id);
+      }
+    };
+
+    socket.on("newMessage", handleIncomingMessage);
+    return () => socket.off("newMessage", handleIncomingMessage);
+  }, [selectedUser, user._id, markMessagesRead]);
 
   return (
     <div className="linkedin-messages">
