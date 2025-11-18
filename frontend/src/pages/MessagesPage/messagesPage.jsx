@@ -316,7 +316,8 @@ export default function MessagesPage() {
                     {other.firstName} {other.lastName}
                   </p>
 
-                  {c.lastMessage && unreadByUser[other._id] > 0 && (
+                  {/* Show unread badge only if there are unread messages */}
+                  {unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
                       {unreadByUser[other._id] > 9
                         ? "9+"
