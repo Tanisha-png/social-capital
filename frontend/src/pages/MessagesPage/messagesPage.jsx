@@ -285,9 +285,7 @@ export default function MessagesPage() {
 
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
-        return (
-          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
-        );
+        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
       } else if (a.lastMessage) return -1;
       else if (b.lastMessage) return 1;
       else return 0;
@@ -414,9 +412,7 @@ export default function MessagesPage() {
                   </p>
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
-                      {unreadByUser[other._id] > 9
-                        ? "9+"
-                        : unreadByUser[other._id]}
+                      {unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}
                     </span>
                   )}
                 </div>
