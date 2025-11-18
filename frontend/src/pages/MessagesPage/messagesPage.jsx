@@ -219,7 +219,7 @@ import {
 } from "../../api/messageApi";
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
-import socket from "../../socket";
+import { initSocket } from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
@@ -234,16 +234,32 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
+  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Initialize socket
   useEffect(() => {
+    if (token && user?._id) {
+      const s = initSocket(token, user._id);
+      socketRef.current = s;
+    }
+  }, [token, user?._id]);
+
+  // Load friends + conversations
+  useEffect(() => {
+    if (!token) return;
+
     const loadData = async () => {
+      setLoading(true);
       try {
-        const convos = await getConversations();
-        const friendsList = await getFriends(token);
+        const [convos, friendsList] = await Promise.all([
+          getConversations(token),
+          getFriends(token),
+        ]);
 
         setConversations(convos || []);
         setFriends(friendsList || []);
@@ -253,19 +269,24 @@ export default function MessagesPage() {
         setLoading(false);
       }
     };
+
     loadData();
   }, [token]);
 
+  // Merge friends + conversations for sidebar
   const getSidebarUsers = () => {
-    const convUserIds = conversations.map((c) => c.otherUser._id);
+    if (!friends || !conversations) return [];
+
+    const convUserIds = conversations.map((c) => c.otherUser._id.toString());
     const merged = [...conversations];
 
     friends.forEach((f) => {
-      if (!convUserIds.includes(f._id)) {
+      if (!convUserIds.includes(f._id.toString())) {
         merged.push({ otherUser: f, lastMessage: null });
       }
     });
 
+    // Sort by last message timestamp (newest first), friends without messages go last
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
         return (
@@ -279,10 +300,11 @@ export default function MessagesPage() {
     return merged;
   };
 
+  // Select conversation
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
-      const msgs = await getMessagesWithUser(otherUser._id);
+      const msgs = await getMessagesWithUser(token, otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -290,18 +312,20 @@ export default function MessagesPage() {
     }
   };
 
+  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
 
     try {
-      const msg = await sendMessage(selectedUser._id, newMessage.trim());
+      const msg = await sendMessage(token, selectedUser._id, newMessage.trim());
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar conversations
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -313,17 +337,23 @@ export default function MessagesPage() {
         }
       });
 
-      socket.emit("sendMessage", msg);
+      // Emit via socket
+      socketRef.current?.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
+  // Listen for incoming messages + new friends
   useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+
     const handleIncomingMessage = (msg) => {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
+      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -335,6 +365,7 @@ export default function MessagesPage() {
         }
       });
 
+      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
@@ -348,17 +379,18 @@ export default function MessagesPage() {
       });
     };
 
-    socket.on("newMessage", handleIncomingMessage);
-    socket.on("friend-added", handleFriendAdded);
+    s.on("newMessage", handleIncomingMessage);
+    s.on("friend-added", handleFriendAdded);
 
     return () => {
-      socket.off("newMessage", handleIncomingMessage);
-      socket.off("friend-added", handleFriendAdded);
+      s.off("newMessage", handleIncomingMessage);
+      s.off("friend-added", handleFriendAdded);
     };
   }, [selectedUser, user._id, markMessagesRead]);
 
   return (
     <div className="linkedin-messages">
+      {/* LEFT SIDEBAR */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
@@ -382,12 +414,10 @@ export default function MessagesPage() {
                   alt="avatar"
                   className="sidebar-avatar"
                 />
-
                 <div className="sidebar-user-info">
                   <p className="sidebar-username">
                     {other.firstName} {other.lastName}
                   </p>
-
                   {c.lastMessage && unreadByUser[other._id] > 0 && (
                     <span className="sidebar-unread-badge">
                       {unreadByUser[other._id] > 9
@@ -404,6 +434,7 @@ export default function MessagesPage() {
         )}
       </div>
 
+      {/* RIGHT CHAT SECTION */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
