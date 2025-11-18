@@ -232,18 +232,17 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   const messagesEndRef = useRef(null);
-  const token = localStorage.getItem("token");
 
-  // Auto scroll down when messages change
+  // Auto scroll down
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations list
+  // Load conversations list including all friends
   useEffect(() => {
     const loadConvos = async () => {
       try {
-        const convos = await getConversations(token);
+        const convos = await getConversations();
         setConversations(convos);
       } catch (err) {
         console.error("Error loading conversations:", err);
@@ -252,13 +251,13 @@ export default function MessagesPage() {
       }
     };
     loadConvos();
-  }, [token]);
+  }, []);
 
   // Select a conversation
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
-      const msgs = await getMessagesWithUser(otherUser._id, token);
+      const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -272,30 +271,29 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedUser) return;
 
     try {
-      const msg = await sendMessage(selectedUser._id, newMessage.trim(), token);
+      const msg = await sendMessage(selectedUser._id, newMessage.trim());
 
-      // Add message to chat window
+      // Determine the other user from the populated message
+      const otherUser =
+        msg.sender._id === user._id ? msg.recipient : msg.sender;
+
+      // Update messages for current conversation
       setMessages((prev) => [...prev, msg]);
-      setNewMessage("");
 
-      // Emit via socket
-      socket.emit("sendMessage", msg);
-
-      // Update conversations sidebar
+      // Update conversations list
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser._id === selectedUser._id);
+        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
-          // Update lastMessage for existing conversation
           return prev.map((c) =>
-            c.otherUser._id === selectedUser._id
-              ? { ...c, lastMessage: msg }
-              : c
+            c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
           );
         } else {
-          // Add new conversation for this user
-          return [...prev, { otherUser: selectedUser, lastMessage: msg }];
+          return [...prev, { otherUser, lastMessage: msg }];
         }
       });
+
+      setNewMessage("");
+      socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -314,7 +312,6 @@ export default function MessagesPage() {
         ) : conversations.length ? (
           conversations.map((c) => {
             const other = c.otherUser;
-
             return (
               <div
                 key={other._id}
