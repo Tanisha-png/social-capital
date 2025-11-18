@@ -240,14 +240,14 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket once
+  // Initialize socket
   useEffect(() => {
     if (token && user?._id) {
       initSocket(token, user._id);
     }
   }, [token, user?._id]);
 
-  // Load conversations + friends on mount
+  // Load conversations and friends
   useEffect(() => {
     if (!token) return;
 
@@ -275,7 +275,13 @@ export default function MessagesPage() {
   const getSidebarUsers = () => {
     if (!friends || !conversations) return [];
 
-    const convUserIds = conversations.map((c) => c.otherUser._id.toString());
+    const convUserIds = conversations.map((c) => {
+      // Ensure we always get the other user
+      const otherUser =
+        c.otherUser || (c.sender._id !== user._id ? c.sender : c.recipient);
+      return otherUser._id.toString();
+    });
+
     const merged = [...conversations];
 
     friends.forEach((f) => {
@@ -284,7 +290,7 @@ export default function MessagesPage() {
       }
     });
 
-    // Sort: newest messages first, friends with no messages last
+    // Sort by last message timestamp (newest first)
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
         return (
@@ -302,7 +308,7 @@ export default function MessagesPage() {
   const handleSelectUser = async (otherUser) => {
     setSelectedUser(otherUser);
     try {
-      const msgs = await getMessagesWithUser(token, otherUser._id);
+      const msgs = await getMessagesWithUser(otherUser._id, token);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -316,14 +322,13 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedUser) return;
 
     try {
-      const msg = await sendMessage(token, selectedUser._id, newMessage.trim());
+      const msg = await sendMessage(selectedUser._id, newMessage.trim(), token);
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -335,14 +340,13 @@ export default function MessagesPage() {
         }
       });
 
-      // Emit via socket
       socket.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Listen for incoming messages + new friends
+  // Listen for incoming messages and friend additions
   useEffect(() => {
     if (!token) return;
 
@@ -350,7 +354,6 @@ export default function MessagesPage() {
       const otherUser =
         msg.sender._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (exists) {
@@ -362,7 +365,6 @@ export default function MessagesPage() {
         }
       });
 
-      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
