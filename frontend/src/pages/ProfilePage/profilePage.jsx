@@ -274,8 +274,8 @@ export default function ProfilePage() {
                     className="connection-avatar"
                   /> */}
                   <Avatar
-                    src={getSafeAvatarUrl(c.profileImage, c._id)}
-                    alt={`${c.firstName} ${c.lastName}`}
+                    src={getSafeAvatarUrl(r.avatar, r._id)}
+                    alt={`${r.firstName} ${r.lastName}`}
                     className="connection-avatar"
                   />
                   <span>
