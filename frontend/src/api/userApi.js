@@ -310,67 +310,27 @@ const API = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
-// Automatically attach token to all requests
+// Auto attach token
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
 
-// -------------------- USERS & FRIENDS --------------------
+// Friends / connections
+export const getFriends = async () => (await API.get("/users/friends")).data;
+export const getAllUsers = async () => (await API.get("/users")).data;
+export const addFriend = async (friendId) => (await API.post(`/users/add-friend/${friendId}`)).data;
+export const removeFriend = async (friendId) => (await API.delete(`/users/remove-friend/${friendId}`)).data;
+export const searchUsers = async (query) => (await API.get(`/users/search?query=${query}`)).data;
 
-export const getFriends = async () => {
-    const res = await API.get("/users/friends");
-    return res.data;
-};
+// Profile
+export const getProfile = async (userId) => (await API.get(`/users/profile/${userId}`)).data;
 
-export const getAllUsers = async () => {
-    const res = await API.get("/users");
-    return res.data;
-};
+// Friend requests
+export const sendFriendRequest = async (userId) => (await API.post(`/users/friend-request/${userId}`)).data;
+export const getFriendRequests = async () => (await API.get(`/users/friend-requests`)).data;
+export const acceptFriendRequest = async (requestId) => (await API.post(`/users/friend-request/${requestId}/accept`)).data;
+export const rejectFriendRequest = async (requestId) => (await API.post(`/users/friend-request/${requestId}/reject`)).data;
 
-export const addFriend = async (friendId) => {
-    const res = await API.post(`/users/add-friend/${friendId}`);
-    return res.data;
-};
-
-export const removeFriend = async (friendId) => {
-    const res = await API.delete(`/users/remove-friend/${friendId}`);
-    return res.data;
-};
-
-export const searchUsers = async (query) => {
-    const res = await API.get(`/users/search?query=${query}`);
-    return res.data;
-};
-
-// -------------------- PROFILE --------------------
-
-export const getProfile = async (userId) => {
-    const res = await API.get(`/users/profile/${userId}`);
-    return res.data;
-};
-
-// -------------------- FRIEND REQUESTS --------------------
-
-export const sendFriendRequest = async (userId) => {
-    const res = await API.post(`/users/friend-request/${userId}`);
-    return res.data;
-};
-
-export const getFriendRequests = async () => {
-    const res = await API.get("/users/friend-requests");
-    return res.data;
-};
-
-export const acceptFriendRequest = async (requestId) => {
-    const res = await API.post(`/users/friend-request/${requestId}/accept`);
-    return res.data;
-};
-
-export const rejectFriendRequest = async (requestId) => {
-    const res = await API.post(`/users/friend-request/${requestId}/reject`);
-    return res.data;
-};
+export default API;

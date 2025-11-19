@@ -209,9 +209,6 @@
 //   );
 // }
 
-
-// src/pages/messages/MessagesPage.jsx
-// src/pages/messages/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -227,7 +224,6 @@ import "./MessagesPage.css";
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
-
   const { markMessagesRead } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
@@ -240,28 +236,22 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Wait until auth context has fully initialized
+  // Wait for auth to initialize
   useEffect(() => {
     if (!initialized) return;
-    if (!user || !authToken) {
-      // If user is logged out after init, keep showing empty state but not crash
-      setLoading(false);
-    }
+    if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // Initialize socket once when token & user are present
+  // Initialize socket
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
-    return () => {
-      s?.disconnect();
-    };
+    return () => s?.disconnect();
   }, [authToken, user?._id]);
 
-  // Load conversations + friends when token available
+  // Load conversations + friends
   useEffect(() => {
     if (!authToken) return;
-
     let cancelled = false;
     const loadData = async () => {
       setLoading(true);
@@ -277,48 +267,46 @@ export default function MessagesPage() {
       } catch (err) {
         console.error("Error loading friends/convos:", err);
         setLoadingError(err?.message || "Failed to load conversations");
-        // keep arrays empty to avoid blank-unexpected nulls
         setConversations([]);
         setFriends([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     loadData();
     return () => {
       cancelled = true;
     };
   }, [authToken]);
 
-  // Merge friends + conversations for sidebar
+  // Merge sidebar users
   const getSidebarUsers = () => {
     const convUserIds = conversations
       .map((c) => c?.otherUser?._id)
       .filter(Boolean);
     const merged = [...conversations];
 
-    // Add friends (who don't have a conversation yet)
     for (const f of friends || []) {
-      if (!f || !f._id) continue;
-      if (!convUserIds.includes(f._id)) merged.push({ otherUser: f, lastMessage: null });
+      if (!f?._id) continue;
+      if (!convUserIds.includes(f._id))
+        merged.push({ otherUser: f, lastMessage: null });
     }
 
-    // Sort: newest messages first, friends without messages last
-    merged.sort((a, b) => {
-      if (a.lastMessage && b.lastMessage) {
-        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
-      } else if (a.lastMessage) return -1;
-      else if (b.lastMessage) return 1;
-      else return 0;
+    // Sort by last message timestamp (or friend with no messages last)
+    return merged.sort((a, b) => {
+      if (a.lastMessage && b.lastMessage)
+        return (
+          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
+        );
+      if (a.lastMessage) return -1;
+      if (b.lastMessage) return 1;
+      return 0;
     });
-
-    return merged;
   };
 
-  // Select a user and load message history
+  // Select user
   const handleSelectUser = async (otherUser) => {
-    if (!otherUser || !otherUser._id) return;
+    if (!otherUser?._id) return;
     setSelectedUser(otherUser);
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
@@ -340,22 +328,24 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      // Update sidebar conversations
-      const otherUser = msg.sender?._id === user._id ? msg.recipient : msg.sender;
+      const otherUser =
+        msg.sender?._id === user._id ? msg.recipient : msg.sender;
+
       setConversations((prev) => {
-        const exists = prev.some((c) => c?.otherUser?._id === otherUser?._id);
+        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (!exists) return [...prev, { otherUser, lastMessage: msg }];
-        return prev.map((c) => (c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c));
+        return prev.map((c) =>
+          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
-      // Emit over socket (if connected)
       socketAPI.getSocket()?.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Live updates (messages + friend-added)
+  // Live updates
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -367,7 +357,9 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === other._id);
         if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
-        return prev.map((c) => (c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c));
+        return prev.map((c) =>
+          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
       if (selectedUser?._id === other._id) {
@@ -378,10 +370,9 @@ export default function MessagesPage() {
 
     const onFriendAdded = (newFriend) => {
       if (!newFriend?._id) return;
-      setFriends((prev) => {
-        if (prev.some((f) => f._id === newFriend._id)) return prev;
-        return [...prev, newFriend];
-      });
+      setFriends((prev) =>
+        prev.some((f) => f._id === newFriend._id) ? prev : [...prev, newFriend]
+      );
     };
 
     s.on("newMessage", onMessage);
@@ -398,7 +389,6 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Render
   const sidebarUsers = getSidebarUsers();
 
   return (
@@ -407,33 +397,40 @@ export default function MessagesPage() {
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
-
         {loading ? (
-          <p className="loading">Loading...</p>
+          <p>Loading...</p>
         ) : loadingError ? (
-          <div className="loading-error">
-            <p>Error loading friends/convos: {loadingError}</p>
-          </div>
+          <p className="loading-error">{loadingError}</p>
         ) : sidebarUsers.length ? (
           sidebarUsers.map((c) => {
-            const other = c?.otherUser;
+            const other = c.otherUser;
             if (!other?._id) return null;
             return (
               <div
                 key={other._id}
-                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
+                className={`sidebar-user ${
+                  selectedUser?._id === other._id ? "active" : ""
+                }`}
                 onClick={() => handleSelectUser(other)}
               >
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`} alt="avatar" className="sidebar-avatar" />
+                <img
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`}
+                  alt="avatar"
+                  className="sidebar-avatar"
+                />
                 <div className="sidebar-user-info">
-                  <p className="sidebar-username">{other.firstName} {other.lastName}</p>
-                  {c.lastMessage && <p className="sidebar-last">{c.lastMessage.text}</p>}
+                  <p className="sidebar-username">
+                    {other.firstName} {other.lastName}
+                  </p>
+                  <p className="sidebar-last">
+                    {c.lastMessage?.text || "No messages yet"}
+                  </p>
                 </div>
               </div>
             );
           })
         ) : (
-          <p className="no-users">No conversations yet.</p>
+          <p>No conversations yet.</p>
         )}
       </div>
 
@@ -442,21 +439,37 @@ export default function MessagesPage() {
           <>
             <div className="chat-header">
               <div className="chat-user-info">
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`} alt="avatar" className="chat-header-avatar" />
-                <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
+                <img
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
+                  alt="avatar"
+                  className="chat-header-avatar"
+                />
+                <h3>
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
               </div>
             </div>
 
             <div className="chat-body">
               {messages.length ? (
                 messages.map((msg) => (
-                  <div key={msg._id} className={`chat-bubble ${msg.sender?._id === user._id ? "sent" : "received"}`}>
+                  <div
+                    key={msg._id}
+                    className={`chat-bubble ${
+                      msg.sender?._id === user._id ? "sent" : "received"
+                    }`}
+                  >
                     <p>{msg.text}</p>
-                    <span className="chat-time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span className="chat-time">
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 ))
               ) : (
-                <p className="no-messages">No messages yet.</p>
+                <p>No messages yet.</p>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -470,7 +483,11 @@ export default function MessagesPage() {
                   rows="1"
                   className="chat-textarea"
                 />
-                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
+                <button
+                  type="submit"
+                  className="chat-send-btn"
+                  disabled={!newMessage.trim()}
+                >
                   <i className="fas fa-paper-plane" />
                 </button>
               </div>

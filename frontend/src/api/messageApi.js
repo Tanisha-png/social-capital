@@ -98,59 +98,21 @@
 // src/api/messageApi.js
 import axios from "axios";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
-const API_BASE = (BACKEND_URL.replace(/\/$/, "") || "") + "/api/messages";
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "") + "/api/messages";
 
-const API = axios.create({
-    baseURL: API_BASE,
-    withCredentials: true,
-});
+const API = axios.create({ baseURL: API_BASE, withCredentials: true });
 
-// Attach token automatically from localStorage
 API.interceptors.request.use((config) => {
-    try {
-        const token = localStorage.getItem("token");
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-    } catch (e) { }
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
 
-// Get conversations list (merged friends + last messages on backend)
-export const getConversations = async () => {
-    const res = await API.get("/");
-    return res.data;
-};
-
-// Get chat history with a specific user
-export const getMessagesWithUser = async (userId) => {
-    if (!userId) return [];
-    const res = await API.get(`/${userId}`);
-    return res.data || [];
-};
-
-// Send a message (recipientId must be a Mongo ObjectId string)
-export const sendMessage = async (recipientId, text) => {
-    if (!recipientId || !text) {
-        throw new Error("recipientId and text are required");
-    }
-    const res = await API.post("/", { recipientId, text });
-    return res.data;
-};
-
-// Mark messages read (optional senderId)
-export const markMessagesRead = async (senderId = null) => {
-    const res = await API.post("/mark-read", { senderId });
-    return res.data;
-};
-
-export const getUnreadCount = async () => {
-    const res = await API.get("/unread-count");
-    return res.data;
-};
-
-export const getUnreadCountsByUser = async () => {
-    const res = await API.get("/unread-counts");
-    return res.data;
-};
+export const getConversations = async () => (await API.get("/")).data;
+export const getMessagesWithUser = async (userId) => (await API.get(`/${userId}`)).data || [];
+export const sendMessage = async (recipientId, text) => (await API.post("/", { recipientId, text })).data;
+export const markMessagesRead = async (senderId = null) => (await API.post("/mark-read", { senderId })).data;
+export const getUnreadCount = async () => (await API.get("/unread-count")).data;
+export const getUnreadCountsByUser = async () => (await API.get("/unread-counts")).data;
 
 export default API;
