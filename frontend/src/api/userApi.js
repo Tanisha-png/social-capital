@@ -297,5 +297,8 @@ export const declineFriendRequest = async (userId) => {
     return res.data;
 };
 
+export const rejectFriendRequest = async (userId) => {
+    return declineFriendRequest(userId);
+};
 
 export default API;
