@@ -370,3 +370,7 @@ export const acceptFriendRequest = async (requestId) => {
     return res.data;
 };
 
+export const rejectFriendRequest = async (requestId) => {
+    const res = await API.post(`/users/friend-request/${requestId}/reject`);
+    return res.data;
+};
