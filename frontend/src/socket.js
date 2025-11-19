@@ -29,36 +29,27 @@
 // export default socket;
 
 // socket.js
+// socket.js
 import { io } from "socket.io-client";
-
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 let socket = null;
 
-export function getSocket() {
-    return socket;
-}
-
 export function initSocket(token, userId) {
     if (!token || !userId) return null;
 
-    // Singleton: do NOT create twice
     if (!socket) {
         socket = io(BACKEND_URL, {
             transports: ["websocket"],
             auth: { token },
         });
-
-        socket.on("connect", () => {
-            console.log("🔌 Socket connected:", socket.id);
-            socket.emit("join", userId);
-        });
-
-        socket.on("disconnect", () => {
-            console.log("❌ Socket disconnected");
-        });
     }
 
+    socket.emit("join", userId);
+    return socket;
+}
+
+export function getSocket() {
     return socket;
 }
 

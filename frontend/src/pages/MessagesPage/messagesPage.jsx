@@ -227,10 +227,10 @@ import socketAPI from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
-  const { user, getToken } = useAuth();
-  const token = getToken();
+  const { user, token, getToken } = useAuth();
+  const authToken = token || getToken();
 
-  const { markMessagesRead, unreadByUser } = useMessageNotifications();
+  const { markMessagesRead } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -241,47 +241,52 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  if (!user || !token) return <p>Loading...</p>;
+  // Wait for auth to load
+  if (!user || !authToken) return <p>Loading...</p>;
 
-  // 1️⃣ Initialize socket **once**
+  /*
+  ============================================================
+  1) Initialize socket once
+  ============================================================
+  */
   useEffect(() => {
-    const s = socketAPI.initSocket(token, user._id);
-    return () => {
-      s?.disconnect();
-    };
-  }, [token, user._id]);
+    const s = socketAPI.initSocket(authToken, user._id);
+    return () => s?.disconnect();
+  }, [authToken, user._id]);
 
-  // 2️⃣ Scroll messages to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // 3️⃣ Load friends + conversations
+  /*
+  ============================================================
+  2) Load friends + conversations
+  ============================================================
+  */
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
       try {
         const [convos, friendList] = await Promise.all([
-          getConversations(),
-          getFriends(),
+          getConversations(authToken),
+          getFriends(authToken),
         ]);
 
         setConversations(convos || []);
         setFriends(friendList || []);
       } catch (err) {
-        console.error("Error loading:", err);
+        console.error("Error loading friends/convos:", err);
       }
       setLoading(false);
     }
 
     loadData();
-  }, []);
+  }, [authToken]);
 
-  // 4️⃣ Merge sidebar users
+  /*
+  ============================================================
+  3) Sidebar merge (friends + conversations)
+  ============================================================
+  */
   const sidebarUsers = (() => {
     if (!friends || !conversations) return [];
 
-    const convIds = conversations.map((c) => c.otherUser?._id).filter(Boolean);
+    const convIds = conversations.map((c) => c?.otherUser?._id).filter(Boolean);
 
     const merged = [...conversations];
 
@@ -292,24 +297,29 @@ export default function MessagesPage() {
     });
 
     return merged.sort((a, b) => {
-      if (a.lastMessage && b.lastMessage)
+      if (a.lastMessage && b.lastMessage) {
         return (
           new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
         );
+      }
       if (a.lastMessage) return -1;
       if (b.lastMessage) return 1;
       return 0;
     });
   })();
 
-  // 5️⃣ Selecting a user loads messages
+  /*
+  ============================================================
+  4) Selecting a user loads messages
+  ============================================================
+  */
   async function handleSelectUser(otherUser) {
     if (!otherUser?._id) return;
 
     setSelectedUser(otherUser);
 
     try {
-      const msgs = await getMessagesWithUser(otherUser._id);
+      const msgs = await getMessagesWithUser(authToken, otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -317,19 +327,27 @@ export default function MessagesPage() {
     }
   }
 
-  // 6️⃣ Send a message
+  /*
+  ============================================================
+  5) Send message
+  ============================================================
+  */
   async function handleSendMessage(e) {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
-      const msg = await sendMessage(selectedUser._id, newMessage.trim());
+      const msg = await sendMessage(
+        authToken,
+        selectedUser._id,
+        newMessage.trim()
+      );
 
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
       const otherUser =
-        msg.sender?._id === user._id ? msg.recipient : msg.sender;
+        msg.sender._id === user._id ? msg.recipient : msg.sender;
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
@@ -346,14 +364,17 @@ export default function MessagesPage() {
     }
   }
 
-  // 7️⃣ Live message + friend updates
+  /*
+  ============================================================
+  6) Live message + friend updates
+  ============================================================
+  */
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
 
     const handleIncoming = (msg) => {
-      const other = msg.sender?._id === user._id ? msg.recipient : msg.sender;
-
+      const other = msg.sender._id === user._id ? msg.recipient : msg.sender;
       if (!other?._id) return;
 
       setConversations((prev) => {
@@ -389,6 +410,20 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user._id]);
 
+  /*
+  ============================================================
+  7) Scroll to bottom
+  ============================================================
+  */
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  /*
+  ============================================================
+  8) Render
+  ============================================================
+  */
   return (
     <div className="linkedin-messages">
       {/* SIDEBAR */}
@@ -401,7 +436,7 @@ export default function MessagesPage() {
           <p>Loading...</p>
         ) : sidebarUsers.length ? (
           sidebarUsers.map((c) => {
-            const o = c.otherUser;
+            const o = c?.otherUser;
             if (!o?._id) return null;
 
             return (
