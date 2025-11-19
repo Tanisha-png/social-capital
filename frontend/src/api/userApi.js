@@ -95,126 +95,33 @@
 
 import axios from "axios";
 
-// Use relative /api path if env variable not set
-const BASE_URL = import.meta.env.VITE_BACKEND_URL
-    ? import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "") + "/api"
-    : "/api";
-const USERS_URL = `${BASE_URL}/users`;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// ==============================
-// 🔹 FRIEND & CONNECTION ACTIONS
-// ==============================
-// export async function getFriends(token) {
-//     const res = await axios.get(`${BASE_URL}/connections`, {
-//         headers: { Authorization: `Bearer ${token}` },
-//     });
-//     return res.data;
-// }
+// Create axios instance for user-related endpoints
+const API = axios.create({
+    baseURL: `${BACKEND_URL}/api/users`,
+    withCredentials: true,
+});
 
-export const getFriends = async (token) => {
-    if (!token) throw new Error("Auth token required for getFriends");
-    try {
-        const res = await axios.get(`${BASE_URL}/connections`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        return res.data;
-    } catch (err) {
-        console.error("Failed to fetch friends:", err.response?.data || err.message);
-        throw err;
-    }
+// Attach token automatically
+API.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
+
+// Get list of friends
+export const getFriends = async () => {
+    const res = await API.get("/friends");
+    return res.data;
 };
 
-export async function getFriendRequests(token) {
-    const res = await axios.get(`${BASE_URL}/connections/requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
+// Get a single user by ID
+export const getUserById = async (userId) => {
+    const res = await API.get(`/${userId}`);
     return res.data;
-}
-
-export async function sendFriendRequest(friendId, token) {
-    if (!friendId) throw new Error("Friend ID is required");
-    if (!token) throw new Error("Auth token is required");
-
-    // Force /api prefix
-    const url = `${BASE_URL.replace(/\/$/, "")}/connections/request`;
-    console.log("Sending friend request to:", url); // should now log /api/connections/request
-
-    try {
-        const res = await axios.post(
-            url,
-            { userId: friendId },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return res.data;
-    } catch (err) {
-        console.error(
-            "Failed to send friend request:",
-            err.response?.data || err.message
-        );
-        throw err;
-    }
-}
-
-
-export async function acceptFriendRequest(requestId, token) {
-    const res = await axios.post(
-        `${BASE_URL}/connections/accept`,
-        { requestId },
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return res.data;
-}
-
-export async function rejectFriendRequest(requestId, token) {
-    const res = await axios.post(
-        `${BASE_URL}/connections/reject`,
-        { requestId },
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return res.data;
-}
-
-export async function removeFriend(friendId, token) {
-    const res = await axios.delete(`${BASE_URL}/connections/remove`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { userId: friendId },
-    });
-    return res.data;
-}
-
-// ==============================
-// 🔹 USER PROFILE ACTIONS
-// ==============================
-export async function getUserProfile(userId, token) {
-    const res = await axios.get(`${USERS_URL}/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.data;
-}
-
-export async function getMyProfile(token) {
-    const res = await axios.get(`${USERS_URL}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.data;
-}
-
-export async function updateUserProfile(formData, token) {
-    const res = await axios.put(`${USERS_URL}/me`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.data;
-}
-
-// ✅ Get all users
-export const getAllUsers = async (token) => {
-    try {
-        const res = await axios.get(`${USERS_URL}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        return res.data;
-    } catch (err) {
-        console.error("Failed to fetch users:", err.response?.data || err);
-        throw err;
-    }
 };
+
+// Other user-related APIs can go here...
+
+export default API;

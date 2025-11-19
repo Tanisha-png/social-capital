@@ -244,27 +244,20 @@ export default function MessagesPage() {
   // Wait for auth to load
   if (!user || !authToken) return <p>Loading...</p>;
 
-  /*
-  ============================================================
-  1) Initialize socket once
-  ============================================================
-  */
+  // 1️⃣ Initialize socket once
   useEffect(() => {
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect();
   }, [authToken, user._id]);
 
-  /*
-  ============================================================
-  2) Load friends + conversations
-  ============================================================
-  */
+  // 2️⃣ Load friends + conversations
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
       try {
         const [convos, friendList] = await Promise.all([
-          getConversations(),
-          getFriends(),
+          getConversations(), // token auto-attached
+          getFriends(), // token auto-attached now
         ]);
 
         setConversations(convos || []);
@@ -278,16 +271,11 @@ export default function MessagesPage() {
     loadData();
   }, []);
 
-  /*
-  ============================================================
-  3) Sidebar merge (friends + conversations)
-  ============================================================
-  */
+  // 3️⃣ Merge sidebar users
   const sidebarUsers = (() => {
     if (!friends || !conversations) return [];
 
     const convIds = conversations.map((c) => c?.otherUser?._id).filter(Boolean);
-
     const merged = [...conversations];
 
     friends.forEach((f) => {
@@ -308,11 +296,7 @@ export default function MessagesPage() {
     });
   })();
 
-  /*
-  ============================================================
-  4) Selecting a user loads messages
-  ============================================================
-  */
+  // 4️⃣ Selecting a user loads messages
   async function handleSelectUser(otherUser) {
     if (!otherUser?._id) return;
 
@@ -327,18 +311,13 @@ export default function MessagesPage() {
     }
   }
 
-  /*
-  ============================================================
-  5) Send message
-  ============================================================
-  */
+  // 5️⃣ Send a message
   async function handleSendMessage(e) {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const msg = await sendMessage(selectedUser._id, newMessage.trim());
-
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
@@ -360,11 +339,7 @@ export default function MessagesPage() {
     }
   }
 
-  /*
-  ============================================================
-  6) Live message + friend updates
-  ============================================================
-  */
+  // 6️⃣ Live message + friend updates
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -406,20 +381,12 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user._id]);
 
-  /*
-  ============================================================
-  7) Scroll to bottom
-  ============================================================
-  */
+  // 7️⃣ Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /*
-  ============================================================
-  8) Render
-  ============================================================
-  */
+  // 8️⃣ Render
   return (
     <div className="linkedin-messages">
       {/* SIDEBAR */}
