@@ -27,6 +27,7 @@ export const MessageProvider = ({ children }) => {
   // Load initial unread counts
   useEffect(() => {
     if (!user?._id) return;
+
     const fetchUnreadByUser = async () => {
       try {
         const res = await getUnreadCountsByUser();
@@ -35,22 +36,24 @@ export const MessageProvider = ({ children }) => {
           (item) => (map[item._id] = Number(item.count))
         );
         setUnreadByUser(map);
-        const total = Object.values(map).reduce((sum, val) => sum + val, 0);
-        setUnreadCount(total);
+        setUnreadCount(Object.values(map).reduce((a, b) => a + b, 0));
+        console.log("[MessageContext] Initial unread counts:", map);
       } catch (err) {
-        console.error("Failed to fetch unread counts:", err);
+        console.error("[MessageContext] Failed to fetch unread counts:", err);
       }
     };
+
     fetchUnreadByUser();
   }, [user?._id]);
 
-  // Socket listener for new messages
+  // Socket listener for incoming messages
   useEffect(() => {
     if (!user?._id || !socket || socketInitialized.current) return;
-
     socketInitialized.current = true;
 
     const onNewMessage = (message) => {
+      console.log("[Socket] New message received:", message);
+
       setMessages((prev) => {
         if (prev.some((m) => m._id === message._id)) return prev;
 
@@ -58,8 +61,10 @@ export const MessageProvider = ({ children }) => {
         const senderId = message.sender?._id;
 
         if (receiverId?.toString() === user._id.toString()) {
+          // Update per-user unread
           setUnreadByUser((prev) => {
             const updated = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
+            // Update global unread count
             setUnreadCount(Object.values(updated).reduce((a, b) => a + b, 0));
             return updated;
           });
@@ -70,9 +75,11 @@ export const MessageProvider = ({ children }) => {
     };
 
     socket.on("newMessage", onNewMessage);
+
     return () => socket.off("newMessage", onNewMessage);
   }, [user?._id, socket]);
 
+  // Send message
   const sendMessage = async (recipientId, text) => {
     if (!socket) return null;
     const sent = await apiSendMessage(recipientId, text);
@@ -81,9 +88,11 @@ export const MessageProvider = ({ children }) => {
     return sent;
   };
 
+  // Mark messages read for a sender
   const markMessagesRead = async (senderId) => {
     try {
       await apiMarkMessagesRead(senderId);
+
       // Reset per-user unread
       const updated = { ...unreadByUser, [senderId]: 0 };
       setUnreadByUser(updated);
@@ -94,8 +103,9 @@ export const MessageProvider = ({ children }) => {
       (res.data || []).forEach((item) => (map[item._id] = Number(item.count)));
       setUnreadByUser(map);
       setUnreadCount(Object.values(map).reduce((a, b) => a + b, 0));
+      console.log("[MessageContext] Updated unread counts after reading:", map);
     } catch (err) {
-      console.error(err);
+      console.error("[MessageContext] Failed to mark messages read:", err);
     }
   };
 
