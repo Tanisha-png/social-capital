@@ -1,29 +1,65 @@
 
 
+// import { io } from "socket.io-client";
+// const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+// let socket;
+
+// export function initSocket(token, userId, onNotification) {
+//     if (!userId || !token) return null;
+
+//     if (!socket) {
+//         socket = io(`${BACKEND_URL}`, {
+//             transports: ["websocket"],
+//             auth: { token },
+//         });
+//     }
+
+//     // Join the user room
+//     socket.emit("join", userId);
+
+//     // Listen for notifications
+//     socket.on("notification", (notif) => {
+//         console.log("New notification:", notif);
+//         if (typeof onNotification === "function") onNotification(notif);
+//     });
+
+//     return socket;
+// }
+
+// export default socket;
+
+// socket.js
 import { io } from "socket.io-client";
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-let socket;
 
-export function initSocket(token, userId, onNotification) {
-    if (!userId || !token) return null;
+let socket = null;
 
+export function getSocket() {
+    return socket;
+}
+
+export function initSocket(token, userId) {
+    if (!token || !userId) return null;
+
+    // Singleton: do NOT create twice
     if (!socket) {
-        socket = io(`${BACKEND_URL}`, {
+        socket = io(BACKEND_URL, {
             transports: ["websocket"],
             auth: { token },
         });
+
+        socket.on("connect", () => {
+            console.log("🔌 Socket connected:", socket.id);
+            socket.emit("join", userId);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("❌ Socket disconnected");
+        });
     }
-
-    // Join the user room
-    socket.emit("join", userId);
-
-    // Listen for notifications
-    socket.on("notification", (notif) => {
-        console.log("New notification:", notif);
-        if (typeof onNotification === "function") onNotification(notif);
-    });
 
     return socket;
 }
 
-export default socket;
+export default { initSocket, getSocket };

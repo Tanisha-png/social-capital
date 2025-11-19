@@ -213,18 +213,23 @@
 // src/pages/messages/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+
 import {
   getMessagesWithUser,
   sendMessage,
   getConversations,
 } from "../../api/messageApi";
+
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
-import socket, { initSocket } from "../../socket";
+
+import socketAPI from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
-  const { user, token } = useAuth();
+  const { user, getToken } = useAuth();
+  const token = getToken();
+
   const { markMessagesRead, unreadByUser } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
@@ -236,92 +241,90 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Ensure user exists before rendering anything
   if (!user || !token) return <p>Loading...</p>;
 
-  // Scroll to bottom on new messages
+  // 1️⃣ Initialize socket **once**
+  useEffect(() => {
+    const s = socketAPI.initSocket(token, user._id);
+    return () => {
+      s?.disconnect();
+    };
+  }, [token, user._id]);
+
+  // 2️⃣ Scroll messages to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket safely
+  // 3️⃣ Load friends + conversations
   useEffect(() => {
-    const s = initSocket(token, user._id);
-    return () => {
-      if (s) s.disconnect();
-    };
-  }, [token, user._id]);
-
-  // Load friends + conversations
-  useEffect(() => {
-    const loadData = async () => {
+    async function loadData() {
       setLoading(true);
       try {
-        const [convos, friendsList] = await Promise.all([
-          getConversations(token),
-          getFriends(token),
+        const [convos, friendList] = await Promise.all([
+          getConversations(),
+          getFriends(),
         ]);
 
         setConversations(convos || []);
-        setFriends(friendsList || []);
+        setFriends(friendList || []);
       } catch (err) {
-        console.error("Error loading messages/friends:", err);
-      } finally {
-        setLoading(false);
+        console.error("Error loading:", err);
       }
-    };
+      setLoading(false);
+    }
 
     loadData();
-  }, [token]);
+  }, []);
 
-  // Merge friends + conversations for sidebar
-  const getSidebarUsers = () => {
+  // 4️⃣ Merge sidebar users
+  const sidebarUsers = (() => {
     if (!friends || !conversations) return [];
 
-    const convUserIds = conversations
-      .map((c) => c.otherUser?._id)
-      .filter(Boolean);
+    const convIds = conversations.map((c) => c.otherUser?._id).filter(Boolean);
+
     const merged = [...conversations];
 
     friends.forEach((f) => {
-      if (!convUserIds.includes(f._id)) {
+      if (!convIds.includes(f._id)) {
         merged.push({ otherUser: f, lastMessage: null });
       }
     });
 
-    merged.sort((a, b) => {
+    return merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage)
         return (
           new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
         );
-      else if (a.lastMessage) return -1;
-      else if (b.lastMessage) return 1;
-      else return 0;
+      if (a.lastMessage) return -1;
+      if (b.lastMessage) return 1;
+      return 0;
     });
+  })();
 
-    return merged;
-  };
-
-  // Select conversation
-  const handleSelectUser = async (otherUser) => {
+  // 5️⃣ Selecting a user loads messages
+  async function handleSelectUser(otherUser) {
     if (!otherUser?._id) return;
+
     setSelectedUser(otherUser);
+
     try {
-      const msgs = await getMessagesWithUser(token, otherUser._id);
+      const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
       console.error("Failed to load messages:", err);
     }
-  };
+  }
 
-  // Send message
-  const handleSendMessage = async (e) => {
+  // 6️⃣ Send a message
+  async function handleSendMessage(e) {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
-      const msg = await sendMessage(token, selectedUser._id, newMessage.trim());
+      const msg = await sendMessage(selectedUser._id, newMessage.trim());
+
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
@@ -329,111 +332,104 @@ export default function MessagesPage() {
         msg.sender?._id === user._id ? msg.recipient : msg.sender;
 
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser?._id === otherUser?._id);
-        if (exists) {
-          return prev.map((c) =>
-            c.otherUser?._id === otherUser?._id ? { ...c, lastMessage: msg } : c
-          );
-        } else {
-          return [...prev, { otherUser, lastMessage: msg }];
-        }
+        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
+        if (!exists) return [...prev, { otherUser, lastMessage: msg }];
+
+        return prev.map((c) =>
+          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
-      socket?.emit("sendMessage", msg);
+      socketAPI.getSocket()?.emit("sendMessage", msg);
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("Error sending:", err);
     }
-  };
+  }
 
-  // Handle live messages and new friends
+  // 7️⃣ Live message + friend updates
   useEffect(() => {
-    const handleIncomingMessage = (msg) => {
-      const otherUser =
-        msg.sender?._id === user._id ? msg.recipient : msg.sender;
-      if (!otherUser?._id) return;
+    const s = socketAPI.getSocket();
+    if (!s) return;
+
+    const handleIncoming = (msg) => {
+      const other = msg.sender?._id === user._id ? msg.recipient : msg.sender;
+
+      if (!other?._id) return;
 
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser?._id === otherUser._id);
-        if (exists) {
-          return prev.map((c) =>
-            c.otherUser?._id === otherUser._id ? { ...c, lastMessage: msg } : c
-          );
-        } else {
-          return [...prev, { otherUser, lastMessage: msg }];
-        }
+        const exists = prev.some((c) => c.otherUser._id === other._id);
+        if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
+
+        return prev.map((c) =>
+          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
-      if (selectedUser?._id === otherUser._id) {
+      if (selectedUser?._id === other._id) {
         setMessages((prev) => [...prev, msg]);
-        markMessagesRead(otherUser._id);
+        markMessagesRead(other._id);
       }
     };
 
     const handleFriendAdded = (newFriend) => {
       if (!newFriend?._id) return;
+
       setFriends((prev) => {
         if (prev.some((f) => f._id === newFriend._id)) return prev;
         return [...prev, newFriend];
       });
     };
 
-    socket?.on("newMessage", handleIncomingMessage);
-    socket?.on("friend-added", handleFriendAdded);
+    s.on("newMessage", handleIncoming);
+    s.on("friend-added", handleFriendAdded);
 
     return () => {
-      socket?.off("newMessage", handleIncomingMessage);
-      socket?.off("friend-added", handleFriendAdded);
+      s.off("newMessage", handleIncoming);
+      s.off("friend-added", handleFriendAdded);
     };
-  }, [selectedUser, user._id, markMessagesRead]);
+  }, [selectedUser, user._id]);
 
   return (
     <div className="linkedin-messages">
-      {/* LEFT SIDEBAR */}
+      {/* SIDEBAR */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
 
         {loading ? (
-          <p className="loading">Loading...</p>
-        ) : getSidebarUsers().length ? (
-          getSidebarUsers().map((c) => {
-            const other = c.otherUser;
-            if (!other?._id) return null;
+          <p>Loading...</p>
+        ) : sidebarUsers.length ? (
+          sidebarUsers.map((c) => {
+            const o = c.otherUser;
+            if (!o?._id) return null;
+
             return (
               <div
-                key={other._id}
+                key={o._id}
                 className={`sidebar-user ${
-                  selectedUser?._id === other._id ? "active" : ""
+                  selectedUser?._id === o._id ? "active" : ""
                 }`}
-                onClick={() => handleSelectUser(other)}
+                onClick={() => handleSelectUser(o)}
               >
                 <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`}
-                  alt="avatar"
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${o._id}`}
                   className="sidebar-avatar"
                 />
                 <div className="sidebar-user-info">
-                  <p className="sidebar-username">
-                    {other.firstName} {other.lastName}
+                  <p>
+                    {o.firstName} {o.lastName}
                   </p>
-                  {c.lastMessage && unreadByUser[other._id] > 0 && (
-                    <span className="sidebar-unread-badge">
-                      {unreadByUser[other._id] > 9
-                        ? "9+"
-                        : unreadByUser[other._id]}
-                    </span>
-                  )}
                 </div>
               </div>
             );
           })
         ) : (
-          <p className="no-users">No conversations yet.</p>
+          <p>No conversations yet.</p>
         )}
       </div>
 
-      {/* RIGHT CHAT SECTION */}
+      {/* CHAT */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
@@ -441,7 +437,6 @@ export default function MessagesPage() {
               <div className="chat-user-info">
                 <img
                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
-                  alt="avatar"
                   className="chat-header-avatar"
                 />
                 <h3>
@@ -451,50 +446,34 @@ export default function MessagesPage() {
             </div>
 
             <div className="chat-body">
-              {messages.length ? (
-                messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`chat-bubble ${
-                      msg.sender?._id === user._id ? "sent" : "received"
-                    }`}
-                  >
-                    <p>{msg.text}</p>
-                    <span className="chat-time">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="no-messages">No messages yet.</p>
-              )}
+              {messages.map((msg) => (
+                <div
+                  key={msg._id}
+                  className={`chat-bubble ${
+                    msg.sender._id === user._id ? "sent" : "received"
+                  }`}
+                >
+                  <p>{msg.text}</p>
+                </div>
+              ))}
               <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSendMessage} className="chat-footer">
               <div className="chat-input-wrapper">
                 <textarea
-                  placeholder="Write a message..."
                   value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  rows="1"
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Write a message…"
+                  rows={1}
                   className="chat-textarea"
                 />
                 <button
                   type="submit"
-                  className={`chat-send-btn ${
-                    newMessage.trim() ? "active" : ""
-                  }`}
+                  className="chat-send-btn"
                   disabled={!newMessage.trim()}
                 >
-                  <i className="fas fa-paper-plane"></i>
+                  <i className="fas fa-paper-plane" />
                 </button>
               </div>
             </form>
