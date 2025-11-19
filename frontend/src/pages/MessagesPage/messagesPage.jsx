@@ -264,9 +264,12 @@ export default function MessagesPage() {
           getConversations(),
           getFriends(),
         ]);
+
         if (cancelled) return;
-        setConversations(convos || []);
-        setFriends(friendList || []);
+
+        // Ensure arrays
+        setConversations(Array.isArray(convos) ? convos : []);
+        setFriends(Array.isArray(friendList) ? friendList : []);
       } catch (err) {
         console.error("Error loading friends/convos:", err);
         setLoadingError(err?.message || "Failed to load conversations");
@@ -283,13 +286,16 @@ export default function MessagesPage() {
     };
   }, [authToken]);
 
-  // Merge conversations + friends for sidebar
+  // Merge conversations + friends safely for sidebar
   const getSidebarUsers = () => {
+    if (!Array.isArray(conversations) || !Array.isArray(friends)) return [];
+
     const convoMap = {};
     conversations.forEach((c) => {
       if (c?.otherUser?._id) convoMap[c.otherUser._id] = c;
     });
 
+    // Friends first
     const merged = (friends || [])
       .map((f) => {
         if (!f?._id) return null;
@@ -301,17 +307,23 @@ export default function MessagesPage() {
     conversations.forEach((c) => {
       if (!c?.otherUser?._id) return;
       const isFriend = friends.some((f) => f._id === c.otherUser._id);
-      if (!isFriend && !merged.some((m) => m.otherUser._id === c.otherUser._id)) {
+      if (
+        !isFriend &&
+        !merged.some((m) => m.otherUser._id === c.otherUser._id)
+      ) {
         merged.push(c);
       }
     });
 
+    // Sort: newest messages first, friends without messages last
     merged.sort((a, b) => {
-      if (a.lastMessage && b.lastMessage)
-        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
-      if (a.lastMessage) return -1;
-      if (b.lastMessage) return 1;
-      return 0;
+      const aTime = a.lastMessage?.createdAt
+        ? new Date(a.lastMessage.createdAt)
+        : 0;
+      const bTime = b.lastMessage?.createdAt
+        ? new Date(b.lastMessage.createdAt)
+        : 0;
+      return bTime - aTime;
     });
 
     return merged;
@@ -323,7 +335,7 @@ export default function MessagesPage() {
     setSelectedUser(otherUser);
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
-      setMessages(msgs || []);
+      setMessages(Array.isArray(msgs) ? msgs : []);
       markMessagesRead(otherUser._id);
     } catch (err) {
       console.error("Failed to load messages:", err);
@@ -341,12 +353,15 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      const otherUser = msg.sender?._id === user._id ? msg.recipient : msg.sender;
+      const otherUser =
+        msg.sender?._id === user._id ? msg.recipient : msg.sender;
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (!exists) return [...prev, { otherUser, lastMessage: msg }];
-        return prev.map((c) => (c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c));
+        return prev.map((c) =>
+          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
       socketAPI.getSocket()?.emit("sendMessage", msg);
@@ -367,7 +382,9 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === other._id);
         if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
-        return prev.map((c) => (c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c));
+        return prev.map((c) =>
+          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
+        );
       });
 
       if (selectedUser?._id === other._id) {
@@ -411,21 +428,32 @@ export default function MessagesPage() {
           <p className="loading">Loading...</p>
         ) : loadingError ? (
           <p className="loading-error">{loadingError}</p>
-        ) : sidebarUsers.length ? (
+        ) : Array.isArray(sidebarUsers) && sidebarUsers.length ? (
           sidebarUsers.map((c) => {
             const other = c?.otherUser;
             if (!other?._id) return null;
             return (
               <div
                 key={other._id}
-                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
+                className={`sidebar-user ${
+                  selectedUser?._id === other._id ? "active" : ""
+                }`}
                 onClick={() => handleSelectUser(other)}
               >
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`} alt="avatar" className="sidebar-avatar" />
+                <img
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`}
+                  alt="avatar"
+                  className="sidebar-avatar"
+                />
                 <div className="sidebar-user-info">
-                  <p className="sidebar-username">{other.firstName} {other.lastName}</p>
-                  {c.lastMessage && <p className="sidebar-last">{c.lastMessage.text}</p>}
-                  {!c.lastMessage && <p className="sidebar-last muted">No messages yet</p>}
+                  <p className="sidebar-username">
+                    {other.firstName} {other.lastName}
+                  </p>
+                  {c.lastMessage ? (
+                    <p className="sidebar-last">{c.lastMessage.text}</p>
+                  ) : (
+                    <p className="sidebar-last muted">No messages yet</p>
+                  )}
                 </div>
               </div>
             );
@@ -440,17 +468,33 @@ export default function MessagesPage() {
           <>
             <div className="chat-header">
               <div className="chat-user-info">
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`} alt="avatar" className="chat-header-avatar" />
-                <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
+                <img
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
+                  alt="avatar"
+                  className="chat-header-avatar"
+                />
+                <h3>
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
               </div>
             </div>
 
             <div className="chat-body">
-              {messages.length ? (
+              {Array.isArray(messages) && messages.length ? (
                 messages.map((msg) => (
-                  <div key={msg._id} className={`chat-bubble ${msg.sender?._id === user._id ? "sent" : "received"}`}>
+                  <div
+                    key={msg._id}
+                    className={`chat-bubble ${
+                      msg.sender?._id === user._id ? "sent" : "received"
+                    }`}
+                  >
                     <p>{msg.text}</p>
-                    <span className="chat-time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span className="chat-time">
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 ))
               ) : (
@@ -468,7 +512,11 @@ export default function MessagesPage() {
                   rows="1"
                   className="chat-textarea"
                 />
-                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
+                <button
+                  type="submit"
+                  className="chat-send-btn"
+                  disabled={!newMessage.trim()}
+                >
                   <i className="fas fa-paper-plane" />
                 </button>
               </div>
@@ -482,4 +530,4 @@ export default function MessagesPage() {
       </div>
     </div>
   );
-}
+};
