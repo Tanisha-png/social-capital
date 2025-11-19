@@ -14,15 +14,21 @@ import {
 
 const router = express.Router();
 
-// ✅ Protect all routes
-router.use(checkToken, ensureLoggedIn);
+// 🔥 Apply ALL protection middleware (fix for Heroku)
+router.use(checkToken, verifyToken, ensureLoggedIn);
 
+// Unread counts
 router.get("/unread-count", getUnreadMessageCount);
-router.get("/unread-counts", verifyToken, getUnreadCountsByUser);
-router.get("/:userId", getMessagesWithUser);
-router.post("/mark-read", verifyToken, markMessagesRead);
-router.get("/", getConversations);
-router.post("/", sendMessage);
+router.get("/unread-counts", getUnreadCountsByUser);
 
+// Messages
+router.get("/:userId", getMessagesWithUser);
+router.post("/mark-read", markMessagesRead);
+
+// Conversations list
+router.get("/", getConversations);
+
+// 🔥 This is the route that was broken
+router.post("/", sendMessage);
 
 export default router;
