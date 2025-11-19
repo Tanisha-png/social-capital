@@ -5,7 +5,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 let socket;
 
 export function initSocket(token, userId, onNotification) {
-    if (!userId || !token) return;
+    if (!userId || !token) return null;
 
     if (!socket) {
         socket = io(`${BACKEND_URL}`, {
