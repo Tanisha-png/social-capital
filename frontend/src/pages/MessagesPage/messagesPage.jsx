@@ -236,22 +236,24 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Scroll to bottom when messages update
+  // Ensure user exists before rendering anything
+  if (!user || !token) return <p>Loading...</p>;
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize socket
+  // Initialize socket safely
   useEffect(() => {
-    if (token && user?._id) {
-      initSocket(token, user._id);
-    }
-  }, [token, user?._id]);
+    const s = initSocket(token, user._id);
+    return () => {
+      if (s) s.disconnect();
+    };
+  }, [token, user._id]);
 
-  // Load conversations and friends
+  // Load friends + conversations
   useEffect(() => {
-    if (!token) return;
-
     const loadData = async () => {
       setLoading(true);
       try {
@@ -276,31 +278,33 @@ export default function MessagesPage() {
   const getSidebarUsers = () => {
     if (!friends || !conversations) return [];
 
-    const convUserIds = conversations.map((c) => c.otherUser._id.toString());
+    const convUserIds = conversations
+      .map((c) => c.otherUser?._id)
+      .filter(Boolean);
     const merged = [...conversations];
 
     friends.forEach((f) => {
-      if (!convUserIds.includes(f._id.toString())) {
+      if (!convUserIds.includes(f._id)) {
         merged.push({ otherUser: f, lastMessage: null });
       }
     });
 
-    // Sort: newest message first, friends with no messages last
     merged.sort((a, b) => {
-      if (a.lastMessage && b.lastMessage) {
+      if (a.lastMessage && b.lastMessage)
         return (
           new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
         );
-      } else if (a.lastMessage) return -1;
+      else if (a.lastMessage) return -1;
       else if (b.lastMessage) return 1;
-      return 0;
+      else return 0;
     });
 
     return merged;
   };
 
-  // Select a conversation
+  // Select conversation
   const handleSelectUser = async (otherUser) => {
+    if (!otherUser?._id) return;
     setSelectedUser(otherUser);
     try {
       const msgs = await getMessagesWithUser(token, otherUser._id);
@@ -314,7 +318,7 @@ export default function MessagesPage() {
   // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedUser) return;
+    if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const msg = await sendMessage(token, selectedUser._id, newMessage.trim());
@@ -322,48 +326,43 @@ export default function MessagesPage() {
       setNewMessage("");
 
       const otherUser =
-        msg.sender._id === user._id ? msg.recipient : msg.sender;
+        msg.sender?._id === user._id ? msg.recipient : msg.sender;
 
-      // Update sidebar
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
+        const exists = prev.some((c) => c.otherUser?._id === otherUser?._id);
         if (exists) {
           return prev.map((c) =>
-            c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+            c.otherUser?._id === otherUser?._id ? { ...c, lastMessage: msg } : c
           );
         } else {
           return [...prev, { otherUser, lastMessage: msg }];
         }
       });
 
-      // Emit via socket
-      socket.emit("sendMessage", msg);
+      socket?.emit("sendMessage", msg);
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  // Listen for incoming messages and new friends
+  // Handle live messages and new friends
   useEffect(() => {
-    if (!token) return;
-
     const handleIncomingMessage = (msg) => {
       const otherUser =
-        msg.sender._id === user._id ? msg.recipient : msg.sender;
+        msg.sender?._id === user._id ? msg.recipient : msg.sender;
+      if (!otherUser?._id) return;
 
-      // Update sidebar
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
+        const exists = prev.some((c) => c.otherUser?._id === otherUser._id);
         if (exists) {
           return prev.map((c) =>
-            c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
+            c.otherUser?._id === otherUser._id ? { ...c, lastMessage: msg } : c
           );
         } else {
           return [...prev, { otherUser, lastMessage: msg }];
         }
       });
 
-      // Append to chat if selected
       if (selectedUser?._id === otherUser._id) {
         setMessages((prev) => [...prev, msg]);
         markMessagesRead(otherUser._id);
@@ -371,20 +370,21 @@ export default function MessagesPage() {
     };
 
     const handleFriendAdded = (newFriend) => {
+      if (!newFriend?._id) return;
       setFriends((prev) => {
         if (prev.some((f) => f._id === newFriend._id)) return prev;
         return [...prev, newFriend];
       });
     };
 
-    socket.on("newMessage", handleIncomingMessage);
-    socket.on("friend-added", handleFriendAdded);
+    socket?.on("newMessage", handleIncomingMessage);
+    socket?.on("friend-added", handleFriendAdded);
 
     return () => {
-      socket.off("newMessage", handleIncomingMessage);
-      socket.off("friend-added", handleFriendAdded);
+      socket?.off("newMessage", handleIncomingMessage);
+      socket?.off("friend-added", handleFriendAdded);
     };
-  }, [selectedUser, user._id, markMessagesRead, token]);
+  }, [selectedUser, user._id, markMessagesRead]);
 
   return (
     <div className="linkedin-messages">
@@ -399,6 +399,7 @@ export default function MessagesPage() {
         ) : getSidebarUsers().length ? (
           getSidebarUsers().map((c) => {
             const other = c.otherUser;
+            if (!other?._id) return null;
             return (
               <div
                 key={other._id}
@@ -455,7 +456,7 @@ export default function MessagesPage() {
                   <div
                     key={msg._id}
                     className={`chat-bubble ${
-                      msg.sender._id === user._id ? "sent" : "received"
+                      msg.sender?._id === user._id ? "sent" : "received"
                     }`}
                   >
                     <p>{msg.text}</p>
