@@ -230,7 +230,6 @@ export default function MessagesPage() {
     markMessagesRead,
     unreadByUser = {},
     setUnreadByUser,
-    setUnreadCount,
   } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
@@ -337,22 +336,12 @@ export default function MessagesPage() {
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      try {
-        markMessagesRead?.(otherUser._id);
 
-        // Reset unread count for this user in context
-        setUnreadByUser((prev) => ({ ...prev, [otherUser._id]: 0 }));
+      // Mark messages read for this user
+      markMessagesRead?.(otherUser._id);
 
-        // Recalculate total unread
-        setUnreadCount((prev) => {
-          const newTotal = Object.entries(unreadByUser).reduce(
-            (sum, [id, count]) =>
-              id === otherUser._id ? sum : sum + (count || 0),
-            0
-          );
-          return newTotal;
-        });
-      } catch (e) {}
+      // Reset unread count for this user in context
+      setUnreadByUser((prev) => ({ ...prev, [otherUser._id]: 0 }));
     } catch (err) {
       console.error("Failed to load messages:", err);
       setMessages([]);
@@ -388,7 +377,7 @@ export default function MessagesPage() {
     }
   };
 
-  // ------------------- PATCH: Live socket updates with unread count -------------------
+  // Live socket updates with unread count
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -408,27 +397,15 @@ export default function MessagesPage() {
 
       if (selectedUser?._id === other._id) {
         setMessages((prev) => [...(Array.isArray(prev) ? prev : []), msg]);
-        try {
-          markMessagesRead?.(other._id);
-          setUnreadByUser((prev) => ({ ...prev, [other._id]: 0 }));
+        markMessagesRead?.(other._id);
 
-          // Recalculate total unread
-          setUnreadCount((prev) => {
-            const newTotal = Object.entries(unreadByUser).reduce(
-              (sum, [id, count]) =>
-                id === other._id ? sum : sum + (count || 0),
-              0
-            );
-            return newTotal;
-          });
-        } catch (e) {}
+        // Reset unread count for this user
+        setUnreadByUser((prev) => ({ ...prev, [other._id]: 0 }));
       } else {
         setUnreadByUser((prev) => ({
           ...prev,
           [other._id]: (prev?.[other._id] || 0) + 1,
         }));
-
-        setUnreadCount((prev) => prev + 1);
       }
     };
 
@@ -456,15 +433,7 @@ export default function MessagesPage() {
       s.off("newMessage", onMessage);
       s.off("friend-added", onFriendAdded);
     };
-  }, [
-    selectedUser,
-    user?._id,
-    markMessagesRead,
-    setUnreadByUser,
-    setUnreadCount,
-    unreadByUser,
-  ]);
-  // -------------------------------------------------------------------------------
+  }, [selectedUser, user?._id, markMessagesRead, setUnreadByUser]);
 
   // Auto-scroll
   useEffect(() => {
