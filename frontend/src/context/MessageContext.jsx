@@ -27,9 +27,9 @@ export const MessageProvider = ({ children }) => {
   );
   const socketInitialized = useRef(false);
 
+  // Load initial per-user unread counts
   useEffect(() => {
     if (!user?._id) return;
-
     const fetchUnreadByUser = async () => {
       try {
         const res = await getUnreadCountsByUser();
@@ -38,40 +38,54 @@ export const MessageProvider = ({ children }) => {
           (item) => (map[item._id] = Number(item.count))
         );
         setUnreadByUser(map);
+
+        const total = Object.values(map).reduce((sum, val) => sum + val, 0);
+        setUnreadCount(total);
+        localStorage.setItem("unreadCount", total);
       } catch (err) {
         console.error("Failed to load per-user unread:", err);
       }
     };
-
     fetchUnreadByUser();
   }, [user?._id]);
 
+  // Socket listener for incoming messages
   useEffect(() => {
     if (!user?._id || !socket || socketInitialized.current) return;
 
     socketInitialized.current = true;
 
-    socket.on("newMessage", (message) => {
+    const onNewMessage = (message) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === message._id)) return prev;
 
         const receiverId = message.receiverId || message.recipient?._id;
+        const senderId = message.sender?._id;
+
         if (receiverId?.toString() === user._id.toString()) {
+          // Increment global unread
           setUnreadCount((prevCount) => {
             const updated = prevCount + 1;
             localStorage.setItem("unreadCount", updated);
             return updated;
           });
+
+          // Increment per-user unread
           setUnreadByUser((prev) => ({
             ...prev,
-            [message.sender._id]: (prev[message.sender._id] || 0) + 1,
+            [senderId]: (prev[senderId] || 0) + 1,
           }));
         }
+
         return [...prev, message];
       });
-    });
+    };
 
-    return () => socket.off("newMessage");
+    socket.on("newMessage", onNewMessage);
+
+    return () => {
+      socket.off("newMessage", onNewMessage);
+    };
   }, [user?._id, socket]);
 
   const sendMessage = async (recipientId, text) => {
@@ -85,14 +99,18 @@ export const MessageProvider = ({ children }) => {
   const markMessagesRead = async (senderId) => {
     try {
       await apiMarkMessagesRead(senderId);
-      const updated = Number(await apiGetUnreadCount());
-      setUnreadCount(updated);
-      localStorage.setItem("unreadCount", updated);
+
+      // Reset per-user and global unread counts
+      setUnreadByUser((prev) => ({ ...prev, [senderId]: 0 }));
 
       const res = await getUnreadCountsByUser();
       const map = {};
       (res.data || []).forEach((item) => (map[item._id] = Number(item.count)));
       setUnreadByUser(map);
+
+      const total = Object.values(map).reduce((sum, val) => sum + val, 0);
+      setUnreadCount(total);
+      localStorage.setItem("unreadCount", total);
     } catch (err) {
       console.error(err);
     }
@@ -110,6 +128,8 @@ export const MessageProvider = ({ children }) => {
         messages,
         unreadCount,
         unreadByUser,
+        setUnreadByUser, // <--- expose setter
+        setUnreadCount, // <--- expose setter
         sendMessage,
         markMessagesRead,
         clearUnread,

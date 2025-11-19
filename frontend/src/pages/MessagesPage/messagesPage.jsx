@@ -230,6 +230,7 @@ export default function MessagesPage() {
     markMessagesRead,
     unreadByUser = {},
     setUnreadByUser,
+    setUnreadCount,
   } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
@@ -338,7 +339,19 @@ export default function MessagesPage() {
       setMessages(Array.isArray(msgs) ? msgs : []);
       try {
         markMessagesRead?.(otherUser._id);
-        setUnreadByUser?.((prev) => ({ ...prev, [otherUser._id]: 0 }));
+
+        // Reset unread count for this user in context
+        setUnreadByUser((prev) => ({ ...prev, [otherUser._id]: 0 }));
+
+        // Recalculate total unread
+        setUnreadCount((prev) => {
+          const newTotal = Object.entries(unreadByUser).reduce(
+            (sum, [id, count]) =>
+              id === otherUser._id ? sum : sum + (count || 0),
+            0
+          );
+          return newTotal;
+        });
       } catch (e) {}
     } catch (err) {
       console.error("Failed to load messages:", err);
@@ -397,13 +410,25 @@ export default function MessagesPage() {
         setMessages((prev) => [...(Array.isArray(prev) ? prev : []), msg]);
         try {
           markMessagesRead?.(other._id);
-          setUnreadByUser?.((prev) => ({ ...prev, [other._id]: 0 }));
+          setUnreadByUser((prev) => ({ ...prev, [other._id]: 0 }));
+
+          // Recalculate total unread
+          setUnreadCount((prev) => {
+            const newTotal = Object.entries(unreadByUser).reduce(
+              (sum, [id, count]) =>
+                id === other._id ? sum : sum + (count || 0),
+              0
+            );
+            return newTotal;
+          });
         } catch (e) {}
       } else {
-        setUnreadByUser?.((prev) => ({
+        setUnreadByUser((prev) => ({
           ...prev,
           [other._id]: (prev?.[other._id] || 0) + 1,
         }));
+
+        setUnreadCount((prev) => prev + 1);
       }
     };
 
@@ -431,7 +456,14 @@ export default function MessagesPage() {
       s.off("newMessage", onMessage);
       s.off("friend-added", onFriendAdded);
     };
-  }, [selectedUser, user?._id, markMessagesRead, setUnreadByUser]);
+  }, [
+    selectedUser,
+    user?._id,
+    markMessagesRead,
+    setUnreadByUser,
+    setUnreadCount,
+    unreadByUser,
+  ]);
   // -------------------------------------------------------------------------------
 
   // Auto-scroll
