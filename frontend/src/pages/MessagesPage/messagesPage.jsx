@@ -211,23 +211,21 @@
 
 
 // src/pages/messages/MessagesPage.jsx
+// src/pages/messages/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
-
 import {
   getMessagesWithUser,
   sendMessage,
   getConversations,
 } from "../../api/messageApi";
-
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
-
 import socketAPI from "../../socket";
 import "./MessagesPage.css";
 
 export default function MessagesPage() {
-  const { user, token, getToken } = useAuth();
+  const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
 
   const { markMessagesRead } = useMessageNotifications();
@@ -238,148 +236,138 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
 
   const messagesEndRef = useRef(null);
 
-  // Wait for auth to load
-  if (!user || !authToken) return <p>Loading...</p>;
-
-  /*
-  ============================================================
-  1) Initialize socket once
-  ============================================================
-  */
+  // Wait until auth context has fully initialized
   useEffect(() => {
+    if (!initialized) return;
+    if (!user || !authToken) {
+      // If user is logged out after init, keep showing empty state but not crash
+      setLoading(false);
+    }
+  }, [initialized, user, authToken]);
+
+  // Initialize socket once when token & user are present
+  useEffect(() => {
+    if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
-    return () => s?.disconnect();
-  }, [authToken, user._id]);
+    return () => {
+      s?.disconnect();
+    };
+  }, [authToken, user?._id]);
 
-  /*
-  ============================================================
-  2) Load friends + conversations
-  ============================================================
-  */
+  // Load conversations + friends when token available
   useEffect(() => {
-    async function loadData() {
+    if (!authToken) return;
+
+    let cancelled = false;
+    const loadData = async () => {
+      setLoading(true);
+      setLoadingError(null);
       try {
         const [convos, friendList] = await Promise.all([
           getConversations(),
           getFriends(),
         ]);
-
+        if (cancelled) return;
         setConversations(convos || []);
         setFriends(friendList || []);
       } catch (err) {
         console.error("Error loading friends/convos:", err);
+        setLoadingError(err?.message || "Failed to load conversations");
+        // keep arrays empty to avoid blank-unexpected nulls
+        setConversations([]);
+        setFriends([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
-    }
+    };
 
     loadData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
 
-  /*
-  ============================================================
-  3) Sidebar merge (friends + conversations)
-  ============================================================
-  */
-  const sidebarUsers = (() => {
-    if (!friends || !conversations) return [];
-
-    const convIds = conversations.map((c) => c?.otherUser?._id).filter(Boolean);
-
+  // Merge friends + conversations for sidebar
+  const getSidebarUsers = () => {
+    const convUserIds = conversations
+      .map((c) => c?.otherUser?._id)
+      .filter(Boolean);
     const merged = [...conversations];
 
-    friends.forEach((f) => {
-      if (!convIds.includes(f._id)) {
-        merged.push({ otherUser: f, lastMessage: null });
-      }
-    });
+    // Add friends (who don't have a conversation yet)
+    for (const f of friends || []) {
+      if (!f || !f._id) continue;
+      if (!convUserIds.includes(f._id)) merged.push({ otherUser: f, lastMessage: null });
+    }
 
-    return merged.sort((a, b) => {
+    // Sort: newest messages first, friends without messages last
+    merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage) {
-        return (
-          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
-        );
-      }
-      if (a.lastMessage) return -1;
-      if (b.lastMessage) return 1;
-      return 0;
+        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+      } else if (a.lastMessage) return -1;
+      else if (b.lastMessage) return 1;
+      else return 0;
     });
-  })();
 
-  /*
-  ============================================================
-  4) Selecting a user loads messages
-  ============================================================
-  */
-  async function handleSelectUser(otherUser) {
-    if (!otherUser?._id) return;
+    return merged;
+  };
 
+  // Select a user and load message history
+  const handleSelectUser = async (otherUser) => {
+    if (!otherUser || !otherUser._id) return;
     setSelectedUser(otherUser);
-
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
       console.error("Failed to load messages:", err);
+      setMessages([]);
     }
-  }
+  };
 
-  /*
-  ============================================================
-  5) Send message
-  ============================================================
-  */
-  async function handleSendMessage(e) {
+  // Send message
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const msg = await sendMessage(selectedUser._id, newMessage.trim());
-
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      const otherUser =
-        msg.sender._id === user._id ? msg.recipient : msg.sender;
-
+      // Update sidebar conversations
+      const otherUser = msg.sender?._id === user._id ? msg.recipient : msg.sender;
       setConversations((prev) => {
-        const exists = prev.some((c) => c.otherUser._id === otherUser._id);
+        const exists = prev.some((c) => c?.otherUser?._id === otherUser?._id);
         if (!exists) return [...prev, { otherUser, lastMessage: msg }];
-
-        return prev.map((c) =>
-          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c));
       });
 
+      // Emit over socket (if connected)
       socketAPI.getSocket()?.emit("sendMessage", msg);
     } catch (err) {
-      console.error("Error sending:", err);
+      console.error("Error sending message:", err);
     }
-  }
+  };
 
-  /*
-  ============================================================
-  6) Live message + friend updates
-  ============================================================
-  */
+  // Live updates (messages + friend-added)
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
 
-    const handleIncoming = (msg) => {
-      const other = msg.sender._id === user._id ? msg.recipient : msg.sender;
+    const onMessage = (msg) => {
+      const other = msg.sender?._id === user._id ? msg.recipient : msg.sender;
       if (!other?._id) return;
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === other._id);
         if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
-
-        return prev.map((c) =>
-          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c));
       });
 
       if (selectedUser?._id === other._id) {
@@ -388,122 +376,101 @@ export default function MessagesPage() {
       }
     };
 
-    const handleFriendAdded = (newFriend) => {
+    const onFriendAdded = (newFriend) => {
       if (!newFriend?._id) return;
-
       setFriends((prev) => {
         if (prev.some((f) => f._id === newFriend._id)) return prev;
         return [...prev, newFriend];
       });
     };
 
-    s.on("newMessage", handleIncoming);
-    s.on("friend-added", handleFriendAdded);
+    s.on("newMessage", onMessage);
+    s.on("friend-added", onFriendAdded);
 
     return () => {
-      s.off("newMessage", handleIncoming);
-      s.off("friend-added", handleFriendAdded);
+      s.off("newMessage", onMessage);
+      s.off("friend-added", onFriendAdded);
     };
-  }, [selectedUser, user._id]);
+  }, [selectedUser, user?._id, markMessagesRead]);
 
-  /*
-  ============================================================
-  7) Scroll to bottom
-  ============================================================
-  */
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /*
-  ============================================================
-  8) Render
-  ============================================================
-  */
+  // Render
+  const sidebarUsers = getSidebarUsers();
+
   return (
     <div className="linkedin-messages">
-      {/* SIDEBAR */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
 
         {loading ? (
-          <p>Loading...</p>
+          <p className="loading">Loading...</p>
+        ) : loadingError ? (
+          <div className="loading-error">
+            <p>Error loading friends/convos: {loadingError}</p>
+          </div>
         ) : sidebarUsers.length ? (
           sidebarUsers.map((c) => {
-            const o = c?.otherUser;
-            if (!o?._id) return null;
-
+            const other = c?.otherUser;
+            if (!other?._id) return null;
             return (
               <div
-                key={o._id}
-                className={`sidebar-user ${
-                  selectedUser?._id === o._id ? "active" : ""
-                }`}
-                onClick={() => handleSelectUser(o)}
+                key={other._id}
+                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
+                onClick={() => handleSelectUser(other)}
               >
-                <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${o._id}`}
-                  className="sidebar-avatar"
-                />
+                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`} alt="avatar" className="sidebar-avatar" />
                 <div className="sidebar-user-info">
-                  <p>
-                    {o.firstName} {o.lastName}
-                  </p>
+                  <p className="sidebar-username">{other.firstName} {other.lastName}</p>
+                  {c.lastMessage && <p className="sidebar-last">{c.lastMessage.text}</p>}
                 </div>
               </div>
             );
           })
         ) : (
-          <p>No conversations yet.</p>
+          <p className="no-users">No conversations yet.</p>
         )}
       </div>
 
-      {/* CHAT */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
             <div className="chat-header">
               <div className="chat-user-info">
-                <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
-                  className="chat-header-avatar"
-                />
-                <h3>
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </h3>
+                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`} alt="avatar" className="chat-header-avatar" />
+                <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
               </div>
             </div>
 
             <div className="chat-body">
-              {messages.map((msg) => (
-                <div
-                  key={msg._id}
-                  className={`chat-bubble ${
-                    msg.sender._id === user._id ? "sent" : "received"
-                  }`}
-                >
-                  <p>{msg.text}</p>
-                </div>
-              ))}
+              {messages.length ? (
+                messages.map((msg) => (
+                  <div key={msg._id} className={`chat-bubble ${msg.sender?._id === user._id ? "sent" : "received"}`}>
+                    <p>{msg.text}</p>
+                    <span className="chat-time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="no-messages">No messages yet.</p>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSendMessage} className="chat-footer">
               <div className="chat-input-wrapper">
                 <textarea
+                  placeholder="Write a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Write a message…"
-                  rows={1}
+                  rows="1"
                   className="chat-textarea"
                 />
-                <button
-                  type="submit"
-                  className="chat-send-btn"
-                  disabled={!newMessage.trim()}
-                >
+                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
                   <i className="fas fa-paper-plane" />
                 </button>
               </div>
