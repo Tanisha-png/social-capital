@@ -210,13 +210,10 @@
 // }
 
 // src/pages/MessagesPage/MessagesPage.jsx
+// src/pages/MessagesPage/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
-import {
-  getMessagesWithUser,
-  sendMessage,
-  getConversations,
-} from "../../api/messageApi";
+import { getMessagesWithUser, sendMessage, getConversations } from "../../api/messageApi";
 import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
 import socketAPI from "../../socket";
@@ -244,7 +241,7 @@ export default function MessagesPage() {
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // Initialize socket once
+  // Initialize socket
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
@@ -260,14 +257,8 @@ export default function MessagesPage() {
       setLoading(true);
       setLoadingError(null);
       try {
-        const [convos, friendList] = await Promise.all([
-          getConversations(),
-          getFriends(),
-        ]);
-
+        const [convos, friendList] = await Promise.all([getConversations(), getFriends()]);
         if (cancelled) return;
-
-        // Ensure arrays
         setConversations(Array.isArray(convos) ? convos : []);
         setFriends(Array.isArray(friendList) ? friendList : []);
       } catch (err) {
@@ -286,50 +277,38 @@ export default function MessagesPage() {
     };
   }, [authToken]);
 
-  // Merge conversations + friends safely for sidebar
+  // Merge friends + conversations for sidebar
   const getSidebarUsers = () => {
-    if (!Array.isArray(conversations) || !Array.isArray(friends)) return [];
+    const mergedMap = {};
 
-    const convoMap = {};
-    conversations.forEach((c) => {
-      if (c?.otherUser?._id) convoMap[c.otherUser._id] = c;
+    // Add friends (all connections)
+    (friends || []).forEach((f) => {
+      if (!f?._id) return;
+      mergedMap[f._id] = { otherUser: f, lastMessage: null };
     });
 
-    // Friends first
-    const merged = (friends || [])
-      .map((f) => {
-        if (!f?._id) return null;
-        return convoMap[f._id] || { otherUser: f, lastMessage: null };
-      })
-      .filter(Boolean);
-
-    // Include conversations with non-friends
-    conversations.forEach((c) => {
-      if (!c?.otherUser?._id) return;
-      const isFriend = friends.some((f) => f._id === c.otherUser._id);
-      if (
-        !isFriend &&
-        !merged.some((m) => m.otherUser._id === c.otherUser._id)
-      ) {
-        merged.push(c);
-      }
+    // Merge in conversations (update lastMessage if exists)
+    (conversations || []).forEach((c) => {
+      const id = c?.otherUser?._id;
+      if (!id) return;
+      mergedMap[id] = { otherUser: c.otherUser, lastMessage: c.lastMessage || null };
     });
 
-    // Sort: newest messages first, friends without messages last
+    // Convert to array
+    const merged = Object.values(mergedMap);
+
+    // Sort: newest lastMessage first, then friends without messages
     merged.sort((a, b) => {
-      const aTime = a.lastMessage?.createdAt
-        ? new Date(a.lastMessage.createdAt)
-        : 0;
-      const bTime = b.lastMessage?.createdAt
-        ? new Date(b.lastMessage.createdAt)
-        : 0;
-      return bTime - aTime;
+      if (a.lastMessage && b.lastMessage) return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+      if (a.lastMessage) return -1;
+      if (b.lastMessage) return 1;
+      return 0;
     });
 
     return merged;
   };
 
-  // Select a user and load messages
+  // Select user and load messages
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
@@ -353,15 +332,12 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      const otherUser =
-        msg.sender?._id === user._id ? msg.recipient : msg.sender;
+      const otherUser = msg.sender?._id === user._id ? msg.recipient : msg.sender;
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (!exists) return [...prev, { otherUser, lastMessage: msg }];
-        return prev.map((c) =>
-          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c));
       });
 
       socketAPI.getSocket()?.emit("sendMessage", msg);
@@ -370,7 +346,7 @@ export default function MessagesPage() {
     }
   };
 
-  // Live updates via socket
+  // Live updates
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -382,9 +358,7 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === other._id);
         if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
-        return prev.map((c) =>
-          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c));
       });
 
       if (selectedUser?._id === other._id) {
@@ -395,10 +369,7 @@ export default function MessagesPage() {
 
     const onFriendAdded = (newFriend) => {
       if (!newFriend?._id) return;
-      setFriends((prev) => {
-        if (prev.some((f) => f._id === newFriend._id)) return prev;
-        return [...prev, newFriend];
-      });
+      setFriends((prev) => (prev.some((f) => f._id === newFriend._id) ? prev : [...prev, newFriend]));
     };
 
     s.on("newMessage", onMessage);
@@ -410,7 +381,7 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user?._id, markMessagesRead]);
 
-  // Auto-scroll to bottom
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -419,6 +390,7 @@ export default function MessagesPage() {
 
   return (
     <div className="linkedin-messages">
+      {/* Sidebar */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
@@ -428,16 +400,14 @@ export default function MessagesPage() {
           <p className="loading">Loading...</p>
         ) : loadingError ? (
           <p className="loading-error">{loadingError}</p>
-        ) : Array.isArray(sidebarUsers) && sidebarUsers.length ? (
+        ) : sidebarUsers.length ? (
           sidebarUsers.map((c) => {
             const other = c?.otherUser;
             if (!other?._id) return null;
             return (
               <div
                 key={other._id}
-                className={`sidebar-user ${
-                  selectedUser?._id === other._id ? "active" : ""
-                }`}
+                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
                 onClick={() => handleSelectUser(other)}
               >
                 <img
@@ -445,16 +415,7 @@ export default function MessagesPage() {
                   alt="avatar"
                   className="sidebar-avatar"
                 />
-                <div className="sidebar-user-info">
-                  <p className="sidebar-username">
-                    {other.firstName} {other.lastName}
-                  </p>
-                  {c.lastMessage ? (
-                    <p className="sidebar-last">{c.lastMessage.text}</p>
-                  ) : (
-                    <p className="sidebar-last muted">No messages yet</p>
-                  )}
-                </div>
+                <p className="sidebar-username">{other.firstName} {other.lastName}</p>
               </div>
             );
           })
@@ -463,6 +424,7 @@ export default function MessagesPage() {
         )}
       </div>
 
+      {/* Chat area */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
@@ -473,28 +435,16 @@ export default function MessagesPage() {
                   alt="avatar"
                   className="chat-header-avatar"
                 />
-                <h3>
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </h3>
+                <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
               </div>
             </div>
 
             <div className="chat-body">
-              {Array.isArray(messages) && messages.length ? (
+              {messages.length ? (
                 messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`chat-bubble ${
-                      msg.sender?._id === user._id ? "sent" : "received"
-                    }`}
-                  >
+                  <div key={msg._id} className={`chat-bubble ${msg.sender?._id === user._id ? "sent" : "received"}`}>
                     <p>{msg.text}</p>
-                    <span className="chat-time">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    <span className="chat-time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                 ))
               ) : (
@@ -512,11 +462,7 @@ export default function MessagesPage() {
                   rows="1"
                   className="chat-textarea"
                 />
-                <button
-                  type="submit"
-                  className="chat-send-btn"
-                  disabled={!newMessage.trim()}
-                >
+                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
                   <i className="fas fa-paper-plane" />
                 </button>
               </div>
@@ -530,4 +476,4 @@ export default function MessagesPage() {
       </div>
     </div>
   );
-};
+}
