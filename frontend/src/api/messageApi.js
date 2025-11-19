@@ -58,25 +58,25 @@ const API = axios.create({
     withCredentials: true,
 });
 
-// Attach token automatically
+// Automatically attach token from localStorage
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
 
-// ⭐ NEW → Get conversations list
+// Get all conversations
 export const getConversations = async () => {
     const res = await API.get("/");
     return res.data;
 };
 
 // Get unread total count
-export const getUnreadCount = async () => API.get(`/unread-count`);
+export const getUnreadCount = async () => API.get("/unread-count");
 
 // Mark messages as read
 export const markMessagesRead = async (senderId = null) =>
-    API.post(`/mark-read`, { senderId });
+    API.post("/mark-read", { senderId });
 
 // Get chat history with specific user
 export const getMessagesWithUser = async (userId) => {
@@ -84,14 +84,13 @@ export const getMessagesWithUser = async (userId) => {
     return res.data;
 };
 
-// Send message
+// Send a message
 export const sendMessage = async (recipientId, text) => {
     const res = await API.post("/", { recipientId, text });
     return res.data;
 };
 
 // Unread counts grouped by each user
-export const getUnreadCountsByUser = async () =>
-    API.get(`/unread-counts`);
+export const getUnreadCountsByUser = async () => API.get("/unread-counts");
 
 export default API;

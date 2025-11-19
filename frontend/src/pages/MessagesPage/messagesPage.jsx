@@ -263,8 +263,8 @@ export default function MessagesPage() {
     async function loadData() {
       try {
         const [convos, friendList] = await Promise.all([
-          getConversations(authToken),
-          getFriends(authToken),
+          getConversations(),
+          getFriends(),
         ]);
 
         setConversations(convos || []);
@@ -276,7 +276,7 @@ export default function MessagesPage() {
     }
 
     loadData();
-  }, [authToken]);
+  }, []);
 
   /*
   ============================================================
@@ -319,7 +319,7 @@ export default function MessagesPage() {
     setSelectedUser(otherUser);
 
     try {
-      const msgs = await getMessagesWithUser(authToken, otherUser._id);
+      const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(msgs || []);
       markMessagesRead(otherUser._id);
     } catch (err) {
@@ -337,11 +337,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
-      const msg = await sendMessage(
-        authToken,
-        selectedUser._id,
-        newMessage.trim()
-      );
+      const msg = await sendMessage(selectedUser._id, newMessage.trim());
 
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
