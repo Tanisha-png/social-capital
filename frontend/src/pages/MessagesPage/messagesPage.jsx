@@ -244,20 +244,27 @@ export default function MessagesPage() {
   // Wait for auth to load
   if (!user || !authToken) return <p>Loading...</p>;
 
-  // 1️⃣ Initialize socket once
+  /*
+  ============================================================
+  1) Initialize socket once
+  ============================================================
+  */
   useEffect(() => {
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect();
   }, [authToken, user._id]);
 
-  // 2️⃣ Load friends + conversations
+  /*
+  ============================================================
+  2) Load friends + conversations
+  ============================================================
+  */
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
       try {
         const [convos, friendList] = await Promise.all([
-          getConversations(), // token auto-attached
-          getFriends(), // token auto-attached now
+          getConversations(),
+          getFriends(),
         ]);
 
         setConversations(convos || []);
@@ -271,11 +278,16 @@ export default function MessagesPage() {
     loadData();
   }, []);
 
-  // 3️⃣ Merge sidebar users
+  /*
+  ============================================================
+  3) Sidebar merge (friends + conversations)
+  ============================================================
+  */
   const sidebarUsers = (() => {
     if (!friends || !conversations) return [];
 
     const convIds = conversations.map((c) => c?.otherUser?._id).filter(Boolean);
+
     const merged = [...conversations];
 
     friends.forEach((f) => {
@@ -296,7 +308,11 @@ export default function MessagesPage() {
     });
   })();
 
-  // 4️⃣ Selecting a user loads messages
+  /*
+  ============================================================
+  4) Selecting a user loads messages
+  ============================================================
+  */
   async function handleSelectUser(otherUser) {
     if (!otherUser?._id) return;
 
@@ -311,13 +327,18 @@ export default function MessagesPage() {
     }
   }
 
-  // 5️⃣ Send a message
+  /*
+  ============================================================
+  5) Send message
+  ============================================================
+  */
   async function handleSendMessage(e) {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const msg = await sendMessage(selectedUser._id, newMessage.trim());
+
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
@@ -339,7 +360,11 @@ export default function MessagesPage() {
     }
   }
 
-  // 6️⃣ Live message + friend updates
+  /*
+  ============================================================
+  6) Live message + friend updates
+  ============================================================
+  */
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -381,12 +406,20 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user._id]);
 
-  // 7️⃣ Scroll to bottom
+  /*
+  ============================================================
+  7) Scroll to bottom
+  ============================================================
+  */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 8️⃣ Render
+  /*
+  ============================================================
+  8) Render
+  ============================================================
+  */
   return (
     <div className="linkedin-messages">
       {/* SIDEBAR */}
