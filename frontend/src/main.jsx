@@ -10,18 +10,34 @@ import { NotificationProvider } from "./context/NotificationContext";
 import { SocketProvider } from "./context/socketContext";
 import { MessageProvider } from "./context/MessageContext";
 
+// createRoot(document.getElementById("root")).render(
+//   <StrictMode>
+//     <AuthProvider>
+//       <NotificationProvider>
+//         <SocketProvider>
+//           <MessageProvider>
+//             <BrowserRouter>
+//               <App />
+//             </BrowserRouter>
+//           </MessageProvider>
+//         </SocketProvider>
+//       </NotificationProvider>
+//     </AuthProvider>
+//   </StrictMode>
+// );
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthProvider>
-      <NotificationProvider>
-        <SocketProvider>
-          <MessageProvider>
-            <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <NotificationProvider>
+          <SocketProvider>
+            <MessageProvider>
               <App />
-            </BrowserRouter>
-          </MessageProvider>
-        </SocketProvider>
-      </NotificationProvider>
-    </AuthProvider>
+            </MessageProvider>
+          </SocketProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
 );
