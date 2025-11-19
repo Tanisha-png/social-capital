@@ -275,4 +275,27 @@ export const getUserById = async (id) => {
     return res.data;
 };
 
+// ----- Friend Request API -----
+
+export const getFriendRequests = async () => {
+    const res = await API.get("/users/me/requests");
+    return res.data || [];
+};
+
+export const sendFriendRequest = async (userId) => {
+    const res = await API.post(`/users/${userId}/request`);
+    return res.data;
+};
+
+export const acceptFriendRequest = async (userId) => {
+    const res = await API.post(`/users/${userId}/accept`);
+    return res.data;
+};
+
+export const declineFriendRequest = async (userId) => {
+    const res = await API.post(`/users/${userId}/decline`);
+    return res.data;
+};
+
+
 export default API;
