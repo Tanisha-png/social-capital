@@ -352,3 +352,21 @@ export const getProfile = async (userId) => {
     const res = await API.get(`/users/profile/${userId}`);
     return res.data;
 };
+
+// -------------------- FRIEND REQUESTS --------------------
+
+export const sendFriendRequest = async (userId) => {
+    const res = await API.post(`/users/friend-request/${userId}`);
+    return res.data;
+};
+
+export const getFriendRequests = async () => {
+    const res = await API.get("/users/friend-requests");
+    return res.data;
+};
+
+export const acceptFriendRequest = async (requestId) => {
+    const res = await API.post(`/users/friend-request/${requestId}/accept`);
+    return res.data;
+};
+
