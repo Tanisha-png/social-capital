@@ -225,38 +225,33 @@ import "./MessagesPage.css";
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
-
   const { markMessagesRead, unreadByUser } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState(null);
-
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Wait until auth initialized
   useEffect(() => {
     if (!initialized) return;
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // Init socket
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect?.();
   }, [authToken, user?._id]);
 
-  // Load conversations + connections
   useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
 
-    async function load() {
+    const load = async () => {
       setLoading(true);
       setLoadingError(null);
       try {
@@ -268,7 +263,7 @@ export default function MessagesPage() {
         setConversations(Array.isArray(convosRes) ? convosRes : []);
         setFriends(Array.isArray(friendsRes) ? friendsRes : []);
       } catch (err) {
-        console.error("Error loading conversations/connections:", err);
+        console.error(err);
         setLoadingError(
           err?.message || "Failed to load conversations/connections"
         );
@@ -277,13 +272,12 @@ export default function MessagesPage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
+    };
 
     load();
     return () => (cancelled = true);
   }, [authToken]);
 
-  // Build sidebar users
   const getSidebarUsers = () => {
     const map = new Map();
     (friends || []).forEach(
@@ -310,22 +304,19 @@ export default function MessagesPage() {
     return merged;
   };
 
-  // Select user -> load messages
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
-
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      markMessagesRead?.(otherUser._id); // ✅ Updates unread counts centrally
+      markMessagesRead(otherUser._id); // ✅ Always update central context
     } catch (err) {
-      console.error("Failed to load messages:", err);
+      console.error(err);
       setMessages([]);
     }
   };
 
-  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
@@ -334,12 +325,10 @@ export default function MessagesPage() {
       const created = await sendMessage(selectedUser._id, newMessage.trim());
       setMessages((prev) => [...prev, created]);
       setNewMessage("");
-
       const otherUser =
         created.sender?._id === user._id ? created.recipient : created.sender;
-
       setConversations((prev) => {
-        const prevArr = Array.isArray(prev) ? prev.slice() : [];
+        const prevArr = Array.isArray(prev) ? [...prev] : [];
         const idx = prevArr.findIndex(
           (c) => c?.otherUser?._id === otherUser?._id
         );
@@ -347,32 +336,29 @@ export default function MessagesPage() {
         else prevArr[idx] = { ...prevArr[idx], lastMessage: created };
         return prevArr;
       });
-
       socketAPI.getSocket()?.emit("sendMessage", created);
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error(err);
     }
   };
 
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(
+    () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+    [messages]
+  );
 
   const sidebarUsers = getSidebarUsers();
 
   return (
     <div className="linkedin-messages">
-      {/* Sidebar */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
-
         {loading ? (
           <p className="loading">Loading...</p>
         ) : loadingError ? (
-          <p className="loading-error">Error: {loadingError}</p>
+          <p className="loading-error">{loadingError}</p>
         ) : sidebarUsers.length ? (
           sidebarUsers.map(({ otherUser, lastMessage }) => {
             if (!otherUser?._id) return null;
@@ -423,7 +409,6 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* Chat */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>

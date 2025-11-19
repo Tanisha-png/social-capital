@@ -102,6 +102,7 @@ export default function NavBar() {
   const { unreadByUser } = useMessageNotifications();
   const navigate = useNavigate();
 
+  // Compute total unread dynamically
   const totalUnread = Object.values(unreadByUser || {}).reduce(
     (sum, val) => sum + val,
     0
