@@ -209,7 +209,7 @@
 //   );
 // }
 
-// src/pages/MessagesPage/MessagesPage.jsx
+// MessagesPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -221,12 +221,6 @@ import { getFriends } from "../../api/userApi";
 import { useMessageNotifications } from "../../context/MessageContext";
 import socketAPI from "../../socket";
 import "./MessagesPage.css";
-
-/*
-  Notes:
-  - messageApi and userApi already attach token from localStorage (per your files).
-  - socketAPI must export initSocket(token, userId) and getSocket() (per your socket.js).
-*/
 
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
@@ -245,24 +239,23 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Wait until auth initialised
+  // Wait until auth is initialized; if no auth, stop loading
   useEffect(() => {
     if (!initialized) return;
-    // if no auth, stop loading
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // Init socket once when we have token + user id
+  // Initialize socket once when token & user id are present
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
-    // join handled by initSocket
+    // initSocket joins the room
     return () => {
       s?.disconnect?.();
     };
   }, [authToken, user?._id]);
 
-  // Load conversations + friends
+  // Load conversations + friends (merged server-side or client-side)
   useEffect(() => {
     if (!authToken) return;
 
@@ -270,7 +263,6 @@ export default function MessagesPage() {
     async function load() {
       setLoading(true);
       setLoadingError(null);
-
       try {
         const [convosRes, friendsRes] = await Promise.all([
           getConversations(),
@@ -297,18 +289,17 @@ export default function MessagesPage() {
     };
   }, [authToken]);
 
-  // Merge friends + conversations into sidebar list
-  // Guarantee: every friend appears; if a conversation exists with someone, use that lastMessage
+  // Build the sidebar list so EVERY friend appears (and conversations override lastMessage)
   const getSidebarUsers = () => {
     const map = new Map();
 
-    // Add friends first (ensures everyone appears)
+    // Add friends first so everyone appears
     (friends || []).forEach((f) => {
       if (!f || !f._id) return;
       map.set(String(f._id), { otherUser: f, lastMessage: null });
     });
 
-    // Merge conversations - overwrite lastMessage if present
+    // Merge conversations (overwrite lastMessage if present)
     (conversations || []).forEach((c) => {
       const other = c?.otherUser;
       if (!other || !other._id) return;
@@ -320,10 +311,11 @@ export default function MessagesPage() {
 
     const merged = Array.from(map.values());
 
-    // Sort: newest conversation lastMessage first, then friends without messages
+    // Sort: newest conversation lastMessage first, friends with no messages last
     merged.sort((a, b) => {
-      if (a.lastMessage && b.lastMessage)
+      if (a.lastMessage && b.lastMessage) {
         return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+      }
       if (a.lastMessage) return -1;
       if (b.lastMessage) return 1;
       return 0;
@@ -332,7 +324,7 @@ export default function MessagesPage() {
     return merged;
   };
 
-  // Selecting a user -> load messages
+  // Selecting a user loads messages
   const handleSelectUser = async (otherUser) => {
     if (!otherUser || !otherUser._id) return;
     setSelectedUser(otherUser);
@@ -340,12 +332,9 @@ export default function MessagesPage() {
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      // Mark read locally/remote
       try {
         markMessagesRead?.(otherUser._id);
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     } catch (err) {
       console.error("Failed to load messages:", err);
       setMessages([]);
@@ -355,27 +344,31 @@ export default function MessagesPage() {
   // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedUser?. _id) return;
+    if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const created = await sendMessage(selectedUser._id, newMessage.trim());
 
       // Append to chat
-      setMessages((prev) => [...(prev || []), created]);
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), created]);
       setNewMessage("");
 
       // Update conversations (or add)
-      const otherUser = created.sender?._id === user._id ? created.recipient : created.sender;
+      const otherUser =
+        created.sender?._id === user._id ? created.recipient : created.sender;
+
       setConversations((prev) => {
-        const prevArr = Array.isArray(prev) ? prev : [];
-        const exists = prevArr.some((c) => c?.otherUser?._id === otherUser?._id);
-        if (!exists) return [...prevArr, { otherUser, lastMessage: created }];
-        return prevArr.map((c) =>
-          c.otherUser._id === otherUser._id ? { ...c, lastMessage: created } : c
-        );
+        const prevArr = Array.isArray(prev) ? prev.slice() : [];
+        const idx = prevArr.findIndex((c) => c?.otherUser?._id === otherUser?._id);
+        if (idx === -1) {
+          prevArr.push({ otherUser, lastMessage: created });
+        } else {
+          prevArr[idx] = { ...prevArr[idx], lastMessage: created };
+        }
+        return prevArr;
       });
 
-      // Emit via socket to let other user(s) know
+      // Emit via socket (if connected)
       const s = socketAPI.getSocket();
       s?.emit?.("sendMessage", created);
     } catch (err) {
@@ -383,7 +376,7 @@ export default function MessagesPage() {
     }
   };
 
-  // Live updates: messages and friend-added
+  // Live updates: incoming messages and friend-added
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -392,7 +385,7 @@ export default function MessagesPage() {
       const other = msg?.sender?._id === user._id ? msg.recipient : msg.sender;
       if (!other?. _id) return;
 
-      // Update convos (add or update)
+      // Update conversations (add or update)
       setConversations((prev) => {
         const prevArr = Array.isArray(prev) ? prev.slice() : [];
         const idx = prevArr.findIndex((c) => c?.otherUser?._id === other._id);
@@ -404,9 +397,9 @@ export default function MessagesPage() {
         return prevArr;
       });
 
-      // If currently selected, append to messages
-      if (selectedUser?. _id === other._id) {
-        setMessages((prev) => [...(prev || []), msg]);
+      // If currently selected, append + mark read
+      if (selectedUser?._id === other._id) {
+        setMessages((prev) => [...(Array.isArray(prev) ? prev : []), msg]);
         try {
           markMessagesRead?.(other._id);
         } catch (e) {}
@@ -415,6 +408,7 @@ export default function MessagesPage() {
 
     const onFriendAdded = (newFriend) => {
       if (!newFriend?. _id) return;
+
       // Add to friends list if missing
       setFriends((prev) => {
         const prevArr = Array.isArray(prev) ? prev : [];
@@ -422,7 +416,7 @@ export default function MessagesPage() {
         return [...prevArr, newFriend];
       });
 
-      // Also update conversations map so sidebar shows them immediately
+      // Ensure sidebar shows them immediately
       setConversations((prev) => {
         const prevArr = Array.isArray(prev) ? prev : [];
         if (prevArr.some((c) => c?.otherUser?._id === newFriend._id)) return prevArr;
@@ -439,14 +433,13 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user?._id, markMessagesRead]);
 
-  // Auto-scroll chat
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sidebarUsers = getSidebarUsers();
 
-  // Render
   return (
     <div className="linkedin-messages">
       {/* LEFT: SIDEBAR */}
@@ -478,17 +471,18 @@ export default function MessagesPage() {
                 <div className="sidebar-meta">
                   <div className="sidebar-row">
                     <div className="sidebar-name">{other.firstName} {other.lastName}</div>
-                    {/* unread badge on right */}
                     {unreadByUser?.[other._id] > 0 && (
-                      <span className="sidebar-unread">{unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}</span>
+                      <span className="sidebar-unread">
+                        {unreadByUser[other._id] > 9 ? "9+" : unreadByUser[other._id]}
+                      </span>
                     )}
                   </div>
-                  {/* small place to show a compact preview/time but not underlining the name — optional */}
+                  {/* NOTE: removed prominent preview under name — only a small muted hint */}
                   <div className="sidebar-sub">
                     {entry.lastMessage ? (
-                      <span className="preview">{entry.lastMessage.text?.slice(0, 60)}</span>
+                      <span className="muted small">{new Date(entry.lastMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     ) : (
-                      <span className="muted">No messages yet</span>
+                      <span className="muted small">No messages yet</span>
                     )}
                   </div>
                 </div>
@@ -518,9 +512,14 @@ export default function MessagesPage() {
             <div className="chat-body">
               {Array.isArray(messages) && messages.length ? (
                 messages.map((m) => (
-                  <div key={m._id || `${m.createdAt}-${Math.random()}`} className={`chat-bubble ${m.sender?._id === user._id ? "sent" : "received"}`}>
+                  <div
+                    key={m._id || `${m.createdAt}-${Math.random()}`}
+                    className={`chat-bubble ${m.sender?._id === user._id ? "sent" : "received"}`}
+                  >
                     <p>{m.text}</p>
-                    <span className="chat-time">{m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                    <span className="chat-time">
+                      {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                    </span>
                   </div>
                 ))
               ) : (

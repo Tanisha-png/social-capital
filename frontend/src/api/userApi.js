@@ -303,34 +303,61 @@
 
 // export default API;
 
-// src/api/userApi.js
+// userApi.js
 import axios from "axios";
 
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL,
+    baseURL: import.meta.env.VITE_API_BASE_URL || "",
 });
 
-// Auto attach token
+// Automatically attach token
 API.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    try {
+        const token = localStorage.getItem("token");
+        if (token) config.headers.Authorization = `Bearer ${token}`;
+    } catch (e) { }
     return config;
 });
 
-// Friends / connections
-export const getFriends = async () => (await API.get("/users/friends")).data;
+// -------------------- FRIENDS / CONNECTIONS --------------------
+
+// Primary: call the connections route (your backend routes/connectionRoutes.js)
+export const getFriends = async () => {
+    // /connections is mounted in server as /api/connections
+    // The API base is expected to include the /api prefix (VITE_API_BASE_URL)
+    // Try the connections endpoint first, fallback to /users/me/connections
+    try {
+        const res = await API.get("/connections");
+        return res.data;
+    } catch (err) {
+        // fallback if someone configured different endpoints
+        const res = await API.get("/users/me/connections");
+        return res.data;
+    }
+};
+
 export const getAllUsers = async () => (await API.get("/users")).data;
-export const addFriend = async (friendId) => (await API.post(`/users/add-friend/${friendId}`)).data;
-export const removeFriend = async (friendId) => (await API.delete(`/users/remove-friend/${friendId}`)).data;
-export const searchUsers = async (query) => (await API.get(`/users/search?query=${query}`)).data;
+export const addFriend = async (friendId) => (await API.post(`/connections/request`, { userId: friendId })).data;
+export const removeFriend = async (friendId) => (await API.delete(`/connections/remove`, { data: { userId: friendId } })).data;
+export const searchUsers = async (query) => (await API.get(`/users/search?query=${encodeURIComponent(query)}`)).data;
 
-// Profile
-export const getProfile = async (userId) => (await API.get(`/users/profile/${userId}`)).data;
+// -------------------- PROFILE --------------------
+export const getProfile = async (userId) => (await API.get(`/users/${userId}`)).data;
 
-// Friend requests
-export const sendFriendRequest = async (userId) => (await API.post(`/users/friend-request/${userId}`)).data;
-export const getFriendRequests = async () => (await API.get(`/users/friend-requests`)).data;
-export const acceptFriendRequest = async (requestId) => (await API.post(`/users/friend-request/${requestId}/accept`)).data;
-export const rejectFriendRequest = async (requestId) => (await API.post(`/users/friend-request/${requestId}/reject`)).data;
+// -------------------- FRIEND REQUESTS --------------------
+// Map these to the connectionRoutes controllers you have
+export const sendFriendRequest = async (userId) => (await API.post(`/connections/request`, { userId })).data;
+export const getFriendRequests = async () => {
+    try {
+        const res = await API.get("/connections/requests");
+        return res.data;
+    } catch (err) {
+        // fallback older route
+        const res = await API.get("/users/me/requests");
+        return res.data;
+    }
+};
+export const acceptFriendRequest = async (requestId) => (await API.post(`/connections/accept`, { requestId })).data;
+export const rejectFriendRequest = async (requestId) => (await API.post(`/connections/reject`, { requestId })).data;
 
 export default API;
