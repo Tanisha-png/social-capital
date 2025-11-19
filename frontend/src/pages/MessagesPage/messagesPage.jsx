@@ -209,6 +209,7 @@
 //   );
 // }
 
+// src/pages/MessagesPage/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -224,6 +225,7 @@ import "./MessagesPage.css";
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
+
   const { markMessagesRead } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
@@ -236,22 +238,23 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef(null);
 
-  // Wait for auth to initialize
+  // Wait until auth context is fully initialized
   useEffect(() => {
     if (!initialized) return;
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // Initialize socket
+  // Initialize socket once
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect();
   }, [authToken, user?._id]);
 
-  // Load conversations + friends
+  // Load friends + conversations
   useEffect(() => {
     if (!authToken) return;
+
     let cancelled = false;
     const loadData = async () => {
       setLoading(true);
@@ -273,38 +276,48 @@ export default function MessagesPage() {
         if (!cancelled) setLoading(false);
       }
     };
+
     loadData();
     return () => {
       cancelled = true;
     };
   }, [authToken]);
 
-  // Merge sidebar users
+  // Merge conversations + friends for sidebar
   const getSidebarUsers = () => {
-    const convUserIds = conversations
-      .map((c) => c?.otherUser?._id)
+    const convoMap = {};
+    conversations.forEach((c) => {
+      if (c?.otherUser?._id) convoMap[c.otherUser._id] = c;
+    });
+
+    const merged = (friends || [])
+      .map((f) => {
+        if (!f?._id) return null;
+        return convoMap[f._id] || { otherUser: f, lastMessage: null };
+      })
       .filter(Boolean);
-    const merged = [...conversations];
 
-    for (const f of friends || []) {
-      if (!f?._id) continue;
-      if (!convUserIds.includes(f._id))
-        merged.push({ otherUser: f, lastMessage: null });
-    }
+    // Include conversations with non-friends
+    conversations.forEach((c) => {
+      if (!c?.otherUser?._id) return;
+      const isFriend = friends.some((f) => f._id === c.otherUser._id);
+      if (!isFriend && !merged.some((m) => m.otherUser._id === c.otherUser._id)) {
+        merged.push(c);
+      }
+    });
 
-    // Sort by last message timestamp (or friend with no messages last)
-    return merged.sort((a, b) => {
+    merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage)
-        return (
-          new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
-        );
+        return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
       if (a.lastMessage) return -1;
       if (b.lastMessage) return 1;
       return 0;
     });
+
+    return merged;
   };
 
-  // Select user
+  // Select a user and load messages
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
@@ -328,15 +341,12 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, msg]);
       setNewMessage("");
 
-      const otherUser =
-        msg.sender?._id === user._id ? msg.recipient : msg.sender;
+      const otherUser = msg.sender?._id === user._id ? msg.recipient : msg.sender;
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === otherUser._id);
         if (!exists) return [...prev, { otherUser, lastMessage: msg }];
-        return prev.map((c) =>
-          c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === otherUser._id ? { ...c, lastMessage: msg } : c));
       });
 
       socketAPI.getSocket()?.emit("sendMessage", msg);
@@ -345,7 +355,7 @@ export default function MessagesPage() {
     }
   };
 
-  // Live updates
+  // Live updates via socket
   useEffect(() => {
     const s = socketAPI.getSocket();
     if (!s) return;
@@ -357,9 +367,7 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const exists = prev.some((c) => c.otherUser._id === other._id);
         if (!exists) return [...prev, { otherUser: other, lastMessage: msg }];
-        return prev.map((c) =>
-          c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c
-        );
+        return prev.map((c) => (c.otherUser._id === other._id ? { ...c, lastMessage: msg } : c));
       });
 
       if (selectedUser?._id === other._id) {
@@ -370,9 +378,10 @@ export default function MessagesPage() {
 
     const onFriendAdded = (newFriend) => {
       if (!newFriend?._id) return;
-      setFriends((prev) =>
-        prev.some((f) => f._id === newFriend._id) ? prev : [...prev, newFriend]
-      );
+      setFriends((prev) => {
+        if (prev.some((f) => f._id === newFriend._id)) return prev;
+        return [...prev, newFriend];
+      });
     };
 
     s.on("newMessage", onMessage);
@@ -384,7 +393,7 @@ export default function MessagesPage() {
     };
   }, [selectedUser, user?._id, markMessagesRead]);
 
-  // Auto-scroll
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -397,40 +406,32 @@ export default function MessagesPage() {
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
+
         {loading ? (
-          <p>Loading...</p>
+          <p className="loading">Loading...</p>
         ) : loadingError ? (
           <p className="loading-error">{loadingError}</p>
         ) : sidebarUsers.length ? (
           sidebarUsers.map((c) => {
-            const other = c.otherUser;
+            const other = c?.otherUser;
             if (!other?._id) return null;
             return (
               <div
                 key={other._id}
-                className={`sidebar-user ${
-                  selectedUser?._id === other._id ? "active" : ""
-                }`}
+                className={`sidebar-user ${selectedUser?._id === other._id ? "active" : ""}`}
                 onClick={() => handleSelectUser(other)}
               >
-                <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`}
-                  alt="avatar"
-                  className="sidebar-avatar"
-                />
+                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`} alt="avatar" className="sidebar-avatar" />
                 <div className="sidebar-user-info">
-                  <p className="sidebar-username">
-                    {other.firstName} {other.lastName}
-                  </p>
-                  <p className="sidebar-last">
-                    {c.lastMessage?.text || "No messages yet"}
-                  </p>
+                  <p className="sidebar-username">{other.firstName} {other.lastName}</p>
+                  {c.lastMessage && <p className="sidebar-last">{c.lastMessage.text}</p>}
+                  {!c.lastMessage && <p className="sidebar-last muted">No messages yet</p>}
                 </div>
               </div>
             );
           })
         ) : (
-          <p>No conversations yet.</p>
+          <p className="no-users">No connections found.</p>
         )}
       </div>
 
@@ -439,37 +440,21 @@ export default function MessagesPage() {
           <>
             <div className="chat-header">
               <div className="chat-user-info">
-                <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
-                  alt="avatar"
-                  className="chat-header-avatar"
-                />
-                <h3>
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </h3>
+                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`} alt="avatar" className="chat-header-avatar" />
+                <h3>{selectedUser.firstName} {selectedUser.lastName}</h3>
               </div>
             </div>
 
             <div className="chat-body">
               {messages.length ? (
                 messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`chat-bubble ${
-                      msg.sender?._id === user._id ? "sent" : "received"
-                    }`}
-                  >
+                  <div key={msg._id} className={`chat-bubble ${msg.sender?._id === user._id ? "sent" : "received"}`}>
                     <p>{msg.text}</p>
-                    <span className="chat-time">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    <span className="chat-time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                 ))
               ) : (
-                <p>No messages yet.</p>
+                <p className="no-messages">No messages yet.</p>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -483,11 +468,7 @@ export default function MessagesPage() {
                   rows="1"
                   className="chat-textarea"
                 />
-                <button
-                  type="submit"
-                  className="chat-send-btn"
-                  disabled={!newMessage.trim()}
-                >
+                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
                   <i className="fas fa-paper-plane" />
                 </button>
               </div>
@@ -495,7 +476,7 @@ export default function MessagesPage() {
           </>
         ) : (
           <div className="empty-chat">
-            <p>Select a conversation to start chatting.</p>
+            <p>Select a connection to start chatting.</p>
           </div>
         )}
       </div>
