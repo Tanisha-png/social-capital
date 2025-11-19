@@ -99,10 +99,9 @@ import "./NavBar.css";
 
 export default function NavBar() {
   const { user, logOut } = useAuth();
-  const { unreadByUser } = useMessageNotifications(); // ✅ Only use MessageContext for unread
+  const { unreadByUser } = useMessageNotifications();
   const navigate = useNavigate();
 
-  // Calculate total unread messages
   const totalUnread = Object.values(unreadByUser || {}).reduce(
     (sum, val) => sum + val,
     0
@@ -148,12 +147,10 @@ export default function NavBar() {
               Search
             </Link>
 
-            {/* Notifications */}
             <div className="nav-icon-wrapper" style={{ position: "relative" }}>
               <NotificationsDropdown />
             </div>
 
-            {/* Messages with live unread badge */}
             <div className="nav-icon-wrapper" style={{ position: "relative" }}>
               <MessagesDropdown />
               {totalUnread > 0 && (

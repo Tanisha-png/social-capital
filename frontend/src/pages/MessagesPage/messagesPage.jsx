@@ -226,11 +226,7 @@ export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
 
-  const {
-    markMessagesRead,
-    unreadByUser = {},
-    setUnreadByUser,
-  } = useMessageNotifications();
+  const { markMessagesRead, unreadByUser } = useMessageNotifications();
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -240,7 +236,6 @@ export default function MessagesPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-
   const messagesEndRef = useRef(null);
 
   // Wait until auth initialized
@@ -253,15 +248,12 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
-    return () => {
-      s?.disconnect?.();
-    };
+    return () => s?.disconnect?.();
   }, [authToken, user?._id]);
 
   // Load conversations + connections
   useEffect(() => {
     if (!authToken) return;
-
     let cancelled = false;
 
     async function load() {
@@ -272,9 +264,7 @@ export default function MessagesPage() {
           getConversations(),
           getConnections(authToken),
         ]);
-
         if (cancelled) return;
-
         setConversations(Array.isArray(convosRes) ? convosRes : []);
         setFriends(Array.isArray(friendsRes) ? friendsRes : []);
       } catch (err) {
@@ -290,31 +280,24 @@ export default function MessagesPage() {
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => (cancelled = true);
   }, [authToken]);
 
-  // Build sidebar users (merge friends + conversations)
+  // Build sidebar users
   const getSidebarUsers = () => {
     const map = new Map();
-
-    (friends || []).forEach((f) => {
-      if (!f?._id) return;
-      map.set(String(f._id), { otherUser: f, lastMessage: null });
-    });
-
+    (friends || []).forEach(
+      (f) => f?._id && map.set(f._id, { otherUser: f, lastMessage: null })
+    );
     (conversations || []).forEach((c) => {
       const other = c?.otherUser;
-      if (!other?._id) return;
-      map.set(String(other._id), {
-        otherUser: other,
-        lastMessage: c.lastMessage || null,
-      });
+      if (other?._id)
+        map.set(other._id, {
+          otherUser: other,
+          lastMessage: c.lastMessage || null,
+        });
     });
-
     const merged = Array.from(map.values());
-
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage)
         return (
@@ -324,7 +307,6 @@ export default function MessagesPage() {
       if (b.lastMessage) return 1;
       return 0;
     });
-
     return merged;
   };
 
@@ -336,12 +318,7 @@ export default function MessagesPage() {
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-
-      // Mark messages read for this user
-      markMessagesRead?.(otherUser._id);
-
-      // Reset unread count for this user in context
-      setUnreadByUser((prev) => ({ ...prev, [otherUser._id]: 0 }));
+      markMessagesRead?.(otherUser._id); // ✅ Updates unread counts centrally
     } catch (err) {
       console.error("Failed to load messages:", err);
       setMessages([]);
@@ -355,7 +332,7 @@ export default function MessagesPage() {
 
     try {
       const created = await sendMessage(selectedUser._id, newMessage.trim());
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), created]);
+      setMessages((prev) => [...prev, created]);
       setNewMessage("");
 
       const otherUser =
@@ -377,64 +354,6 @@ export default function MessagesPage() {
     }
   };
 
-  // Live socket updates with unread count
-  useEffect(() => {
-    const s = socketAPI.getSocket();
-    if (!s) return;
-
-    const onMessage = (msg) => {
-      const other = msg?.sender?._id === user._id ? msg.recipient : msg.sender;
-      if (!other?._id) return;
-
-      // Update conversations
-      setConversations((prev) => {
-        const prevArr = Array.isArray(prev) ? prev.slice() : [];
-        const idx = prevArr.findIndex((c) => c?.otherUser?._id === other._id);
-        if (idx === -1) prevArr.push({ otherUser: other, lastMessage: msg });
-        else prevArr[idx] = { ...prevArr[idx], lastMessage: msg };
-        return prevArr;
-      });
-
-      if (selectedUser?._id === other._id) {
-        setMessages((prev) => [...(Array.isArray(prev) ? prev : []), msg]);
-        markMessagesRead?.(other._id);
-
-        // Reset unread count for this user
-        setUnreadByUser((prev) => ({ ...prev, [other._id]: 0 }));
-      } else {
-        setUnreadByUser((prev) => ({
-          ...prev,
-          [other._id]: (prev?.[other._id] || 0) + 1,
-        }));
-      }
-    };
-
-    const onFriendAdded = (newFriend) => {
-      if (!newFriend?._id) return;
-
-      setFriends((prev) => {
-        const prevArr = Array.isArray(prev) ? prev : [];
-        if (prevArr.some((f) => f._id === newFriend._id)) return prevArr;
-        return [...prevArr, newFriend];
-      });
-
-      setConversations((prev) => {
-        const prevArr = Array.isArray(prev) ? prev : [];
-        if (prevArr.some((c) => c?.otherUser?._id === newFriend._id))
-          return prevArr;
-        return [...prevArr, { otherUser: newFriend, lastMessage: null }];
-      });
-    };
-
-    s.on("newMessage", onMessage);
-    s.on("friend-added", onFriendAdded);
-
-    return () => {
-      s.off("newMessage", onMessage);
-      s.off("friend-added", onFriendAdded);
-    };
-  }, [selectedUser, user?._id, markMessagesRead, setUnreadByUser]);
-
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -455,45 +374,41 @@ export default function MessagesPage() {
         ) : loadingError ? (
           <p className="loading-error">Error: {loadingError}</p>
         ) : sidebarUsers.length ? (
-          sidebarUsers.map((entry) => {
-            const other = entry?.otherUser;
-            if (!other?._id) return null;
-
+          sidebarUsers.map(({ otherUser, lastMessage }) => {
+            if (!otherUser?._id) return null;
             return (
               <div
-                key={other._id}
+                key={otherUser._id}
                 className={`sidebar-user ${
-                  selectedUser?._id === other._id ? "active" : ""
+                  selectedUser?._id === otherUser._id ? "active" : ""
                 }`}
-                onClick={() => handleSelectUser(other)}
+                onClick={() => handleSelectUser(otherUser)}
               >
                 <img
                   className="sidebar-avatar"
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${other._id}`}
-                  alt={`${other.firstName} ${other.lastName}`}
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${otherUser._id}`}
+                  alt={`${otherUser.firstName} ${otherUser.lastName}`}
                 />
                 <div className="sidebar-meta">
                   <div className="sidebar-row">
                     <div className="sidebar-name">
-                      {other.firstName} {other.lastName}
+                      {otherUser.firstName} {otherUser.lastName}
                     </div>
-                    {unreadByUser?.[other._id] > 0 && (
+                    {unreadByUser?.[otherUser._id] > 0 && (
                       <span className="sidebar-unread">
-                        {unreadByUser[other._id] > 9
+                        {unreadByUser[otherUser._id] > 9
                           ? "9+"
-                          : unreadByUser[other._id]}
+                          : unreadByUser[otherUser._id]}
                       </span>
                     )}
                   </div>
                   <div className="sidebar-sub">
-                    {entry.lastMessage ? (
+                    {lastMessage ? (
                       <span className="muted small">
-                        {new Date(
-                          entry.lastMessage.createdAt
-                        ).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(lastMessage.createdAt).toLocaleTimeString(
+                          [],
+                          { hour: "2-digit", minute: "2-digit" }
+                        )}
                       </span>
                     ) : (
                       <span className="muted small">No messages yet</span>
@@ -526,7 +441,7 @@ export default function MessagesPage() {
             </div>
 
             <div className="chat-body">
-              {Array.isArray(messages) && messages.length ? (
+              {messages?.length ? (
                 messages.map((m) => (
                   <div
                     key={m._id || `${m.createdAt}-${Math.random()}`}

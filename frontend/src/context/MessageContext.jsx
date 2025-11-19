@@ -11,7 +11,6 @@ import { useAuth } from "./AuthContext";
 import {
   sendMessage as apiSendMessage,
   markMessagesRead as apiMarkMessagesRead,
-  getUnreadCount as apiGetUnreadCount,
   getUnreadCountsByUser,
 } from "../api/messageApi";
 
@@ -27,16 +26,17 @@ export const MessageProvider = ({ children }) => {
   );
   const socketInitialized = useRef(false);
 
-  // Load initial per-user unread counts
+  // Load initial unread counts
   useEffect(() => {
     if (!user?._id) return;
+
     const fetchUnreadByUser = async () => {
       try {
         const res = await getUnreadCountsByUser();
         const map = {};
-        (res.data || []).forEach(
-          (item) => (map[item._id] = Number(item.count))
-        );
+        (res.data || []).forEach((item) => {
+          map[item._id] = Number(item.count);
+        });
         setUnreadByUser(map);
 
         const total = Object.values(map).reduce((sum, val) => sum + val, 0);
@@ -46,10 +46,11 @@ export const MessageProvider = ({ children }) => {
         console.error("Failed to load per-user unread:", err);
       }
     };
+
     fetchUnreadByUser();
   }, [user?._id]);
 
-  // Socket listener for incoming messages
+  // Socket listener for incoming messages (updates messages + unread counts)
   useEffect(() => {
     if (!user?._id || !socket || socketInitialized.current) return;
 
@@ -63,18 +64,18 @@ export const MessageProvider = ({ children }) => {
         const senderId = message.sender?._id;
 
         if (receiverId?.toString() === user._id.toString()) {
-          // Increment global unread
-          setUnreadCount((prevCount) => {
-            const updated = prevCount + 1;
-            localStorage.setItem("unreadCount", updated);
-            return updated;
-          });
-
           // Increment per-user unread
           setUnreadByUser((prev) => ({
             ...prev,
             [senderId]: (prev[senderId] || 0) + 1,
           }));
+
+          // Increment global unread count
+          setUnreadCount((prev) => {
+            const updated = prev + 1;
+            localStorage.setItem("unreadCount", updated);
+            return updated;
+          });
         }
 
         return [...prev, message];
@@ -82,12 +83,10 @@ export const MessageProvider = ({ children }) => {
     };
 
     socket.on("newMessage", onNewMessage);
-
-    return () => {
-      socket.off("newMessage", onNewMessage);
-    };
+    return () => socket.off("newMessage", onNewMessage);
   }, [user?._id, socket]);
 
+  // Send message
   const sendMessage = async (recipientId, text) => {
     if (!socket) return null;
     const sent = await apiSendMessage(recipientId, text);
@@ -96,13 +95,15 @@ export const MessageProvider = ({ children }) => {
     return sent;
   };
 
+  // Mark messages read for a sender
   const markMessagesRead = async (senderId) => {
     try {
       await apiMarkMessagesRead(senderId);
 
-      // Reset per-user and global unread counts
+      // Reset per-user unread
       setUnreadByUser((prev) => ({ ...prev, [senderId]: 0 }));
 
+      // Recalculate global total
       const res = await getUnreadCountsByUser();
       const map = {};
       (res.data || []).forEach((item) => (map[item._id] = Number(item.count)));
@@ -128,8 +129,8 @@ export const MessageProvider = ({ children }) => {
         messages,
         unreadCount,
         unreadByUser,
-        setUnreadByUser, // <--- expose setter
-        setUnreadCount, // <--- expose setter
+        setUnreadByUser,
+        setUnreadCount,
         sendMessage,
         markMessagesRead,
         clearUnread,
