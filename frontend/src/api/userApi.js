@@ -220,85 +220,135 @@
 // };
 
 // src/api/userApi.js
+// import axios from "axios";
+
+// const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+// const API_BASE = (BACKEND_URL.replace(/\/$/, "") || "") + "/api";
+
+// // Create instance that attaches token automatically
+// const API = axios.create({
+//     baseURL: API_BASE,
+//     withCredentials: true,
+// });
+
+// API.interceptors.request.use((config) => {
+//     try {
+//         const token = localStorage.getItem("token");
+//         if (token) config.headers.Authorization = `Bearer ${token}`;
+//     } catch (e) {
+//         // ignore localStorage errors in some browsers
+//     }
+//     return config;
+// });
+
+// /**
+//  * Get friends/connections for the logged-in user.
+//  * Tries the /connections endpoint first (if you have connectionRoutes),
+//  * falls back to /users/me/connections if available (userRoutes).
+//  */
+// export const getFriends = async () => {
+//     try {
+//         // Primary: /api/connections (connectionRoutes.js)
+//         const res = await API.get("/connections");
+//         return res.data || [];
+//     } catch (err) {
+//         // Fallback: /api/users/me/connections (userRoutes.js)
+//         try {
+//             const res2 = await API.get("/users/me/connections");
+//             return res2.data || [];
+//         } catch (err2) {
+//             console.error("getFriends failed:", err?.response?.data || err.message);
+//             throw new Error("Auth token required for getFriends");
+//         }
+//     }
+// };
+
+// // Get a public list of users (used for search / messaging)
+// export const getAllUsers = async () => {
+//     const res = await API.get("/users");
+//     return res.data || [];
+// };
+
+// // Get a single user by id
+// export const getUserById = async (id) => {
+//     const res = await API.get(`/users/${id}`);
+//     return res.data;
+// };
+
+// // ----- Friend Request API -----
+
+// export const getFriendRequests = async () => {
+//     const res = await API.get("/users/me/requests");
+//     return res.data || [];
+// };
+
+// export const sendFriendRequest = async (userId) => {
+//     const res = await API.post(`/users/${userId}/request`);
+//     return res.data;
+// };
+
+// export const acceptFriendRequest = async (userId) => {
+//     const res = await API.post(`/users/${userId}/accept`);
+//     return res.data;
+// };
+
+// export const declineFriendRequest = async (userId) => {
+//     const res = await API.post(`/users/${userId}/decline`);
+//     return res.data;
+// };
+
+// export const rejectFriendRequest = async (userId) => {
+//     return declineFriendRequest(userId);
+// };
+
+// export default API;
+
+// src/api/userApi.js
 import axios from "axios";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
-const API_BASE = (BACKEND_URL.replace(/\/$/, "") || "") + "/api";
-
-// Create instance that attaches token automatically
 const API = axios.create({
-    baseURL: API_BASE,
-    withCredentials: true,
+    baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
+// Automatically attach token to all requests
 API.interceptors.request.use((config) => {
-    try {
-        const token = localStorage.getItem("token");
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-    } catch (e) {
-        // ignore localStorage errors in some browsers
+    const token = localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
 
-/**
- * Get friends/connections for the logged-in user.
- * Tries the /connections endpoint first (if you have connectionRoutes),
- * falls back to /users/me/connections if available (userRoutes).
- */
+// -------------------- USERS & FRIENDS --------------------
+
 export const getFriends = async () => {
-    try {
-        // Primary: /api/connections (connectionRoutes.js)
-        const res = await API.get("/connections");
-        return res.data || [];
-    } catch (err) {
-        // Fallback: /api/users/me/connections (userRoutes.js)
-        try {
-            const res2 = await API.get("/users/me/connections");
-            return res2.data || [];
-        } catch (err2) {
-            console.error("getFriends failed:", err?.response?.data || err.message);
-            throw new Error("Auth token required for getFriends");
-        }
-    }
+    const res = await API.get("/users/friends");
+    return res.data;
 };
 
-// Get a public list of users (used for search / messaging)
 export const getAllUsers = async () => {
     const res = await API.get("/users");
-    return res.data || [];
-};
-
-// Get a single user by id
-export const getUserById = async (id) => {
-    const res = await API.get(`/users/${id}`);
     return res.data;
 };
 
-// ----- Friend Request API -----
-
-export const getFriendRequests = async () => {
-    const res = await API.get("/users/me/requests");
-    return res.data || [];
-};
-
-export const sendFriendRequest = async (userId) => {
-    const res = await API.post(`/users/${userId}/request`);
+export const addFriend = async (friendId) => {
+    const res = await API.post(`/users/add-friend/${friendId}`);
     return res.data;
 };
 
-export const acceptFriendRequest = async (userId) => {
-    const res = await API.post(`/users/${userId}/accept`);
+export const removeFriend = async (friendId) => {
+    const res = await API.delete(`/users/remove-friend/${friendId}`);
     return res.data;
 };
 
-export const declineFriendRequest = async (userId) => {
-    const res = await API.post(`/users/${userId}/decline`);
+export const searchUsers = async (query) => {
+    const res = await API.get(`/users/search?query=${query}`);
     return res.data;
 };
 
-export const rejectFriendRequest = async (userId) => {
-    return declineFriendRequest(userId);
-};
+// -------------------- PROFILE --------------------
 
-export default API;
+export const getProfile = async (userId) => {
+    const res = await API.get(`/users/profile/${userId}`);
+    return res.data;
+};
