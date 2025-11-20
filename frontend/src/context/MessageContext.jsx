@@ -220,19 +220,16 @@ export const MessageProvider = ({ children }) => {
   const handleIncomingMessage = (msg) => {
     if (!msg || !msg._id) return;
 
-    // 🔥 EARLY DEDUPE — this must run BEFORE unread count logic
     if (seenMessageIds.current.has(msg._id)) {
       console.log("[MessageContext] Duplicate message ignored:", msg._id);
       return;
     }
 
-    // Mark this message as processed
     seenMessageIds.current.add(msg._id);
 
     const receiverId = msg.receiverId ?? msg.recipient?._id;
     const senderId = msg.sender?._id;
 
-    // 🔥 Only update unread counts for truly unseen messages
     if (receiverId === user._id) {
       setUnreadByUser((prev) => {
         const next = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
@@ -242,12 +239,12 @@ export const MessageProvider = ({ children }) => {
       });
     }
 
-    // Append to message list ONLY if new
     setMessages((prev) => {
       if (prev.some((m) => m._id === msg._id)) return prev;
       return [...prev, msg];
     });
   };
+
 
 
   // Fetch initial unread counts

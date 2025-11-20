@@ -41,26 +41,23 @@ export default function ChatBox({ otherId }) {
     const handleSend = async () => {
         if (!text.trim() || !otherId) return;
 
-        const payload = {
-            sender: user.id,
-            receiver: otherId,
-            content: text,
-        };
+        const payload = { senderId: user.id, receiverId: otherId, content: text };
 
-        setText(""); // clear input immediately
+        // Send via socket only; do NOT add locally
+        socket.emit("send_message", payload);
 
+        // Clear input
+        setText("");
+
+        // Save to server for persistence (optional fallback)
         try {
-            // Save the message via API
-            const savedMessage = await saveMessage(payload, token);
-
-            // Emit the saved message to the server so recipient gets it in real-time
-            socket.emit("send_message", savedMessage);
-
-            // ✅ Do NOT call setMessages here — MessageContext will handle appending
-        } catch (err) {
-            console.error("[ChatBox] Failed to send message:", err);
+            const token = localStorage.getItem("token");
+            await saveMessage(payload, token);
+        } catch (e) {
+            console.error("Failed to save message via API:", e);
         }
     };
+
 
 
     return (

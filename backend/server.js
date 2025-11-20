@@ -133,26 +133,45 @@ io.on("connection", (socket) => {
 
   console.log(`✅ User joined notification room: ${socket.userId}`);
 
-  socket.on("sendMessage", async (data) => {
-    const { senderId, recipientId, text } = data;
-    if (!senderId || !recipientId || !text) return;
+  socket.on("send_message", async (data) => {
+    const { senderId, receiverId, content } = data;
+    if (!senderId || !receiverId || !content) return;
 
     try {
+      // Save message in DB
       const newMessage = await Message.create({
         sender: senderId,
-        recipient: recipientId,
-        text,
+        recipient: receiverId,
+        text: content,
         read: false,
       });
 
-      const recipientSocket = onlineUsers.get(recipientId.toString());
+      // Populate for frontend
+      const populatedMessage = await newMessage.populate([
+        { path: "sender", select: "firstName lastName avatar" },
+        { path: "recipient", select: "firstName lastName avatar" },
+      ]);
+
+      // Emit to recipient if online
+      const recipientSocket = onlineUsers.get(receiverId.toString());
       if (recipientSocket) {
-        io.to(recipientSocket).emit("newMessage", newMessage);
+        io.to(recipientSocket).emit("newMessage", {
+          ...populatedMessage._doc,
+          receiverId: receiverId.toString(),
+        });
       }
+
+      // Emit to sender too (so they see their sent message)
+      io.to(senderId.toString()).emit("newMessage", {
+        ...populatedMessage._doc,
+        receiverId: receiverId.toString(),
+      });
+
     } catch (err) {
-      console.error("Socket sendMessage error:", err);
+      console.error("Socket send_message error:", err);
     }
   });
+
 
   socket.on("disconnect", () => {
     onlineUsers.forEach((socketId, userId) => {
