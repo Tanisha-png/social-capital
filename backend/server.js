@@ -133,26 +133,16 @@ io.on("connection", (socket) => {
 
   console.log(`✅ User joined notification room: ${socket.userId}`);
 
-  socket.on("sendMessage", async (data) => {
-    const { senderId, recipientId, text } = data;
-    if (!senderId || !recipientId || !text) return;
+  socket.on("sendMessage", (data) => {
+    const { _id, recipientId } = data;
+    if (!_id || !recipientId) return;
 
-    try {
-      const newMessage = await Message.create({
-        sender: senderId,
-        recipient: recipientId,
-        text,
-        read: false,
-      });
-
-      const recipientSocket = onlineUsers.get(recipientId.toString());
-      if (recipientSocket) {
-        io.to(recipientSocket).emit("newMessage", newMessage);
-      }
-    } catch (err) {
-      console.error("Socket sendMessage error:", err);
+    const recipientSocket = onlineUsers.get(recipientId.toString());
+    if (recipientSocket) {
+      io.to(recipientSocket).emit("newMessage", data);
     }
   });
+
 
   socket.on("disconnect", () => {
     onlineUsers.forEach((socketId, userId) => {
