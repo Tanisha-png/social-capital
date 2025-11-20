@@ -88,7 +88,6 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (!user?._id) {
       if (socketRef.current) {
-        console.log("[SocketContext] No user — disconnecting existing socket.");
         socketRef.current.disconnect();
         socketRef.current = null;
       }
@@ -97,13 +96,7 @@ export function SocketProvider({ children }) {
     }
 
     const token = localStorage.getItem("token");
-    if (!token) {
-      console.warn("[SocketContext] No token — aborting socket connection.");
-      return;
-    }
-
-    console.log("[SocketContext] Initializing socket. Token:", token);
-    console.log("[SocketContext] Connecting to backend:", BACKEND_URL);
+    if (!token) return;
 
     const newSocket = io(BACKEND_URL, {
       transports: ["websocket"],
@@ -113,28 +106,15 @@ export function SocketProvider({ children }) {
       reconnectionDelayMax: 5000,
     });
 
+    newSocket.on("connect", () => {
+      newSocket.emit("join", user._id);
+    });
+
     socketRef.current = newSocket;
     setSocket(newSocket);
 
-    newSocket.on("connect", () => {
-      console.log("[SocketContext] Socket connected:", newSocket.id);
-      newSocket.emit("join", user._id);
-      console.log("[SocketContext] User joined room:", user._id);
-    });
-
-    newSocket.on("disconnect", (reason) => {
-      console.log("[SocketContext] Socket disconnected:", reason);
-    });
-
-    newSocket.on("connect_error", (err) => {
-      console.error("[SocketContext] connect_error:", err.message);
-    });
-
     return () => {
-      if (newSocket) {
-        console.log("[SocketContext] Cleaning up socket:", newSocket.id);
-        newSocket.disconnect();
-      }
+      if (newSocket) newSocket.disconnect();
       socketRef.current = null;
       setSocket(null);
     };
@@ -147,6 +127,4 @@ export function SocketProvider({ children }) {
   );
 }
 
-export function useSocket() {
-  return useContext(SocketContext);
-}
+export const useSocket = () => useContext(SocketContext);
