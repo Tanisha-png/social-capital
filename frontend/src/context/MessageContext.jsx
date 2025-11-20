@@ -201,9 +201,10 @@ export const MessageProvider = ({ children }) => {
   const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Track all seen message IDs (from API + socket)
-  const seenMessageIds = useRef(new Set());
   const installedForSocketId = useRef(null);
+  const seenMessageIds = useRef(new Set());
+  const bufferedMessages = useRef([]);
+  const initialFetchDone = useRef(false);
 
   const getToken = () => {
     const t = localStorage.getItem("token");
@@ -211,7 +212,7 @@ export const MessageProvider = ({ children }) => {
     return t;
   };
 
-  // --- Fetch unread counts and mark them as seen ---
+  // --- Fetch unread counts ---
   const fetchUnreadCounts = async () => {
     const token = getToken();
     if (!token) return;
@@ -230,15 +231,7 @@ export const MessageProvider = ({ children }) => {
 
       const map = {};
       arr.forEach((item) => {
-        if (item?._id) {
-          map[item._id] = Number(item.count) || 0;
-          // mark all API-fetched messages as seen
-          if (item.messages) {
-            item.messages.forEach(
-              (m) => m?._id && seenMessageIds.current.add(m._id)
-            );
-          }
-        }
+        if (item?._id) map[item._id] = Number(item.count) || 0;
       });
 
       setUnreadByUser(map);
@@ -251,37 +244,79 @@ export const MessageProvider = ({ children }) => {
         "Total:",
         total
       );
-      console.log(
-        "[MessageContext] Seen message IDs initialized:",
-        Array.from(seenMessageIds.current)
-      );
+
+      // Mark initial fetch as done and process any buffered messages
+      initialFetchDone.current = true;
+
+      if (bufferedMessages.current.length > 0) {
+        console.log(
+          "[MessageContext] Processing buffered messages:",
+          bufferedMessages.current.length
+        );
+        bufferedMessages.current.forEach(onNewMessage);
+        bufferedMessages.current = [];
+      }
     } catch (err) {
       console.error("[MessageContext] unread-counts fetch failed:", err);
     }
   };
 
-  // --- Initial fetch on login ---
   useEffect(() => {
     if (!user?._id) {
       setUnreadByUser({});
       setUnreadCount(0);
       seenMessageIds.current.clear();
+      initialFetchDone.current = false;
       return;
     }
     fetchUnreadCounts();
   }, [user?._id]);
 
-  // --- Socket listener with dedupe ---
+  // --- Socket listener ---
+  const onNewMessage = (msg) => {
+    if (!initialFetchDone.current) {
+      // Buffer messages until initial API fetch completes
+      console.log(
+        "[MessageContext] Buffering message until initial fetch:",
+        msg._id
+      );
+      bufferedMessages.current.push(msg);
+      return;
+    }
+
+    if (seenMessageIds.current.has(msg._id)) {
+      console.log("[MessageContext] Duplicate message ignored:", msg._id);
+      return;
+    }
+    seenMessageIds.current.add(msg._id);
+
+    const receiverId = msg.receiverId ?? msg.recipient?._id;
+    const senderId = msg.sender?._id;
+
+    // Only increment unread if this message is for the logged-in user
+    if (receiverId === user._id) {
+      setUnreadByUser((prev) => {
+        const next = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
+        const total = Object.values(next).reduce((s, v) => s + v, 0);
+        setUnreadCount(total);
+        console.log(
+          "[MessageContext] unreadByUser updated:",
+          next,
+          "total:",
+          total
+        );
+        return next;
+      });
+    }
+
+    setMessages((prev) => {
+      if (prev.some((m) => m._id === msg._id)) return prev; // dedupe
+      return [...prev, msg];
+    });
+  };
+
   useEffect(() => {
-    if (!user?._id) return;
-    if (!socket) {
-      console.log("[MessageContext] Socket not ready yet — waiting.");
-      return;
-    }
-    if (!socket.id) {
-      console.log("[MessageContext] Socket has no ID yet — waiting.");
-      return;
-    }
+    if (!user?._id || !socket || !socket.id) return;
 
     if (installedForSocketId.current === socket.id) {
       console.log(
@@ -294,48 +329,9 @@ export const MessageProvider = ({ children }) => {
     console.log("[MessageContext] Installing listeners for socket:", socket.id);
 
     const onConnect = () => {
-      console.log(
-        "[MessageContext] Socket connected inside MessageContext:",
-        socket.id
-      );
+      console.log("[MessageContext] Socket connected:", socket.id);
       socket.emit("join", user._id);
       console.log("[MessageContext] Emitted join for user:", user._id);
-    };
-
-    const onNewMessage = (msg) => {
-      console.log("[MessageContext] newMessage event:", msg);
-
-      if (!msg._id) return;
-
-      if (seenMessageIds.current.has(msg._id)) {
-        console.log("[MessageContext] Duplicate message ignored:", msg._id);
-        return;
-      }
-
-      seenMessageIds.current.add(msg._id);
-
-      const receiverId = msg.receiverId ?? msg.recipient?._id;
-      const senderId = msg.sender?._id;
-
-      if (receiverId === user._id) {
-        setUnreadByUser((prev) => {
-          const next = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
-          const total = Object.values(next).reduce((s, v) => s + v, 0);
-          setUnreadCount(total);
-          console.log(
-            "[MessageContext] unreadByUser updated:",
-            next,
-            "total:",
-            total
-          );
-          return next;
-        });
-      }
-
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev; // dedupe
-        return [...prev, msg];
-      });
     };
 
     socket.on("connect", onConnect);
@@ -344,14 +340,14 @@ export const MessageProvider = ({ children }) => {
     installedForSocketId.current = socket.id;
 
     return () => {
+      console.log("[MessageContext] Removing socket listeners for:", socket.id);
       socket.off("connect", onConnect);
       socket.off("newMessage", onNewMessage);
       installedForSocketId.current = null;
-      console.log("[MessageContext] Removed socket listeners for:", socket.id);
     };
   }, [socket, user?._id]);
 
-  // --- Send message ---
+  // --- Send a message ---
   const sendMessage = async (recipientId, text) => {
     const token = getToken();
     if (!token) return;
@@ -360,6 +356,7 @@ export const MessageProvider = ({ children }) => {
       const sent = await apiSendMessage(recipientId, text);
       setMessages((prev) => [...prev, sent]);
       socket?.emit?.("sendMessage", sent);
+      console.log("[MessageContext] Sent message:", sent);
       return sent;
     } catch (err) {
       console.error("[MessageContext] sendMessage failed:", err);
@@ -385,7 +382,6 @@ export const MessageProvider = ({ children }) => {
         seenMessageIds.current.clear();
       } else {
         setUnreadByUser((prev) => ({ ...prev, [senderId]: 0 }));
-        // optional: remove seen IDs from this sender
       }
 
       await fetchUnreadCounts();
