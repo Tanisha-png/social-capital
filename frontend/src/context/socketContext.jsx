@@ -1,47 +1,68 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext();
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function SocketProvider({ children }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const retryRef = useRef(0);
 
   useEffect(() => {
     if (!user?._id) return;
 
     const token = localStorage.getItem("token");
-    if (!token) return;
+    console.log("[SocketContext] Initializing socket. Token:", token);
+    if (!token)
+      return console.warn(
+        "[SocketContext] No token found, cannot connect socket."
+      );
 
-    // Use dynamic origin fallback for production
-    const newSocket = io(BACKEND_URL || window.location.origin, {
-      transports: ["websocket"],
-      auth: { token },
-    });
+    const connectSocket = () => {
+      console.log("[SocketContext] Connecting to backend URL:", BACKEND_URL);
 
-    newSocket.on("connect", () => {
-      console.log("[Socket] Connected:", newSocket.id);
-      if (user?._id) newSocket.emit("join", user._id);
-    });
+      const newSocket = io(BACKEND_URL, {
+        transports: ["websocket"],
+        auth: { token },
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+      });
 
-    newSocket.on("connect_error", (err) => {
-      console.error("[Socket] Connection error:", err);
-    });
+      newSocket.on("connect", () => {
+        console.log("[SocketContext] Socket connected:", newSocket.id);
+        if (user?._id) newSocket.emit("join", user._id);
+        retryRef.current = 0; // reset retry counter
+      });
 
-    newSocket.on("disconnect", (reason) => {
-      console.warn("[Socket] Disconnected:", reason);
-    });
+      newSocket.on("connect_error", (err) => {
+        console.error("[SocketContext] Socket connection error:", err.message);
+      });
 
-    setSocket(newSocket);
+      newSocket.on("disconnect", (reason) => {
+        console.warn("[SocketContext] Socket disconnected. Reason:", reason);
+        if (reason !== "io client disconnect" && retryRef.current < 5) {
+          retryRef.current += 1;
+          console.log(
+            `[SocketContext] Retrying connection (#${retryRef.current})...`
+          );
+          setTimeout(() => connectSocket(), 2000);
+        }
+      });
+
+      setSocket(newSocket);
+    };
+
+    connectSocket();
 
     return () => {
-      newSocket.disconnect();
+      console.log("[SocketContext] Disconnecting socket...");
+      socket?.disconnect();
       setSocket(null);
     };
-  }, [user]);
+  }, [user?._id, BACKEND_URL]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

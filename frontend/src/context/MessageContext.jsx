@@ -17,38 +17,40 @@ import {
 const MessageContext = createContext();
 
 export const MessageProvider = ({ children }) => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const { socket } = useSocket();
   const [messages, setMessages] = useState([]);
   const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
   const socketInitialized = useRef(false);
 
-  /** -------------------------------
-   *  Load initial unread counts
-   *  -------------------------------
-   */
+  // Load initial unread counts
   useEffect(() => {
     if (!user?._id) return;
 
     const fetchUnreadByUser = async () => {
-      try {
-        const authToken = token || localStorage.getItem("token");
-        console.log("[MessageContext] Using token:", authToken);
+      const token = localStorage.getItem("token");
+      console.log("[MessageContext] Fetching unread counts. Token:", token);
 
-        const res = await getUnreadCountsByUser(authToken);
+      if (!token)
+        return console.warn(
+          "[MessageContext] No token found, cannot fetch unread counts."
+        );
+
+      try {
+        const res = await getUnreadCountsByUser(token);
         console.log(
           "[MessageContext] API response for unread counts:",
           res.data
         );
 
         const map = {};
-        (res.data || []).forEach((item) => {
-          map[item._id] = Number(item.count);
-        });
+        (res.data || []).forEach(
+          (item) => (map[item._id] = Number(item.count))
+        );
 
         setUnreadByUser(map);
-        const total = Object.values(map).reduce((sum, val) => sum + val, 0);
+        const total = Object.values(map).reduce((a, b) => a + b, 0);
         setUnreadCount(total);
         console.log(
           "[MessageContext] Initial unread counts:",
@@ -62,20 +64,17 @@ export const MessageProvider = ({ children }) => {
     };
 
     fetchUnreadByUser();
-  }, [user?._id, token]);
+  }, [user?._id]);
 
-  /** -------------------------------
-   *  Socket listener for incoming messages
-   *  -------------------------------
-   */
+  // Socket listener for incoming messages
   useEffect(() => {
     if (!user?._id || !socket || socketInitialized.current) return;
-    socketInitialized.current = true;
 
+    socketInitialized.current = true;
     console.log("[MessageContext] Socket initialized, socket id:", socket.id);
 
     const onNewMessage = (message) => {
-      console.log("[Socket] New message received:", message);
+      console.log("[MessageContext] New message received:", message);
 
       setMessages((prev) => {
         if (prev.some((m) => m._id === message._id)) return prev;
@@ -89,9 +88,9 @@ export const MessageProvider = ({ children }) => {
             const total = Object.values(updated).reduce((a, b) => a + b, 0);
             setUnreadCount(total);
             console.log(
-              "[MessageContext] Updated unreadByUser:",
+              "[MessageContext] Updated unread counts:",
               updated,
-              "Total unread:",
+              "Total:",
               total
             );
             return updated;
@@ -102,28 +101,16 @@ export const MessageProvider = ({ children }) => {
       });
     };
 
-    socket.on("connect", () => console.log("[Socket] Connected:", socket.id));
-    socket.on("connect_error", (err) =>
-      console.error("[Socket] Connection error:", err)
-    );
-    socket.on("disconnect", (reason) =>
-      console.warn("[Socket] Disconnected:", reason)
-    );
-
     socket.on("newMessage", onNewMessage);
-    return () => socket.off("newMessage", onNewMessage);
+
+    return () => {
+      socket.off("newMessage", onNewMessage);
+    };
   }, [user?._id, socket]);
 
-  /** -------------------------------
-   *  Send message
-   *  -------------------------------
-   */
+  // Send message
   const sendMessage = async (recipientId, text) => {
-    if (!socket) {
-      console.warn("[MessageContext] Socket not initialized yet.");
-      return null;
-    }
-
+    if (!socket) return null;
     const sent = await apiSendMessage(recipientId, text);
     setMessages((prev) => [...prev, sent]);
     socket.emit("sendMessage", sent);
@@ -131,31 +118,24 @@ export const MessageProvider = ({ children }) => {
     return sent;
   };
 
-  /** -------------------------------
-   *  Mark messages read for a sender
-   *  -------------------------------
-   */
+  // Mark messages read
   const markMessagesRead = async (senderId) => {
     try {
       await apiMarkMessagesRead(senderId);
-      console.log(
-        "[MessageContext] Marked messages read for sender:",
-        senderId
-      );
 
-      // Reset per-user unread
       const updated = { ...unreadByUser, [senderId]: 0 };
       setUnreadByUser(updated);
 
-      // Fetch updated counts from backend
+      const token = localStorage.getItem("token");
       const res = await getUnreadCountsByUser(token);
       const map = {};
       (res.data || []).forEach((item) => (map[item._id] = Number(item.count)));
       setUnreadByUser(map);
       const total = Object.values(map).reduce((a, b) => a + b, 0);
       setUnreadCount(total);
+
       console.log(
-        "[MessageContext] Updated unread counts after reading:",
+        "[MessageContext] Unread counts after marking read:",
         map,
         "Total:",
         total
