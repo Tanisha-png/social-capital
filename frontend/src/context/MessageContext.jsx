@@ -201,22 +201,57 @@ export const MessageProvider = ({ children }) => {
   const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Keep track of all messages already counted
+  // Track messages already counted / seen
   const seenMessageIds = useRef(new Set());
-  const installedForSocketId = useRef(null);
 
-  // Buffer socket messages until initial unread counts fetched
+  // Buffer socket messages until initial fetch completes
   const socketBuffer = useRef([]);
 
+  const installedForSocketId = useRef(null);
   const initialFetchDone = useRef(false);
 
   const getToken = () => {
     const t = localStorage.getItem("token");
-    if (!t) console.warn("[MessageContext] No token found.");
+    if (!t) console.warn("[MessageContext] No token found in localStorage.");
     return t;
   };
 
-  // --- Fetch unread counts (initial) ---
+  // --- Handle a single incoming message safely ---
+  const handleIncomingMessage = (msg) => {
+    if (seenMessageIds.current.has(msg._id)) {
+      console.log("[MessageContext] Duplicate message ignored:", msg._id);
+      return;
+    }
+
+    seenMessageIds.current.add(msg._id);
+
+    const receiverId = msg.receiverId ?? msg.recipient?._id;
+    const senderId = msg.sender?._id;
+
+    // Increment unread if message is for this user
+    if (receiverId === user._id) {
+      setUnreadByUser((prev) => {
+        const next = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
+        const total = Object.values(next).reduce((s, v) => s + v, 0);
+        setUnreadCount(total);
+        console.log(
+          "[MessageContext] unreadByUser updated:",
+          next,
+          "total:",
+          total
+        );
+        return next;
+      });
+    }
+
+    // Append to messages state (dedupe)
+    setMessages((prev) => {
+      if (prev.some((m) => m._id === msg._id)) return prev;
+      return [...prev, msg];
+    });
+  };
+
+  // --- Fetch unread counts from API (initial fetch) ---
   const fetchUnreadCounts = async () => {
     const token = getToken();
     if (!token) return;
@@ -235,7 +270,11 @@ export const MessageProvider = ({ children }) => {
 
       const map = {};
       arr.forEach((item) => {
-        if (item?._id) map[item._id] = Number(item.count) || 0;
+        if (item?._id) {
+          map[item._id] = Number(item.count) || 0;
+          // Mark as seen so socket messages don't double-count
+          seenMessageIds.current.add(item._id);
+        }
       });
 
       setUnreadByUser(map);
@@ -251,7 +290,7 @@ export const MessageProvider = ({ children }) => {
 
       initialFetchDone.current = true;
 
-      // --- Process any buffered socket messages safely ---
+      // Process any buffered socket messages safely
       if (socketBuffer.current.length) {
         console.log(
           "[MessageContext] Processing buffered socket messages:",
@@ -265,40 +304,7 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  // --- Handle incoming socket message ---
-  const handleIncomingMessage = (msg) => {
-    if (seenMessageIds.current.has(msg._id)) {
-      console.log("[MessageContext] Duplicate message ignored:", msg._id);
-      return;
-    }
-
-    seenMessageIds.current.add(msg._id);
-
-    const receiverId = msg.receiverId ?? msg.recipient?._id;
-    const senderId = msg.sender?._id;
-
-    if (receiverId === user._id) {
-      setUnreadByUser((prev) => {
-        const next = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
-        const total = Object.values(next).reduce((s, v) => s + v, 0);
-        setUnreadCount(total);
-        console.log(
-          "[MessageContext] unreadByUser updated:",
-          next,
-          "total:",
-          total
-        );
-        return next;
-      });
-    }
-
-    setMessages((prev) => {
-      if (prev.some((m) => m._id === msg._id)) return prev; // dedupe
-      return [...prev, msg];
-    });
-  };
-
-  // --- Initial fetch when user logs in ---
+  // --- Fetch unread counts when user logs in ---
   useEffect(() => {
     if (!user?._id) {
       setUnreadByUser({});
@@ -308,6 +314,7 @@ export const MessageProvider = ({ children }) => {
       initialFetchDone.current = false;
       return;
     }
+
     fetchUnreadCounts();
   }, [user?._id]);
 
@@ -326,7 +333,10 @@ export const MessageProvider = ({ children }) => {
       return;
     }
 
-    console.log("[MessageContext] Installing socket listeners for:", socket.id);
+    console.log(
+      "[MessageContext] Installing socket listeners for socket:",
+      socket.id
+    );
 
     const onConnect = () => {
       console.log(
@@ -362,7 +372,7 @@ export const MessageProvider = ({ children }) => {
     };
   }, [socket, user?._id]);
 
-  // --- Mutations ---
+  // --- Send a message ---
   const sendMessage = async (recipientId, text) => {
     const token = getToken();
     if (!token) return;
@@ -371,6 +381,7 @@ export const MessageProvider = ({ children }) => {
       const sent = await apiSendMessage(recipientId, text);
       setMessages((prev) => [...prev, sent]);
       socket?.emit?.("sendMessage", sent);
+      console.log("[MessageContext] Sent message:", sent);
       return sent;
     } catch (err) {
       console.error("[MessageContext] sendMessage failed:", err);
@@ -378,6 +389,7 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  // --- Mark messages read ---
   const markMessagesRead = async (senderId = null) => {
     const token = getToken();
     if (!token) return;
@@ -398,7 +410,11 @@ export const MessageProvider = ({ children }) => {
         setUnreadByUser((prev) => ({ ...prev, [senderId]: 0 }));
       }
 
+      // Re-sync with API to ensure consistency
       await fetchUnreadCounts();
+      console.log(
+        "[MessageContext] Resynced unread counts after markMessagesRead."
+      );
     } catch (err) {
       console.error("[MessageContext] markMessagesRead failed:", err);
     }
