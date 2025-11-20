@@ -46,6 +46,21 @@ export default function MessagesDropdown() {
   const { unreadCount, markMessagesRead } = useMessageNotifications();
   const location = useLocation();
   const clearedOnPath = useRef(false);
+  const prevUnread = useRef(unreadCount);
+
+  // Log every render and unread count change
+  useEffect(() => {
+    if (prevUnread.current !== unreadCount) {
+      console.log(
+        `[MessagesDropdown] Render. unreadCount changed: ${prevUnread.current} → ${unreadCount}`
+      );
+      prevUnread.current = unreadCount;
+    } else {
+      console.log(
+        `[MessagesDropdown] Render. unreadCount unchanged: ${unreadCount}`
+      );
+    }
+  });
 
   // Clear unread only once when visiting /messages
   useEffect(() => {
@@ -66,6 +81,8 @@ export default function MessagesDropdown() {
     if (unreadCount > 0) {
       console.log("[MessagesDropdown] Envelope clicked, clearing unread");
       markMessagesRead();
+    } else {
+      console.log("[MessagesDropdown] Envelope clicked, no unread messages");
     }
   };
 
