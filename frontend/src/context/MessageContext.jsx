@@ -201,7 +201,7 @@ export const MessageProvider = ({ children }) => {
   const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Keep track of all messages already counted
+  // Track all seen message IDs (from API + socket)
   const seenMessageIds = useRef(new Set());
   const installedForSocketId = useRef(null);
 
@@ -211,6 +211,7 @@ export const MessageProvider = ({ children }) => {
     return t;
   };
 
+  // --- Fetch unread counts and mark them as seen ---
   const fetchUnreadCounts = async () => {
     const token = getToken();
     if (!token) return;
@@ -229,7 +230,15 @@ export const MessageProvider = ({ children }) => {
 
       const map = {};
       arr.forEach((item) => {
-        if (item?._id) map[item._id] = Number(item.count) || 0;
+        if (item?._id) {
+          map[item._id] = Number(item.count) || 0;
+          // mark all API-fetched messages as seen
+          if (item.messages) {
+            item.messages.forEach(
+              (m) => m?._id && seenMessageIds.current.add(m._id)
+            );
+          }
+        }
       });
 
       setUnreadByUser(map);
@@ -242,12 +251,16 @@ export const MessageProvider = ({ children }) => {
         "Total:",
         total
       );
+      console.log(
+        "[MessageContext] Seen message IDs initialized:",
+        Array.from(seenMessageIds.current)
+      );
     } catch (err) {
       console.error("[MessageContext] unread-counts fetch failed:", err);
     }
   };
 
-  // Fetch unread counts when user logs in
+  // --- Initial fetch on login ---
   useEffect(() => {
     if (!user?._id) {
       setUnreadByUser({});
@@ -292,6 +305,8 @@ export const MessageProvider = ({ children }) => {
     const onNewMessage = (msg) => {
       console.log("[MessageContext] newMessage event:", msg);
 
+      if (!msg._id) return;
+
       if (seenMessageIds.current.has(msg._id)) {
         console.log("[MessageContext] Duplicate message ignored:", msg._id);
         return;
@@ -317,7 +332,10 @@ export const MessageProvider = ({ children }) => {
         });
       }
 
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev; // dedupe
+        return [...prev, msg];
+      });
     };
 
     socket.on("connect", onConnect);
@@ -333,7 +351,7 @@ export const MessageProvider = ({ children }) => {
     };
   }, [socket, user?._id]);
 
-  // --- Mutations ---
+  // --- Send message ---
   const sendMessage = async (recipientId, text) => {
     const token = getToken();
     if (!token) return;
@@ -349,6 +367,7 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  // --- Mark messages read ---
   const markMessagesRead = async (senderId = null) => {
     const token = getToken();
     if (!token) return;
@@ -366,8 +385,7 @@ export const MessageProvider = ({ children }) => {
         seenMessageIds.current.clear();
       } else {
         setUnreadByUser((prev) => ({ ...prev, [senderId]: 0 }));
-        // remove all seen messages from this sender
-        // optional: could filter if you want
+        // optional: remove seen IDs from this sender
       }
 
       await fetchUnreadCounts();
