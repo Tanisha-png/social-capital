@@ -314,13 +314,14 @@ export const MessageProvider = ({ children }) => {
 
   const sendMessage = async (recipientId, text) => {
     if (!recipientId || !text) return;
+
     try {
       const msg = await apiSendMessage(recipientId, text);
 
-      // Add to UI immediately
+      // Add to local UI immediately
       handleIncomingMessage(msg);
 
-      // Emit to socket with correct event + correct field names
+      // Emit correct event name + correct data shape
       socket?.emit("send_message", {
         senderId: user._id,
         receiverId: recipientId,
@@ -333,6 +334,7 @@ export const MessageProvider = ({ children }) => {
       throw err;
     }
   };
+
 
 
   const markMessagesRead = async (senderId = null) => {

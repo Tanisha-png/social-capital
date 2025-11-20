@@ -107,37 +107,37 @@ import "../styles/chatBox.css";
 
 export default function ChatBox({ otherId }) {
     const { user, token } = useAuth();
-    const { messages: allMessages, sendMessage } = useMessages();
+    const { messages: globalMessages, sendMessage } = useMessages();
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
 
+    const userId = user._id || user.id;
+
     useEffect(() => {
         if (!otherId) return;
+
         (async () => {
-        const conv = await getConversation(user.id, otherId, token);
+        const conv = await getConversation(userId, otherId, token);
         setMessages(conv);
         })();
-    }, [otherId, user, token]);
+    }, [otherId, userId, token]);
 
-    // Sync with global messages
+    // Sync with global MessageContext messages
     useEffect(() => {
         setMessages(
-        allMessages.filter(
+        globalMessages.filter(
             (m) =>
             String(m.sender?._id || m.senderId) === String(otherId) ||
             String(m.receiver?._id || m.receiverId) === String(otherId)
         )
         );
-    }, [allMessages, otherId]);
+    }, [globalMessages, otherId]);
 
     const handleSend = async () => {
-        if (!text.trim() || !otherId) return;
-        try {
-        await sendMessage(otherId, text);
+        if (!text.trim()) return;
+
+        await sendMessage(otherId, text.trim());
         setText("");
-        } catch (err) {
-        console.error(err);
-        }
     };
 
     return (
@@ -149,13 +149,13 @@ export default function ChatBox({ otherId }) {
             messages.map((m) => (
                 <div
                 key={m._id}
-                className={`message-bubble ${
-                    String(m.sender?._id || m.senderId) === String(user.id)
-                    ? "sent"
-                    : "received"
-                }`}
+                className={
+                    String(m.sender?._id || m.senderId) === String(userId)
+                    ? "message-bubble sent"
+                    : "message-bubble received"
+                }
                 >
-                {m.content}
+                {m.text || m.content}
                 <span className="timestamp">
                     {new Date(m.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -166,6 +166,7 @@ export default function ChatBox({ otherId }) {
             ))
             )}
         </div>
+
         <div className="chat-input">
             <input
             type="text"
