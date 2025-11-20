@@ -75,7 +75,6 @@ import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext();
 
-// Derive backend URL from env or current origin for Heroku / local dev compatibility
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (typeof window !== "undefined" && window.location.origin) ||
@@ -87,31 +86,28 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Only try to connect when we have a logged-in user
     if (!user?._id) {
       if (socketRef.current) {
-        console.log("[SocketContext] No user - disconnecting existing socket.");
+        console.log("[SocketContext] No user — disconnecting existing socket.");
         socketRef.current.disconnect();
         socketRef.current = null;
-        setSocket(null);
       }
+      setSocket(null);
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      console.warn("[SocketContext] No token in localStorage — not connecting socket.");
+      console.warn("[SocketContext] No token — aborting socket connection.");
       return;
     }
 
     console.log("[SocketContext] Initializing socket. Token:", token);
-    console.log("[SocketContext] Connecting to backend URL:", BACKEND_URL);
+    console.log("[SocketContext] Connecting to backend:", BACKEND_URL);
 
-    // Create socket with a few reconnection options suitable for Heroku
     const newSocket = io(BACKEND_URL, {
       transports: ["websocket"],
       auth: { token },
-      // sensible reconnection for flaky Heroku websockets
       reconnectionAttempts: 10,
       reconnectionDelay: 1500,
       reconnectionDelayMax: 5000,
@@ -122,43 +118,35 @@ export function SocketProvider({ children }) {
 
     newSocket.on("connect", () => {
       console.log("[SocketContext] Socket connected:", newSocket.id);
-      if (user?._id) {
-        newSocket.emit("join", user._id);
-        console.log("[SocketContext] User joined room:", user._id);
-      }
-    });
-
-    newSocket.on("connect_error", (err) => {
-      console.error("[SocketContext] Socket connection error:", err && err.message ? err.message : err);
-    });
-
-    newSocket.on("reconnect_attempt", (attempt) => {
-      console.log("[SocketContext] Reconnect attempt:", attempt);
+      newSocket.emit("join", user._id);
+      console.log("[SocketContext] User joined room:", user._id);
     });
 
     newSocket.on("disconnect", (reason) => {
-      console.log("[SocketContext] Socket disconnected. Reason:", reason);
+      console.log("[SocketContext] Socket disconnected:", reason);
     });
 
-    // cleanup on unmount or user change
+    newSocket.on("connect_error", (err) => {
+      console.error("[SocketContext] connect_error:", err.message);
+    });
+
     return () => {
-      try {
-        console.log("[SocketContext] Disconnecting socket:", newSocket.id);
+      if (newSocket) {
+        console.log("[SocketContext] Cleaning up socket:", newSocket.id);
         newSocket.disconnect();
-      } catch (e) {
-        console.warn("[SocketContext] Error while disconnecting socket:", e);
       }
       socketRef.current = null;
       setSocket(null);
     };
-  }, [user]); // re-run when user changes (login/logout)
+  }, [user?._id]);
 
-  return <SocketContext.Provider value={{ socket }}>{children}</SocketContext.Provider>;
+  return (
+    <SocketContext.Provider value={{ socket }}>
+      {children}
+    </SocketContext.Provider>
+  );
 }
 
 export function useSocket() {
-  const context = useContext(SocketContext);
-  if (!context) throw new Error("useSocket must be used within a SocketProvider");
-  return context;
+  return useContext(SocketContext);
 }
-
