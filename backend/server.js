@@ -134,14 +134,21 @@ io.on("connection", (socket) => {
   console.log(`✅ User joined notification room: ${socket.userId}`);
 
   socket.on("sendMessage", (data) => {
+    console.log("📨 Relaying socket message:", data);
+
     const { _id, recipientId } = data;
-    if (!_id || !recipientId) return;
+    if (!_id || !recipientId) {
+      console.warn("❌ Invalid socket message payload:", data);
+      return;
+    }
 
     const recipientSocket = onlineUsers.get(recipientId.toString());
     if (recipientSocket) {
+      console.log("📡 Emitting newMessage to:", recipientId);
       io.to(recipientSocket).emit("newMessage", data);
     }
   });
+
 
 
   socket.on("disconnect", () => {
