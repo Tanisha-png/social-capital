@@ -262,19 +262,50 @@ export const MessageProvider = ({ children }) => {
   useEffect(() => {
     if (!socket || installedForSocketId.current === socket.id) return;
 
+    console.log(
+      "%c[MessageContext] Installing socket listeners",
+      "color: #4fa"
+    );
+
     const onConnect = () => {
-      socket.emit("join", user._id);
+      console.log(
+        "%c[Socket Connected]%c ID: " + socket.id,
+        "color: #0f0; font-weight: bold;",
+        "color: #fff"
+      );
+      console.log("Joining room for user:", user?._id);
+      socket.emit("join", user?._id);
     };
+
     const onNewMessage = (msg) => {
-      if (!initialFetchDone.current) socketBuffer.current.push(msg);
-      else handleIncomingMessage(msg);
+      console.log(
+        "%c[New Message Received]",
+        "color: #0af; font-weight: bold;"
+      );
+      console.log("Raw message:", msg);
+      console.log("senderId:", msg.sender?._id || msg.senderId);
+      console.log("receiverId:", msg.receiver?._id || msg.receiverId);
+      console.log("initialFetchDone:", initialFetchDone.current);
+
+      if (!initialFetchDone.current) {
+        console.log("[Buffering incoming message until unread counts loaded]");
+        socketBuffer.current.push(msg);
+      } else {
+        console.log("[Handling message immediately]");
+        handleIncomingMessage(msg);
+      }
     };
 
     socket.on("connect", onConnect);
     socket.on("newMessage", onNewMessage);
+
     installedForSocketId.current = socket.id;
 
     return () => {
+      console.log(
+        "%c[MessageContext] Removing socket listeners",
+        "color: #f55"
+      );
       socket.off("connect", onConnect);
       socket.off("newMessage", onNewMessage);
       installedForSocketId.current = null;
