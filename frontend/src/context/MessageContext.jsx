@@ -316,14 +316,24 @@ export const MessageProvider = ({ children }) => {
     if (!recipientId || !text) return;
     try {
       const msg = await apiSendMessage(recipientId, text);
-      handleIncomingMessage(msg); // add to list & update unread if needed
-      socket?.emit("sendMessage", msg); // emit to other user
+
+      // Add to UI immediately
+      handleIncomingMessage(msg);
+
+      // Emit to socket with correct event + correct field names
+      socket?.emit("send_message", {
+        senderId: user._id,
+        receiverId: recipientId,
+        content: text,
+      });
+
       return msg;
     } catch (err) {
       console.error("[MessageContext] sendMessage failed:", err);
       throw err;
     }
   };
+
 
   const markMessagesRead = async (senderId = null) => {
     try {
