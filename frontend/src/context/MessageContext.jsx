@@ -182,7 +182,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { useSocket } from "./SocketContext";
+import { useSocket } from "./socketContext";
 import { useAuth } from "./AuthContext";
 import {
   sendMessage as apiSendMessage,
