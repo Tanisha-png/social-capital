@@ -233,11 +233,11 @@ export default function FriendsPage() {
     const navigate = useNavigate();
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [openMenuId, setOpenMenuId] = useState(null);
+    const [openMenuId, setOpenMenuId] = useState(null); // dropdown tracker
     const menuRefs = useRef({});
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-    // Fully robust DiceBear avatar URL generator
+    // Generate a robust DiceBear URL for any friend
     const getAvatarUrl = (friend, index) => {
         if (!friend) return "https://via.placeholder.com/50?text=Avatar";
 
@@ -255,31 +255,26 @@ export default function FriendsPage() {
         )}`;
     };
 
-    // Fully bulletproof display name generator
-    const getDisplayName = (friend) => {
-        if (!friend) return "User";
+    // Normalize and sanitize display name
+    const getDisplayName = (friend, index) => {
+        if (!friend) return `User-${index}`;
 
-        // Use first+last if present
-        if (friend.firstName || friend.lastName) {
-        return `${friend.firstName || ""} ${friend.lastName || ""}`.trim();
-        }
+        // Priority: firstName + lastName -> name -> username -> email prefix -> fallback
+        const first =
+        friend.firstName ||
+        friend.name ||
+        friend.username ||
+        (friend.email ? friend.email.split("@")[0] : `User-${index}`);
+        const last = friend.lastName || "";
 
-        // Fallback to name or username
-        if (friend.name) return friend.name;
-        if (friend.username) return friend.username;
-
-        // Fallback to email
-        if (friend.email) return friend.email.split("@")[0]; // show name part of email
-
-        // Final fallback
-        return "User";
+        return `${first} ${last}`.trim();
     };
 
-    // Fetch user's connections
+    // Fetch and normalize connections
     useEffect(() => {
         if (!user) return;
 
-        async function fetchFriends() {
+        const fetchFriends = async () => {
         try {
             const token = localStorage.getItem("token");
             const res = await fetch(`${BACKEND_URL}/api/connections`, {
@@ -289,14 +284,33 @@ export default function FriendsPage() {
             if (!res.ok) throw new Error("Failed to fetch connections");
 
             const data = await res.json();
-            setFriends(Array.isArray(data) ? data : []);
+
+            // Normalize each friend
+            const normalized = Array.isArray(data)
+            ? data.map((f, index) => ({
+                ...f,
+                firstName:
+                    f.firstName ||
+                    f.name ||
+                    f.username ||
+                    (f.email ? f.email.split("@")[0] : `User-${index}`),
+                lastName: f.lastName || "",
+                username:
+                    f.username ||
+                    f.name ||
+                    (f.email ? f.email.split("@")[0] : `User-${index}`),
+                profileImage: f.avatar || getAvatarUrl(f, index),
+                }))
+            : [];
+
+            setFriends(normalized);
         } catch (err) {
             console.error("Error fetching connections:", err);
             setFriends([]);
         } finally {
             setLoading(false);
         }
-        }
+        };
 
         fetchFriends();
     }, [user]);
@@ -370,8 +384,8 @@ export default function FriendsPage() {
                     onClick={() => navigate(`/profile/${friend._id}`)}
                 >
                     <img
-                    src={getAvatarUrl(friend, index)}
-                    alt={getDisplayName(friend)}
+                    src={friend.profileImage}
+                    alt={getDisplayName(friend, index)}
                     onError={(e) => {
                         e.currentTarget.src =
                         "https://via.placeholder.com/50?text=Avatar";
@@ -394,7 +408,7 @@ export default function FriendsPage() {
                         color: "#0073b1",
                         }}
                     >
-                        {getDisplayName(friend)}
+                        {getDisplayName(friend, index)}
                     </p>
                     {friend.occupation && (
                         <p
@@ -460,6 +474,12 @@ export default function FriendsPage() {
                             fontSize: "0.9rem",
                             color: "#333",
                         }}
+                        onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = "#f3f2ef")
+                        }
+                        onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = "transparent")
+                        }
                         >
                         Remove Connection
                         </button>
