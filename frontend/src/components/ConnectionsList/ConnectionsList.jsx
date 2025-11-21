@@ -34,12 +34,13 @@ export default function ConnectionsList({ connections }) {
     if (!connections || !connections.length) return <p>No connections yet.</p>;
 
     const getAvatar = (user, index) => {
+        // Priority: _id -> id -> firstName+lastName -> fallback index
         const seed =
         user?._id ||
         user?.id ||
-        user?.firstName || // fallback if no ID
-        user?.name || // fallback if no firstName
-        `user-${index}`; // final fallback
+        (user?.firstName && user?.lastName
+            ? user.firstName + user.lastName
+            : `user-${index}`);
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
         seed
         )}`;
@@ -53,24 +54,21 @@ export default function ConnectionsList({ connections }) {
 
     return (
         <ul className="connections-list">
-            {connections.map((user, i) => (
-            <li
-                key={String(user._id || user.id || i)}
-                className="connection-item"
-            >
-                <img
+        {connections.map((user, i) => (
+            <li key={user._id || user.id || i} className="connection-item">
+            <img
                 src={getAvatar(user, i)}
-                alt={`${user?.firstName || "Unknown"} ${
-                    user?.lastName || ""
-                }`.trim()}
+                alt={getDisplayName(user)}
                 onError={(e) => {
-                    e.currentTarget.src =
+                // Fallback to generic placeholder if DiceBear fails
+                e.currentTarget.src =
                     "https://via.placeholder.com/50?text=Avatar";
                 }}
-                />
-                <span className="connection-name">{getDisplayName(user)}</span>
+                className="connection-avatar"
+            />
+            <span className="connection-name">{getDisplayName(user)}</span>
             </li>
-            ))}
+        ))}
         </ul>
     );
 }
