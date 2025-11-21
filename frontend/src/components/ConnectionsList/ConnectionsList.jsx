@@ -31,6 +31,7 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
+    console.log("👀 ConnectionsList received:", connections);
     if (!connections || !connections.length) return <p>No connections yet.</p>;
 
     const getAvatar = (user, index) => {
