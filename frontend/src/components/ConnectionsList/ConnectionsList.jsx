@@ -31,19 +31,18 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
-    if (!connections || !connections.length) return <p>No connections yet.</p>;
+  if (!connections || !connections.length) return <p>No connections yet.</p>;
 
+  // Generate a valid avatar URL for DiceBear
     const getAvatar = (user, index) => {
-      // Always ensure seed is non-empty string
-        let seed = user?._id || user?.id;
-        if (!seed) {
-            seed = `connection-${index}`;
-        }
+        // Prefer _id, then id, else fallback to a unique string per index
+        const seed = user?._id || user?.id || `connection-${index}`;
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-            seed
+        seed
         )}`;
     };
 
+    // Generate a display name safely
     const getDisplayName = (user) => {
         const first = user?.firstName || user?.name || "Unknown";
         const last = user?.lastName || "";
@@ -57,12 +56,12 @@ export default function ConnectionsList({ connections }) {
             <img
                 src={getAvatar(user, i)}
                 alt={getDisplayName(user)}
+                className="connection-avatar"
                 onError={(e) => {
-                // Fallback to a generic placeholder if DiceBear fails
+                // Fallback if DiceBear fails
                 e.currentTarget.src =
                     "https://via.placeholder.com/50?text=Avatar";
                 }}
-                className="connection-avatar"
             />
             <span className="connection-name">{getDisplayName(user)}</span>
             </li>
