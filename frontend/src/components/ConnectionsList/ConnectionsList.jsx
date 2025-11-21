@@ -30,6 +30,7 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
+    console.log("🔥 ConnectionsList mounted!");
   // If no array or empty array
     if (!Array.isArray(connections) || connections.length === 0) {
         console.log("🔍 FULL CONNECTIONS LIST:", connections);
