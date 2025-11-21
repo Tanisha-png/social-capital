@@ -29,44 +29,49 @@
 import React from "react";
 import "./ConnectionsList.css";
 
-export default function ConnectionsList({ connections }) {
-    console.log("🐛 CONNECTIONS:", connections);
+// Utility to safely generate DiceBear avatar URLs
+const getAvatarUrl = (user, index) => {
+  if (!user) return "/default-avatar.png"; // fallback if user object is missing
 
-    if (!connections || !connections.length) return <p>No connections yet.</p>;
+    const seed =
+        user._id ||
+        user.id ||
+        user.email ||
+        user.username ||
+        (user.firstName && user.lastName
+        ? user.firstName + user.lastName
+        : `user-${index}`);
 
-    // Generate a consistent seed for DiceBear
-    const getSeed = (user, index) => {
-        // Use _id, id, or email/username; fallback to index
-        return (
-        user?._id ||
-        user?.id ||
-        user?.email ||
-        user?.username ||
-        (user?.firstName && user?.lastName
-            ? user.firstName + user.lastName
-            : `user-${index}`)
-        );
+    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+        seed
+    )}`;
     };
 
-    const getAvatarUrl = (user, index) =>
-        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-        getSeed(user, index)
-        )}`;
-
+    // Utility to get a safe display name
     const getDisplayName = (user) => {
-        const first = user?.firstName || user?.name || user?.username || "Unknown";
-        const last = user?.lastName || "";
-        return `${first} ${last}`.trim();
+    if (!user) return "Unknown User";
+
+    const first = user.firstName || user.name || user.username || "Unknown";
+    const last = user.lastName || "";
+    return `${first} ${last}`.trim();
     };
+
+    export default function ConnectionsList({ connections }) {
+    // Debugging: see what the component receives
+    console.log("🐛 ConnectionsList received:", connections);
+
+    if (!connections) return <p>Loading connections…</p>;
+    if (!connections.length) return <p>No connections yet.</p>;
 
     return (
         <ul className="connections-list">
-        {connections.map((user, i) => (
-            <li key={user._id || user.id || i} className="connection-item">
+        {connections.map((user, index) => (
+            <li key={user?._id || user?.id || index} className="connection-item">
             <img
-                src={getAvatarUrl(user, i)}
+                src={getAvatarUrl(user, index)}
                 alt={getDisplayName(user)}
                 onError={(e) => {
+                // Fallback if DiceBear fails
                 e.currentTarget.src =
                     "https://via.placeholder.com/50?text=Avatar";
                 }}
