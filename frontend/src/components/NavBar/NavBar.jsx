@@ -99,14 +99,8 @@ import "./NavBar.css";
 
 export default function NavBar() {
   const { user, logOut } = useAuth();
-  const { unreadByUser } = useMessageNotifications();
+  const { unreadCount } = useMessageNotifications(); // use single source of truth
   const navigate = useNavigate();
-
-  // Compute total unread dynamically
-  const totalUnread = Object.values(unreadByUser || {}).reduce(
-    (sum, val) => sum + val,
-    0
-  );
 
   const handleLogout = () => {
     logOut();
@@ -148,17 +142,15 @@ export default function NavBar() {
               Search
             </Link>
 
+            {/* Notifications */}
             <div className="nav-icon-wrapper" style={{ position: "relative" }}>
               <NotificationsDropdown />
             </div>
 
+            {/* Messages */}
             <div className="nav-icon-wrapper" style={{ position: "relative" }}>
               <MessagesDropdown />
-              {totalUnread > 0 && (
-                <span className="message-badge">
-                  {totalUnread > 9 ? "9+" : totalUnread}
-                </span>
-              )}
+              {/* Optional extra badge removed: MessagesDropdown already shows it */}
             </div>
 
             <button className="nav-button" onClick={handleLogout}>
