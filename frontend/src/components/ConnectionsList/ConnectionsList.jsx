@@ -34,10 +34,13 @@ export default function ConnectionsList({ connections }) {
     if (!connections || !connections.length) return <p>No connections yet.</p>;
 
     const getAvatar = (user, index) => {
-        // Use _id first, then id, then fallback seed based on index
-        const seed = user?._id || user?.id || `user-${index}`;
+      // Always ensure seed is non-empty string
+        let seed = user?._id || user?.id;
+        if (!seed) {
+            seed = `connection-${index}`;
+        }
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-        seed
+            seed
         )}`;
     };
 
