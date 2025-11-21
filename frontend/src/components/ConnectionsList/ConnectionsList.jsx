@@ -35,10 +35,10 @@ export default function ConnectionsList({ connections }) {
 
   // Generate a valid avatar URL for DiceBear
     const getAvatar = (user, index) => {
-        // Prefer _id, then id, else fallback to a unique string per index
         const seed = user?._id || user?.id || `connection-${index}`;
+        console.log(`[ConnectionsList] Avatar seed for user:`, user, `→`, seed);
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-        seed
+            seed
         )}`;
     };
 
