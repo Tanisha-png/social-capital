@@ -31,49 +31,39 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
-    if (!connections || !connections.length) return <p>No connections yet.</p>;
+  if (!connections || !connections.length) return <p>No connections yet.</p>;
 
-    const getAvatar = (user, index) => {
-        // Use _id first, then id, otherwise fallback to a generated seed
-        let seed = user?._id || user?.id || `user-${index}`;
-        console.log(`[ConnectionsList] Avatar seed for user:`, user, "→", seed);
+  const getAvatar = (user, index) => {
+    // Ensure seed is always a string
+    const seed = String(user?._id || user?.id || `user-${index}`);
+    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+      seed
+    )}`;
+  };
 
-        // Construct DiceBear URL
-        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-        seed
-        )}`;
-    };
+  const getDisplayName = (user) => {
+    const first = user?.firstName || user?.name || "Unknown";
+    const last = user?.lastName || "";
+    return `${first} ${last}`.trim();
+  };
 
-    const getDisplayName = (user) => {
-        const first = user?.firstName || user?.name || "Unknown";
-        const last = user?.lastName || "";
-        return `${first} ${last}`.trim();
-    };
-
-    return (
-        <ul className="connections-list">
-        {connections.map((user, i) => {
-            const avatarUrl = getAvatar(user, i);
-            return (
-            <li key={user._id || user.id || i} className="connection-item">
-                <img
-                src={avatarUrl}
-                alt={getDisplayName(user)}
-                className="connection-avatar"
-                onError={(e) => {
-                    console.warn(
-                    `[ConnectionsList] Avatar failed to load for user:`,
-                    user,
-                    "→ using placeholder"
-                    );
-                    e.currentTarget.src =
-                    "https://via.placeholder.com/50?text=Avatar";
-                }}
-                />
-                <span className="connection-name">{getDisplayName(user)}</span>
-            </li>
-            );
-        })}
-        </ul>
-    );
+  return (
+    <ul className="connections-list">
+      {connections.map((user, i) => (
+        <li key={String(user._id || user.id || i)} className="connection-item">
+          <img
+            src={getAvatar(user, i)}
+            alt={getDisplayName(user)}
+            onError={(e) => {
+              // Fallback if DiceBear fails
+              e.currentTarget.src =
+                "https://via.placeholder.com/50?text=Avatar";
+            }}
+            className="connection-avatar"
+          />
+          <span className="connection-name">{getDisplayName(user)}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
