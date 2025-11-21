@@ -31,18 +31,19 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
-  if (!connections || !connections.length) return <p>No connections yet.</p>;
+    if (!connections || !connections.length) return <p>No connections yet.</p>;
 
-  // Generate a valid avatar URL for DiceBear
     const getAvatar = (user, index) => {
-        const seed = user?._id || user?.id || `connection-${index}`;
-        console.log(`[ConnectionsList] Avatar seed for user:`, user, `→`, seed);
+        // Use _id first, then id, otherwise fallback to a generated seed
+        let seed = user?._id || user?.id || `user-${index}`;
+        console.log(`[ConnectionsList] Avatar seed for user:`, user, "→", seed);
+
+        // Construct DiceBear URL
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-            seed
+        seed
         )}`;
     };
 
-    // Generate a display name safely
     const getDisplayName = (user) => {
         const first = user?.firstName || user?.name || "Unknown";
         const last = user?.lastName || "";
@@ -51,21 +52,28 @@ export default function ConnectionsList({ connections }) {
 
     return (
         <ul className="connections-list">
-        {connections.map((user, i) => (
+        {connections.map((user, i) => {
+            const avatarUrl = getAvatar(user, i);
+            return (
             <li key={user._id || user.id || i} className="connection-item">
-            <img
-                src={getAvatar(user, i)}
+                <img
+                src={avatarUrl}
                 alt={getDisplayName(user)}
                 className="connection-avatar"
                 onError={(e) => {
-                // Fallback if DiceBear fails
-                e.currentTarget.src =
+                    console.warn(
+                    `[ConnectionsList] Avatar failed to load for user:`,
+                    user,
+                    "→ using placeholder"
+                    );
+                    e.currentTarget.src =
                     "https://via.placeholder.com/50?text=Avatar";
                 }}
-            />
-            <span className="connection-name">{getDisplayName(user)}</span>
+                />
+                <span className="connection-name">{getDisplayName(user)}</span>
             </li>
-        ))}
+            );
+        })}
         </ul>
     );
 }
