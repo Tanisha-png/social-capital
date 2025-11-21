@@ -29,39 +29,39 @@
 import React from "react";
 import "./ConnectionsList.css";
 
-// Utility to safely generate DiceBear avatar URLs
-const getAvatarUrl = (user, index) => {
-  if (!user) return "/default-avatar.png"; // fallback if user object is missing
+export default function ConnectionsList({ connections }) {
+  // Fallback message if no connections
+    if (!connections || !connections.length) return <p>No connections yet.</p>;
 
-    const seed =
+    // Robust avatar URL generator
+    const getAvatarUrl = (user, index) => {
+        if (!user) return "https://via.placeholder.com/50?text=Avatar";
+
+        // Use the first available property as seed
+        let seed =
         user._id ||
         user.id ||
         user.email ||
         user.username ||
-        (user.firstName && user.lastName
-        ? user.firstName + user.lastName
-        : `user-${index}`);
+        (user.firstName && user.lastName ? user.firstName + user.lastName : null);
 
-    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+        // Fallback to index-based seed if nothing available
+        if (!seed) seed = `user-${index}`;
+
+        // Encode seed to ensure URL-safe string
+        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
         seed
-    )}`;
+        )}`;
     };
 
-    // Utility to get a safe display name
+    // Robust display name generator
     const getDisplayName = (user) => {
-    if (!user) return "Unknown User";
+        if (!user) return "Unknown User";
 
-    const first = user.firstName || user.name || user.username || "Unknown";
-    const last = user.lastName || "";
-    return `${first} ${last}`.trim();
+        const first = user.firstName || user.name || user.username || "Unknown";
+        const last = user.lastName || "";
+        return `${first} ${last}`.trim();
     };
-
-    export default function ConnectionsList({ connections }) {
-    // Debugging: see what the component receives
-    console.log("🐛 ConnectionsList received:", connections);
-
-    if (!connections) return <p>Loading connections…</p>;
-    if (!connections.length) return <p>No connections yet.</p>;
 
     return (
         <ul className="connections-list">
@@ -70,12 +70,12 @@ const getAvatarUrl = (user, index) => {
             <img
                 src={getAvatarUrl(user, index)}
                 alt={getDisplayName(user)}
+                className="connection-avatar"
                 onError={(e) => {
-                // Fallback if DiceBear fails
+                // Fallback placeholder if DiceBear fails
                 e.currentTarget.src =
                     "https://via.placeholder.com/50?text=Avatar";
                 }}
-                className="connection-avatar"
             />
             <span className="connection-name">{getDisplayName(user)}</span>
             </li>
