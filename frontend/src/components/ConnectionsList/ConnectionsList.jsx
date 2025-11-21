@@ -34,17 +34,26 @@ export default function ConnectionsList({ connections }) {
     if (!connections || !connections.length) return <p>No connections yet.</p>;
 
     const getAvatar = (user) => {
-        if (!user?._id) return "/default-avatar.png";
-        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user._id}`;
+        // Normalize ID
+        const id = user?._id || user?.id;
+        if (!id) return "/default-avatar.png"; // fallback
+
+        // Encode to ensure valid URL
+        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+        id
+        )}`;
     };
 
     return (
         <ul className="connections-list">
         {connections.map((c) => (
-            <li key={c._id}>
-            <img src={getAvatar(c)} alt={`${c.firstName} ${c.lastName}`} />
+            <li key={c._id || c.id}>
+            <img
+                src={getAvatar(c)}
+                alt={`${c.firstName || ""} ${c.lastName || ""}`.trim() || "User"}
+            />
             <span>
-                {c.firstName} {c.lastName}
+                {c.firstName || "Unknown"} {c.lastName || ""}
             </span>
             </li>
         ))}
