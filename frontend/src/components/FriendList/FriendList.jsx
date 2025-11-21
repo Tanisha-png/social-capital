@@ -1,8 +1,122 @@
+// import React, { useEffect, useState } from "react";
+// import { getFriends, removeFriend } from "../../api/userApi";
+
+// const FriendList = ({ token, onMessage, onSelectUser }) => {
+//     console.log("🐛 FRIEND DATA:", friends);
+//     const [friends, setFriends] = useState([]);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState("");
+
+//     useEffect(() => {
+//         const fetchFriends = async () => {
+//         try {
+//             const data = await getFriends(token);
+//             setFriends(data);
+//         } catch (err) {
+//             setError("Failed to fetch friends.");
+//         } finally {
+//             setLoading(false);
+//         }
+//         };
+//         fetchFriends();
+//     }, [token]);
+
+//     const handleRemove = async (id) => {
+//         await removeFriend(id, token);
+//         setFriends((prev) => prev.filter((f) => f._id !== id));
+//     };
+
+//     if (loading) return <p>Loading friends...</p>;
+//     if (error) return <p className="text-red-500">{error}</p>;
+
+//     return (
+//         <div className="p-4 bg-white rounded-2xl shadow-md">
+//             <h2 className="text-xl font-bold mb-4">My Friends</h2>
+//             {friends.length === 0 ? (
+//             <p className="text-gray-500">You don’t have any friends yet.</p>
+//             ) : (
+//             <ul className="divide-y divide-gray-200">
+//                 {friends.map((friend) => (
+//                 <li
+//                     key={friend._id}
+//                     className="p-3 flex justify-between items-center hover:bg-gray-50 rounded-lg cursor-pointer"
+//                     onClick={() => onSelectUser && onSelectUser(friend)}
+//                 >
+//                     <div className="flex items-center gap-3">
+//                     {/* <img
+//                             src={friend.avatar || "/default-avatar.png"}
+//                             alt={friend.username || friend.name}
+//                             className="w-10 h-10 rounded-full border-2 border-blue-500"
+//                             /> */}
+//                     <img
+//                         src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+//                         friend._id ||
+//                             friend.id ||
+//                             friend.email ||
+//                             friend.username ||
+//                             `user-${friend._id}`
+//                         )}`}
+//                         alt={
+//                         friend.firstName ||
+//                         friend.name ||
+//                         friend.username ||
+//                         "User"
+//                         }
+//                         onError={(e) => {
+//                         e.currentTarget.src =
+//                             "https://via.placeholder.com/50?text=Avatar";
+//                         }}
+//                         className="w-10 h-10 rounded-full border-2 border-blue-500"
+//                     />
+//                     <div>
+//                         {/* <p className="font-semibold">
+//                             {friend.name || friend.username}
+//                             </p> */}
+//                         <p className="font-semibold">
+//                         {friend.firstName ||
+//                             friend.name ||
+//                             friend.username ||
+//                             "Unknown"}
+//                         </p>
+//                         <p className="text-sm text-gray-600">{friend.email}</p>
+//                     </div>
+//                     </div>
+//                     <div className="flex gap-2">
+//                     {onMessage && (
+//                         <button
+//                         onClick={(e) => {
+//                             e.stopPropagation();
+//                             onMessage(friend);
+//                         }}
+//                         className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+//                         >
+//                         Message
+//                         </button>
+//                     )}
+//                     <button
+//                         onClick={(e) => {
+//                         e.stopPropagation();
+//                         handleRemove(friend._id);
+//                         }}
+//                         className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600"
+//                     >
+//                         Remove
+//                     </button>
+//                     </div>
+//                 </li>
+//                 ))}
+//             </ul>
+//             )}
+//         </div>
+//     );
+// };
+
+// export default FriendList;
+
 import React, { useEffect, useState } from "react";
 import { getFriends, removeFriend } from "../../api/userApi";
 
 const FriendList = ({ token, onMessage, onSelectUser }) => {
-    console.log("🐛 FRIEND DATA:", friends);
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -11,7 +125,7 @@ const FriendList = ({ token, onMessage, onSelectUser }) => {
         const fetchFriends = async () => {
         try {
             const data = await getFriends(token);
-            setFriends(data);
+            setFriends(data || []);
         } catch (err) {
             setError("Failed to fetch friends.");
         } finally {
@@ -26,87 +140,80 @@ const FriendList = ({ token, onMessage, onSelectUser }) => {
         setFriends((prev) => prev.filter((f) => f._id !== id));
     };
 
+    const getSeed = (friend, index) =>
+        friend?._id ||
+        friend?.id ||
+        friend?.email ||
+        friend?.username ||
+        `user-${index}`;
+
+    const getAvatarUrl = (friend, index) =>
+        `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
+        getSeed(friend, index)
+        )}`;
+
+    const getDisplayName = (friend) => {
+        const first =
+        friend?.firstName || friend?.name || friend?.username || "Unknown";
+        const last = friend?.lastName || "";
+        return `${first} ${last}`.trim();
+    };
+
     if (loading) return <p>Loading friends...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
+    if (!friends.length)
+        return <p className="text-gray-500">You don’t have any friends yet.</p>;
 
     return (
         <div className="p-4 bg-white rounded-2xl shadow-md">
-            <h2 className="text-xl font-bold mb-4">My Friends</h2>
-            {friends.length === 0 ? (
-            <p className="text-gray-500">You don’t have any friends yet.</p>
-            ) : (
-            <ul className="divide-y divide-gray-200">
-                {friends.map((friend) => (
-                <li
-                    key={friend._id}
-                    className="p-3 flex justify-between items-center hover:bg-gray-50 rounded-lg cursor-pointer"
-                    onClick={() => onSelectUser && onSelectUser(friend)}
-                >
-                    <div className="flex items-center gap-3">
-                    {/* <img
-                            src={friend.avatar || "/default-avatar.png"}
-                            alt={friend.username || friend.name}
-                            className="w-10 h-10 rounded-full border-2 border-blue-500"
-                            /> */}
-                    <img
-                        src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-                        friend._id ||
-                            friend.id ||
-                            friend.email ||
-                            friend.username ||
-                            `user-${friend._id}`
-                        )}`}
-                        alt={
-                        friend.firstName ||
-                        friend.name ||
-                        friend.username ||
-                        "User"
-                        }
-                        onError={(e) => {
-                        e.currentTarget.src =
-                            "https://via.placeholder.com/50?text=Avatar";
-                        }}
-                        className="w-10 h-10 rounded-full border-2 border-blue-500"
-                    />
-                    <div>
-                        {/* <p className="font-semibold">
-                            {friend.name || friend.username}
-                            </p> */}
-                        <p className="font-semibold">
-                        {friend.firstName ||
-                            friend.name ||
-                            friend.username ||
-                            "Unknown"}
-                        </p>
-                        <p className="text-sm text-gray-600">{friend.email}</p>
-                    </div>
-                    </div>
-                    <div className="flex gap-2">
-                    {onMessage && (
-                        <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onMessage(friend);
-                        }}
-                        className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                        >
-                        Message
-                        </button>
-                    )}
+        <h2 className="text-xl font-bold mb-4">My Friends</h2>
+        <ul className="divide-y divide-gray-200">
+            {friends.map((friend, index) => (
+            <li
+                key={friend._id || friend.id || index}
+                className="p-3 flex justify-between items-center hover:bg-gray-50 rounded-lg cursor-pointer"
+                onClick={() => onSelectUser && onSelectUser(friend)}
+            >
+                <div className="flex items-center gap-3">
+                <img
+                    src={getAvatarUrl(friend, index)}
+                    alt={getDisplayName(friend)}
+                    onError={(e) => {
+                    e.currentTarget.src =
+                        "https://via.placeholder.com/50?text=Avatar";
+                    }}
+                    className="w-10 h-10 rounded-full border-2 border-blue-500"
+                />
+                <div>
+                    <p className="font-semibold">{getDisplayName(friend)}</p>
+                    <p className="text-sm text-gray-600">{friend.email || ""}</p>
+                </div>
+                </div>
+                <div className="flex gap-2">
+                {onMessage && (
                     <button
-                        onClick={(e) => {
+                    onClick={(e) => {
                         e.stopPropagation();
-                        handleRemove(friend._id);
-                        }}
-                        className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        onMessage(friend);
+                    }}
+                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                     >
-                        Remove
+                    Message
                     </button>
-                    </div>
-                </li>
-                ))}
-            </ul>
-            )}
+                )}
+                <button
+                    onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(friend._id);
+                    }}
+                    className="px-3 py-1 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600"
+                >
+                    Remove
+                </button>
+                </div>
+            </li>
+            ))}
+        </ul>
         </div>
     );
 };
