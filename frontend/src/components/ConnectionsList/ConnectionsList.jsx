@@ -30,56 +30,80 @@ import React from "react";
 import "./ConnectionsList.css";
 
 export default function ConnectionsList({ connections }) {
-  // Fallback message if no connections
-    if (!connections || !connections.length) return <p>No connections yet.</p>;
+  // If no array or empty array
+    if (!Array.isArray(connections) || connections.length === 0) {
+        return <p>No connections yet.</p>;
+    }
 
-    // Robust avatar URL generator
+    // --- 100% Bulletproof Avatar Generator ---
     const getAvatarUrl = (user, index) => {
-        if (!user) return "https://via.placeholder.com/50?text=Avatar";
+        if (!user || typeof user !== "object") {
+        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=unknown-${index}`;
+        }
 
-        // Use the first available property as seed
+        // Try all fields in priority order
         let seed =
         user._id ||
         user.id ||
         user.email ||
         user.username ||
-        (user.firstName && user.lastName ? user.firstName + user.lastName : null);
+        (user.firstName && user.lastName
+            ? `${user.firstName}-${user.lastName}`
+            : null);
 
-        // Fallback to index-based seed if nothing available
-        if (!seed) seed = `user-${index}`;
+        // If user object is empty or missing all fields
+        if (!seed || typeof seed !== "string") {
+        seed = `user-${index}`;
+        }
 
-        // Encode seed to ensure URL-safe string
         return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
         seed
         )}`;
     };
 
-    // Robust display name generator
-    const getDisplayName = (user) => {
-        if (!user) return "Unknown User";
+    // --- 100% Bulletproof Display Name ---
+    const getDisplayName = (user, index) => {
+        if (!user || typeof user !== "object") {
+        return `Unknown User ${index + 1}`;
+        }
 
-        const first = user.firstName || user.name || user.username || "Unknown";
+        const first =
+        user.firstName ||
+        user.name ||
+        user.username ||
+        user.email ||
+        `User${index + 1}`;
+
         const last = user.lastName || "";
+
         return `${first} ${last}`.trim();
     };
 
     return (
         <ul className="connections-list">
-        {connections.map((user, index) => (
-            <li key={user?._id || user?.id || index} className="connection-item">
-            <img
-                src={getAvatarUrl(user, index)}
-                alt={getDisplayName(user)}
+        {connections.map((user, index) => {
+            const avatar = getAvatarUrl(user, index);
+            const name = getDisplayName(user, index);
+
+            return (
+            <li
+                key={user?._id || user?.id || `conn-${index}`}
+                className="connection-item"
+            >
+                <img
+                src={avatar}
+                alt={name}
                 className="connection-avatar"
                 onError={(e) => {
-                // Fallback placeholder if DiceBear fails
-                e.currentTarget.src =
-                    "https://via.placeholder.com/50?text=Avatar";
+                    // Ensure fallback is also DiceBear, never broken
+                    e.currentTarget.src = `https://api.dicebear.com/9.x/pixel-art/svg?seed=fallback-${index}`;
                 }}
-            />
-            <span className="connection-name">{getDisplayName(user)}</span>
+                />
+
+                <span className="connection-name">{name}</span>
             </li>
-        ))}
+            );
+        })}
         </ul>
     );
 }
