@@ -242,7 +242,8 @@ export const MessageProvider = ({ children }) => {
     if (!userId) return;
 
     try {
-      const data = (await getUnreadCountsByUser())?.data || [];
+      // const data = (await getUnreadCountsByUser())?.data || [];
+      const data = await getUnreadCountsByUser();
       const map = {};
       data.forEach((item) => {
         if (item?._id) map[item._id] = Number(item.count) || 0;
