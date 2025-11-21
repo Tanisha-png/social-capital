@@ -233,11 +233,11 @@ export default function FriendsPage() {
     const navigate = useNavigate();
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [openMenuId, setOpenMenuId] = useState(null); // dropdown tracker
-    const menuRefs = useRef({}); // store refs for dropdowns
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const menuRefs = useRef({});
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-    // Robust DiceBear URL generator
+    // Fully robust DiceBear avatar URL generator
     const getAvatarUrl = (friend, index) => {
         if (!friend) return "https://via.placeholder.com/50?text=Avatar";
 
@@ -255,14 +255,24 @@ export default function FriendsPage() {
         )}`;
     };
 
-    // Safe display name generator
+    // Fully bulletproof display name generator
     const getDisplayName = (friend) => {
-        if (!friend) return "Unknown User";
+        if (!friend) return "User";
 
-        const first =
-        friend.firstName || friend.name || friend.username || "Unknown";
-        const last = friend.lastName || "";
-        return `${first} ${last}`.trim();
+        // Use first+last if present
+        if (friend.firstName || friend.lastName) {
+        return `${friend.firstName || ""} ${friend.lastName || ""}`.trim();
+        }
+
+        // Fallback to name or username
+        if (friend.name) return friend.name;
+        if (friend.username) return friend.username;
+
+        // Fallback to email
+        if (friend.email) return friend.email.split("@")[0]; // show name part of email
+
+        // Final fallback
+        return "User";
     };
 
     // Fetch user's connections
