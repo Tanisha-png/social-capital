@@ -218,8 +218,16 @@ export const MessageProvider = ({ children }) => {
     if (seenMessageIds.current.has(msg._id)) return;
     seenMessageIds.current.add(msg._id);
 
-    const senderId = msg.sender?._id || msg.senderId;
-    const receiverId = msg.receiver?._id || msg.receiverId;
+    // Robust sender/receiver detection
+    const senderId = msg.sender?._id || msg.senderId || msg.from || msg.fromId;
+
+    const receiverId =
+      msg.recipient?._id ||
+      msg.recipientId ||
+      msg.receiver?._id ||
+      msg.receiverId ||
+      msg.to ||
+      msg.toId;
 
     // If message is for THIS user -> increase unread count
     if (receiverId === userId) {
