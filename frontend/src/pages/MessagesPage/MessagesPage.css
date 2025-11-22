@@ -248,3 +248,16 @@
     font-weight: bold;
     margin-left: auto;
 }
+
+.sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sidebar-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
