@@ -210,7 +210,7 @@ export const MessageProvider = ({ children }) => {
   const installedOnce = useRef(false);
 
   /** ------------------------------------------------------
-   * Handle a NEW incoming message (socket or local send)
+   * Handle NEW incoming message
    * ------------------------------------------------------ */
   const handleIncomingMessage = (msg) => {
     if (!msg?._id) return;
@@ -221,32 +221,32 @@ export const MessageProvider = ({ children }) => {
     const senderId = msg.sender?._id || msg.senderId;
     const receiverId = msg.receiver?._id || msg.receiverId;
 
-    // Count unread ONLY if message is for this user
+    // If message is for THIS user -> increase unread count
     if (receiverId === userId) {
       setUnreadByUser((prev) => {
         const updated = {
           ...prev,
           [senderId]: (prev[senderId] || 0) + 1,
         };
+
         setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
         return updated;
       });
     }
 
-    // Avoid duplicates in state
     setMessages((prev) =>
       prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]
     );
   };
 
   /** ------------------------------------------------------
-   * Load unread count from server
+   * Load unread counts
    * ------------------------------------------------------ */
   const fetchUnreadCounts = async () => {
     if (!userId) return;
 
     try {
-      const data = await getUnreadCountsByUser(); // returns [{ _id: senderId, count: X }]
+      const data = await getUnreadCountsByUser();
 
       const map = {};
       data.forEach((item) => {
@@ -259,7 +259,7 @@ export const MessageProvider = ({ children }) => {
 
       initialFetchDone.current = true;
 
-      // Process buffered messages
+      // now process buffered socket messages
       socketBuffer.current.forEach((msg) => handleIncomingMessage(msg));
       socketBuffer.current = [];
     } catch (err) {
@@ -268,7 +268,7 @@ export const MessageProvider = ({ children }) => {
   };
 
   /** ------------------------------------------------------
-   * Reset when user changes or logs out
+   * Reset on logout or user switch
    * ------------------------------------------------------ */
   useEffect(() => {
     if (!userId) {
@@ -280,6 +280,7 @@ export const MessageProvider = ({ children }) => {
       initialFetchDone.current = false;
       return;
     }
+
     fetchUnreadCounts();
   }, [userId]);
 
@@ -288,7 +289,7 @@ export const MessageProvider = ({ children }) => {
    * ------------------------------------------------------ */
   useEffect(() => {
     if (!socket || !userId) return;
-    if (installedOnce.current) return; // install ONCE
+    if (installedOnce.current) return;
 
     installedOnce.current = true;
     console.log("%c[MessageContext] Socket listeners installed", "color:#4fa");
@@ -328,10 +329,8 @@ export const MessageProvider = ({ children }) => {
     try {
       const savedMsg = await apiSendMessage(recipientId, text);
 
-      // Immediately add locally
       handleIncomingMessage(savedMsg);
 
-      // Emit to server
       socket?.emit("send_message", {
         senderId: userId,
         receiverId: recipientId,
@@ -346,7 +345,7 @@ export const MessageProvider = ({ children }) => {
   };
 
   /** ------------------------------------------------------
-   * Mark as read
+   * Mark messages as read
    * ------------------------------------------------------ */
   const markMessagesRead = async (senderId = null) => {
     try {
@@ -369,6 +368,13 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  /** ------------------------------------------------------
+   * HELPER: does a specific user have unread messages?
+   * ------------------------------------------------------ */
+  const hasUnreadFrom = (senderId) => {
+    return unreadByUser[senderId] > 0;
+  };
+
   return (
     <MessageContext.Provider
       value={{
@@ -377,6 +383,7 @@ export const MessageProvider = ({ children }) => {
         unreadCount,
         sendMessage,
         markMessagesRead,
+        hasUnreadFrom,
       }}
     >
       {children}
