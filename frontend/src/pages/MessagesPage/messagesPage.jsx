@@ -236,17 +236,26 @@ export default function MessagesPage() {
   const [loadingError, setLoadingError] = useState(null);
   const messagesEndRef = useRef(null);
 
+  // --------------------------------------
+  // Initialize
+  // --------------------------------------
   useEffect(() => {
     if (!initialized) return;
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
+  // --------------------------------------
+  // Socket setup
+  // --------------------------------------
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect?.();
   }, [authToken, user?._id]);
 
+  // --------------------------------------
+  // Load conversations and friends
+  // --------------------------------------
   useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
@@ -278,6 +287,9 @@ export default function MessagesPage() {
     return () => (cancelled = true);
   }, [authToken]);
 
+  // --------------------------------------
+  // Sidebar users
+  // --------------------------------------
   const getSidebarUsers = () => {
     const map = new Map();
     (friends || []).forEach(
@@ -304,19 +316,25 @@ export default function MessagesPage() {
     return merged;
   };
 
+  // --------------------------------------
+  // Select a user
+  // --------------------------------------
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      markMessagesRead(otherUser._id); // ✅ Always update central context
+      markMessagesRead(otherUser._id); // mark as read
     } catch (err) {
       console.error(err);
       setMessages([]);
     }
   };
 
+  // --------------------------------------
+  // Send message
+  // --------------------------------------
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
@@ -325,8 +343,10 @@ export default function MessagesPage() {
       const created = await sendMessage(selectedUser._id, newMessage.trim());
       setMessages((prev) => [...prev, created]);
       setNewMessage("");
+
       const otherUser =
         created.sender?._id === user._id ? created.recipient : created.sender;
+
       setConversations((prev) => {
         const prevArr = Array.isArray(prev) ? [...prev] : [];
         const idx = prevArr.findIndex(
@@ -336,12 +356,16 @@ export default function MessagesPage() {
         else prevArr[idx] = { ...prevArr[idx], lastMessage: created };
         return prevArr;
       });
+
       socketAPI.getSocket()?.emit("sendMessage", created);
     } catch (err) {
       console.error(err);
     }
   };
 
+  // --------------------------------------
+  // Auto-scroll to latest message
+  // --------------------------------------
   useEffect(
     () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
     [messages]
@@ -349,12 +373,17 @@ export default function MessagesPage() {
 
   const sidebarUsers = getSidebarUsers();
 
+  // --------------------------------------
+  // Render
+  // --------------------------------------
   return (
     <div className="linkedin-messages">
+      {/* Sidebar */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
         </div>
+
         {loading ? (
           <p className="loading">Loading...</p>
         ) : loadingError ? (
@@ -362,6 +391,8 @@ export default function MessagesPage() {
         ) : sidebarUsers.length ? (
           sidebarUsers.map(({ otherUser, lastMessage }) => {
             if (!otherUser?._id) return null;
+            const unreadCountForUser = unreadByUser?.[otherUser._id] || 0;
+
             return (
               <div
                 key={otherUser._id}
@@ -381,10 +412,17 @@ export default function MessagesPage() {
                       {otherUser.firstName} {otherUser.lastName}
                     </div>
 
-                    {/* 🔵 Unread Dot */}
-                    {unreadByUser?.[otherUser._id] > 0 &&
+                    {/* 🔵 Unread Dot and badge */}
+                    {unreadCountForUser > 0 &&
                       selectedUser?._id !== otherUser._id && (
-                        <span className="sidebar-dot"></span>
+                        <>
+                          <span className="sidebar-dot"></span>
+                          {unreadCountForUser > 1 && (
+                            <span className="sidebar-unread-badge">
+                              {unreadCountForUser}
+                            </span>
+                          )}
+                        </>
                       )}
                   </div>
                   <div className="sidebar-sub">
@@ -392,7 +430,10 @@ export default function MessagesPage() {
                       <span className="muted small">
                         {new Date(lastMessage.createdAt).toLocaleTimeString(
                           [],
-                          { hour: "2-digit", minute: "2-digit" }
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
                         )}
                       </span>
                     ) : (
@@ -408,6 +449,7 @@ export default function MessagesPage() {
         )}
       </div>
 
+      {/* Chat Area */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
