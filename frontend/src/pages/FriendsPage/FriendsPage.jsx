@@ -229,267 +229,246 @@ import { removeFriend } from "../../api/userApi";
 import { MoreHorizontal } from "lucide-react";
 
 export default function FriendsPage() {
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const [friends, setFriends] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [openMenuId, setOpenMenuId] = useState(null); // dropdown tracker
-    const menuRefs = useRef({});
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [friends, setFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState(null); // dropdown tracker
+  const menuRefs = useRef({});
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-    // Generate a robust DiceBear URL for any friend
-    const getAvatarUrl = (friend, index) => {
-        if (!friend) return "https://via.placeholder.com/50?text=Avatar";
+  // Generate a robust DiceBear URL for any friend
+  const getAvatarUrl = (friend, index) => {
+    if (!friend) return "https://via.placeholder.com/50?text=Avatar";
 
-        const seed =
-        friend._id ||
-        friend.id ||
-        friend.email ||
-        friend.username ||
-        (friend.firstName && friend.lastName
-            ? friend.firstName + friend.lastName
-            : `user-${index}`);
+    const seed =
+      friend._id ||
+      friend.id ||
+      friend.email ||
+      friend.username ||
+      (friend.firstName && friend.lastName
+        ? friend.firstName + friend.lastName
+        : `user-${index}`);
 
-        return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(
-        seed
-        )}`;
-    };
+    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}`;
+  };
 
-    // Normalize and sanitize display name
-    const getDisplayName = (friend, index) => {
-        if (!friend) return `User-${index}`;
+  // Normalize and sanitize display name
+  const getDisplayName = (friend, index) => {
+    if (!friend) return `User-${index}`;
 
-        // Priority: firstName + lastName -> name -> username -> email prefix -> fallback
-        const first =
-        friend.firstName ||
-        friend.name ||
-        friend.username ||
-        (friend.email ? friend.email.split("@")[0] : `User-${index}`);
-        const last = friend.lastName || "";
+    // Priority: firstName + lastName -> name -> username -> email prefix -> fallback
+    const first =
+      friend.firstName ||
+      friend.name ||
+      friend.username ||
+      (friend.email ? friend.email.split("@")[0] : `User-${index}`);
+    const last = friend.lastName || "";
 
-        return `${first} ${last}`.trim();
-    };
+    return `${first} ${last}`.trim();
+  };
 
-    // Fetch and normalize connections
-    useEffect(() => {
-        if (!user) return;
+  // Fetch and normalize connections
+  useEffect(() => {
+    if (!user) return;
 
-        const fetchFriends = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${BACKEND_URL}/api/connections`, {
-            headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!res.ok) throw new Error("Failed to fetch connections");
-
-            const data = await res.json();
-
-            // Normalize each friend
-            const normalized = Array.isArray(data)
-            ? data.map((f, index) => ({
-                ...f,
-                firstName:
-                    f.firstName ||
-                    f.name ||
-                    f.username ||
-                    (f.email ? f.email.split("@")[0] : `User-${index}`),
-                lastName: f.lastName || "",
-                username:
-                    f.username ||
-                    f.name ||
-                    (f.email ? f.email.split("@")[0] : `User-${index}`),
-                profileImage: f.avatar || getAvatarUrl(f, index),
-                }))
-            : [];
-
-            setFriends(normalized);
-        } catch (err) {
-            console.error("Error fetching connections:", err);
-            setFriends([]);
-        } finally {
-            setLoading(false);
-        }
-        };
-
-        fetchFriends();
-    }, [user]);
-
-    // Remove a connection
-    const handleRemove = async (friendId) => {
-        if (!window.confirm("Are you sure you want to remove this connection?"))
-        return;
-
-        try {
+    const fetchFriends = async () => {
+      try {
         const token = localStorage.getItem("token");
-        await removeFriend(friendId, token);
-        setFriends((prev) => prev.filter((f) => f._id !== friendId));
-        setOpenMenuId(null);
-        } catch (err) {
-        console.error("Error removing connection:", err);
-        }
+        const res = await fetch(`${BACKEND_URL}/api/connections`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch connections");
+
+        const data = await res.json();
+
+        // Normalize each friend
+        const normalized = Array.isArray(data)
+          ? data.map((f, index) => ({
+              ...f,
+              firstName:
+                f.firstName || f.name || f.username || (f.email ? f.email.split("@")[0] : `User-${index}`),
+              lastName: f.lastName || "",
+              username: f.username || f.name || (f.email ? f.email.split("@")[0] : `User-${index}`),
+              profileImage: f.avatar || getAvatarUrl(f, index),
+            }))
+          : [];
+
+        setFriends(normalized);
+      } catch (err) {
+        console.error("Error fetching connections:", err);
+        setFriends([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Toggle dropdown
-    const toggleMenu = (friendId) => {
-        setOpenMenuId((prev) => (prev === friendId ? null : friendId));
-    };
+    fetchFriends();
+  }, [user]);
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-        if (openMenuId && menuRefs.current[openMenuId]) {
-            if (!menuRefs.current[openMenuId].contains(e.target)) {
-            setOpenMenuId(null);
-            }
+  // Remove a connection
+  const handleRemove = async (friendId) => {
+    if (!window.confirm("Are you sure you want to remove this connection?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await removeFriend(friendId, token);
+      setFriends((prev) => prev.filter((f) => f._id !== friendId));
+      setOpenMenuId(null);
+    } catch (err) {
+      console.error("Error removing connection:", err);
+    }
+  };
+
+  // Toggle dropdown
+  const toggleMenu = (friendId) => {
+    setOpenMenuId((prev) => (prev === friendId ? null : friendId));
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openMenuId && menuRefs.current[openMenuId]) {
+        if (!menuRefs.current[openMenuId].contains(e.target)) {
+          setOpenMenuId(null);
         }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [openMenuId]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuId]);
 
-    if (!user || loading) return <p>Loading connections...</p>;
+  if (!user || loading) return <p>Loading connections...</p>;
 
-    return (
-        <div className="friends-page" style={{ padding: "20px" }}>
-        <h2 style={{ marginBottom: "20px" }}>Your Connections</h2>
+  return (
+    <div className="friends-page" style={{ padding: "20px" }}>
+      <h2 style={{ marginBottom: "20px" }}>Your Connections</h2>
 
-        {friends.length === 0 ? (
-            <p>You don’t have any connections yet.</p>
-        ) : (
-            <ul style={{ listStyle: "none", padding: 0 }}>
-            {friends.map((friend, index) => (
-                <li
-                key={friend._id || index}
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "12px",
-                    padding: "10px 14px",
-                    border: "1px solid #ddd",
-                    borderRadius: "10px",
-                    position: "relative",
-                    backgroundColor: "#fff",
-                    transition: "box-shadow 0.2s ease",
-                }}
-                >
-                {/* Friend info */}
-                <div
+      {friends.length === 0 ? (
+        <p>You don’t have any connections yet.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {friends.map((friend, index) => (
+            <li
+              key={friend._id || index}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "12px",
+                padding: "10px 14px",
+                border: "1px solid #ddd",
+                borderRadius: "10px",
+                position: "relative",
+                backgroundColor: "#fff",
+                transition: "box-shadow 0.2s ease",
+              }}
+            >
+              {/* Friend info */}
+              <div
+                style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+                onClick={() => navigate(`/profile/${friend._id}`)}
+              >
+                <img
+                  src={friend.profileImage}
+                  alt={getDisplayName(friend, index)}
+                  onError={(e) => {
+                    e.currentTarget.src = "https://via.placeholder.com/50?text=Avatar";
+                  }}
+                  style={{
+                    width: 55,
+                    height: 55,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    marginRight: 12,
+                    border: "1px solid #ccc",
+                  }}
+                />
+                <div>
+                  <p
                     style={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 500,
+                      margin: 0,
+                      color: "#0073b1",
                     }}
-                    onClick={() => navigate(`/profile/${friend._id}`)}
-                >
-                    <img
-                    src={friend.profileImage}
-                    alt={getDisplayName(friend, index)}
-                    onError={(e) => {
-                        e.currentTarget.src =
-                        "https://via.placeholder.com/50?text=Avatar";
-                    }}
-                    style={{
-                        width: 55,
-                        height: 55,
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        marginRight: 12,
-                        border: "1px solid #ccc",
-                    }}
-                    />
-                    <div>
+                  >
+                    {getDisplayName(friend, index)}
+                  </p>
+                  {friend.occupation && (
                     <p
-                        style={{
-                        fontSize: "1rem",
-                        fontWeight: 500,
-                        margin: 0,
-                        color: "#0073b1",
-                        }}
-                    >
-                        {getDisplayName(friend, index)}
-                    </p>
-                    {friend.occupation && (
-                        <p
-                        style={{
-                            fontSize: "0.9rem",
-                            color: "#555",
-                            marginTop: "3px",
-                        }}
-                        >
-                        {friend.occupation}
-                        </p>
-                    )}
-                    </div>
-                </div>
-
-                {/* More button + dropdown */}
-                <div
-                    ref={(el) => (menuRefs.current[friend._id] = el)}
-                    style={{ position: "relative" }}
-                >
-                    <button
-                    onClick={() => toggleMenu(friend._id)}
-                    style={{
-                        backgroundColor: "#f3f2ef",
-                        border: "1px solid #ccc",
-                        borderRadius: "20px",
-                        padding: "6px 14px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        color: "#333",
+                      style={{
                         fontSize: "0.9rem",
-                    }}
+                        color: "#555",
+                        marginTop: "3px",
+                      }}
                     >
-                    <MoreHorizontal size={16} /> More
-                    </button>
-
-                    {openMenuId === friend._id && (
-                    <div
-                        style={{
-                        position: "absolute",
-                        right: 0,
-                        top: "120%",
-                        backgroundColor: "#fff",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-                        zIndex: 100,
-                        minWidth: "160px",
-                        padding: "6px 0",
-                        }}
-                    >
-                        <button
-                        onClick={() => handleRemove(friend._id)}
-                        style={{
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "10px 14px",
-                            backgroundColor: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: "0.9rem",
-                            color: "#333",
-                        }}
-                        onMouseEnter={(e) =>
-                            (e.currentTarget.style.backgroundColor = "#f3f2ef")
-                        }
-                        onMouseLeave={(e) =>
-                            (e.currentTarget.style.backgroundColor = "transparent")
-                        }
-                        >
-                        Remove Connection
-                        </button>
-                    </div>
-                    )}
+                      {friend.occupation}
+                    </p>
+                  )}
                 </div>
-                </li>
-            ))}
-            </ul>
-        )}
-        </div>
-    );
+              </div>
+
+              {/* More button + dropdown */}
+              <div ref={(el) => (menuRefs.current[friend._id] = el)} style={{ position: "relative" }}>
+                <button
+                  onClick={() => toggleMenu(friend._id)}
+                  style={{
+                    backgroundColor: "#f3f2ef",
+                    border: "1px solid #ccc",
+                    borderRadius: "20px",
+                    padding: "6px 14px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    color: "#333",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <MoreHorizontal size={16} /> More
+                </button>
+
+                {openMenuId === friend._id && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "120%",
+                      backgroundColor: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                      zIndex: 100,
+                      minWidth: "160px",
+                      padding: "6px 0",
+                    }}
+                  >
+                    <button
+                      onClick={() => handleRemove(friend._id)}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 14px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                        color: "#333",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f3f2ef")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      Remove Connection
+                    </button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
