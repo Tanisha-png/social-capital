@@ -230,13 +230,13 @@
     background-color: #fff;
 }
 
-.unread-dot {
+.sidebar-dot {
     width: 10px;
     height: 10px;
-    background: #0073ff;
+    background-color: #0a66c2;
     border-radius: 50%;
     display: inline-block;
-    margin-left: 6px;
+    margin-left: 8px;
 }
 
 .sidebar-unread-badge {

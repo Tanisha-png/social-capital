@@ -380,13 +380,12 @@ export default function MessagesPage() {
                     <div className="sidebar-name">
                       {otherUser.firstName} {otherUser.lastName}
                     </div>
-                    {unreadByUser?.[otherUser._id] > 0 && (
-                      <span className="sidebar-unread">
-                        {unreadByUser[otherUser._id] > 9
-                          ? "9+"
-                          : unreadByUser[otherUser._id]}
-                      </span>
-                    )}
+
+                    {/* 🔵 Unread Dot */}
+                    {unreadByUser?.[otherUser._id] > 0 &&
+                      selectedUser?._id !== otherUser._id && (
+                        <span className="sidebar-dot"></span>
+                      )}
                   </div>
                   <div className="sidebar-sub">
                     {lastMessage ? (
