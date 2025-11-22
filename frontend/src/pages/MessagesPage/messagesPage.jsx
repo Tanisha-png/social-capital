@@ -236,26 +236,18 @@ export default function MessagesPage() {
   const [loadingError, setLoadingError] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // --------------------------------------
-  // Initialize
-  // --------------------------------------
+  // --- Initial setup and socket connection ---
   useEffect(() => {
     if (!initialized) return;
     if (!user || !authToken) setLoading(false);
   }, [initialized, user, authToken]);
 
-  // --------------------------------------
-  // Socket setup
-  // --------------------------------------
   useEffect(() => {
     if (!authToken || !user?._id) return;
     const s = socketAPI.initSocket(authToken, user._id);
     return () => s?.disconnect?.();
   }, [authToken, user?._id]);
 
-  // --------------------------------------
-  // Load conversations and friends
-  // --------------------------------------
   useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
@@ -287,18 +279,17 @@ export default function MessagesPage() {
     return () => (cancelled = true);
   }, [authToken]);
 
-  // --------------------------------------
-  // Sidebar users
-  // --------------------------------------
+  // --- Sidebar logic ---
   const getSidebarUsers = () => {
     const map = new Map();
     (friends || []).forEach(
-      (f) => f?._id && map.set(f._id, { otherUser: f, lastMessage: null })
+      (f) =>
+        f?._id && map.set(f._id.toString(), { otherUser: f, lastMessage: null })
     );
     (conversations || []).forEach((c) => {
       const other = c?.otherUser;
       if (other?._id)
-        map.set(other._id, {
+        map.set(other._id.toString(), {
           otherUser: other,
           lastMessage: c.lastMessage || null,
         });
@@ -316,25 +307,19 @@ export default function MessagesPage() {
     return merged;
   };
 
-  // --------------------------------------
-  // Select a user
-  // --------------------------------------
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
-      markMessagesRead(otherUser._id); // mark as read
+      markMessagesRead(otherUser._id); // update context unread counts
     } catch (err) {
       console.error(err);
       setMessages([]);
     }
   };
 
-  // --------------------------------------
-  // Send message
-  // --------------------------------------
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
@@ -363,9 +348,6 @@ export default function MessagesPage() {
     }
   };
 
-  // --------------------------------------
-  // Auto-scroll to latest message
-  // --------------------------------------
   useEffect(
     () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
     [messages]
@@ -373,12 +355,8 @@ export default function MessagesPage() {
 
   const sidebarUsers = getSidebarUsers();
 
-  // --------------------------------------
-  // Render
-  // --------------------------------------
   return (
     <div className="linkedin-messages">
-      {/* Sidebar */}
       <div className="linkedin-sidebar">
         <div className="sidebar-header">
           <h3>Messaging</h3>
@@ -391,11 +369,12 @@ export default function MessagesPage() {
         ) : sidebarUsers.length ? (
           sidebarUsers.map(({ otherUser, lastMessage }) => {
             if (!otherUser?._id) return null;
-            const unreadCountForUser = unreadByUser?.[otherUser._id] || 0;
+            const otherId = otherUser._id.toString();
+            const unreadCount = unreadByUser?.[otherId] || 0;
 
             return (
               <div
-                key={otherUser._id}
+                key={otherId}
                 className={`sidebar-user ${
                   selectedUser?._id === otherUser._id ? "active" : ""
                 }`}
@@ -403,7 +382,7 @@ export default function MessagesPage() {
               >
                 <img
                   className="sidebar-avatar"
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${otherUser._id}`}
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${otherId}`}
                   alt={`${otherUser.firstName} ${otherUser.lastName}`}
                 />
                 <div className="sidebar-meta">
@@ -412,18 +391,17 @@ export default function MessagesPage() {
                       {otherUser.firstName} {otherUser.lastName}
                     </div>
 
-                    {/* 🔵 Unread Dot and badge */}
-                    {unreadCountForUser > 0 &&
-                      selectedUser?._id !== otherUser._id && (
-                        <>
-                          <span className="sidebar-dot"></span>
-                          {unreadCountForUser > 1 && (
-                            <span className="sidebar-unread-badge">
-                              {unreadCountForUser}
-                            </span>
-                          )}
-                        </>
-                      )}
+                    {/* Blue dot for unread messages */}
+                    {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
+                      <span className="sidebar-dot"></span>
+                    )}
+
+                    {/* Numeric unread badge */}
+                    {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
+                      <span className="sidebar-unread-badge">
+                        {unreadCount}
+                      </span>
+                    )}
                   </div>
                   <div className="sidebar-sub">
                     {lastMessage ? (
@@ -449,7 +427,6 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* Chat Area */}
       <div className="linkedin-chat">
         {selectedUser ? (
           <>
@@ -487,7 +464,7 @@ export default function MessagesPage() {
                   </div>
                 ))
               ) : (
-                <p className="no-messages">No messages yet.</p>
+                <p className="no-messages">No messages yet</p>
               )}
               <div ref={messagesEndRef} />
             </div>
