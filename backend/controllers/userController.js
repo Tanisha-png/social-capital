@@ -51,25 +51,31 @@ export const getUserById = async (req, res) => {
 // backend/controllers/userController.js
 export const updateMe = async (req, res) => {
     try {
-        // find user
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: "User not found" });
+        // Pull correct user ID from req.user
+        const userId = req.user?._id || req.user?.id;
 
-        // If file was uploaded, set full URL
+        if (!userId) {
+            return res.status(401).json({ error: "User ID missing from token" });
+        }
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Avatar upload
         if (req.file) {
             const avatarPath = `/uploads/avatars/${req.file.filename}`;
             user.avatar = `${req.protocol}://${req.get("host")}${avatarPath}`;
-
-            
-            console.log("Serving avatar URL:", user.avatar);
         }
 
-        // If front-end sends avatar (rare), allow it but prefer file
+        // Avatar from frontend (fallback)
         if (!req.file && req.body.avatar) {
             user.avatar = req.body.avatar;
         }
 
-        // Update other fields (safe list)
+        // Whitelisted fields to update
         const fields = [
             "firstName",
             "lastName",
@@ -101,10 +107,10 @@ export const updateMe = async (req, res) => {
         });
 
         const updatedUser = await user.save();
-        // ensure password isn't sent
-        const userObj = updatedUser.toObject();
-        delete userObj.password;
-        res.json(userObj);
+        const cleanUser = updatedUser.toObject();
+        delete cleanUser.password;
+
+        res.json(cleanUser);
     } catch (err) {
         console.error("Error updating profile:", err);
         res.status(500).json({ error: "Failed to update profile" });
