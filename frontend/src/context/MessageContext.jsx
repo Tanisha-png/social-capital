@@ -218,9 +218,7 @@ export const MessageProvider = ({ children }) => {
     if (seenMessageIds.current.has(msg._id)) return;
     seenMessageIds.current.add(msg._id);
 
-    // Robust sender/receiver detection
     const senderId = msg.sender?._id || msg.senderId || msg.from || msg.fromId;
-
     const receiverId =
       msg.recipient?._id ||
       msg.recipientId ||
@@ -229,6 +227,13 @@ export const MessageProvider = ({ children }) => {
       msg.to ||
       msg.toId;
 
+    // Log message for clarity
+    console.log("📩 Incoming message:", {
+      senderId,
+      receiverId,
+      text: msg.text,
+    });
+
     // If message is for THIS user -> increase unread count
     if (receiverId === userId) {
       setUnreadByUser((prev) => {
@@ -236,8 +241,8 @@ export const MessageProvider = ({ children }) => {
           ...prev,
           [senderId]: (prev[senderId] || 0) + 1,
         };
-
         setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
+        console.log("🔵 Updated unreadByUser:", updated);
         return updated;
       });
     }
@@ -255,7 +260,6 @@ export const MessageProvider = ({ children }) => {
 
     try {
       const data = await getUnreadCountsByUser();
-
       const map = {};
       data.forEach((item) => {
         map[item._id] = Number(item.count) || 0;
@@ -265,9 +269,11 @@ export const MessageProvider = ({ children }) => {
       const total = Object.values(map).reduce((s, v) => s + v, 0);
       setUnreadCount(total);
 
+      console.log("📊 Initial unread counts loaded:", map);
+
       initialFetchDone.current = true;
 
-      // now process buffered socket messages
+      // process any buffered socket messages
       socketBuffer.current.forEach((msg) => handleIncomingMessage(msg));
       socketBuffer.current = [];
     } catch (err) {
@@ -312,6 +318,7 @@ export const MessageProvider = ({ children }) => {
     };
 
     const onNewMessage = (msg) => {
+      console.log("⚡ Socket received new_message:", msg);
       if (!initialFetchDone.current) {
         socketBuffer.current.push(msg);
       } else {
@@ -320,11 +327,11 @@ export const MessageProvider = ({ children }) => {
     };
 
     socket.on("connect", onConnect);
-    socket.on("newMessage", onNewMessage);
+    socket.on("new_message", onNewMessage); // FIXED listener name
 
     return () => {
       socket.off("connect", onConnect);
-      socket.off("newMessage", onNewMessage);
+      socket.off("new_message", onNewMessage);
     };
   }, [socket, userId]);
 
@@ -336,7 +343,6 @@ export const MessageProvider = ({ children }) => {
 
     try {
       const savedMsg = await apiSendMessage(recipientId, text);
-
       handleIncomingMessage(savedMsg);
 
       socket?.emit("send_message", {
@@ -377,7 +383,7 @@ export const MessageProvider = ({ children }) => {
   };
 
   /** ------------------------------------------------------
-   * HELPER: does a specific user have unread messages?
+   * Helper: does a specific user have unread messages?
    * ------------------------------------------------------ */
   const hasUnreadFrom = (senderId) => {
     return unreadByUser[senderId] > 0;
