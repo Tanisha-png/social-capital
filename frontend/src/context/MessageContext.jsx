@@ -235,17 +235,18 @@ export const MessageProvider = ({ children }) => {
     });
 
     // If message is for THIS user -> increase unread count
-    if (receiverId === userId) {
+    if (receiverId?.toString() === userId?.toString()) {
       setUnreadByUser((prev) => {
         const updated = {
           ...prev,
-          [senderId]: (prev[senderId] || 0) + 1,
+          [senderId.toString()]: (prev[senderId.toString()] || 0) + 1,
         };
         setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
         console.log("🔵 Updated unreadByUser:", updated);
         return updated;
       });
     }
+
 
     setMessages((prev) =>
       prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]
