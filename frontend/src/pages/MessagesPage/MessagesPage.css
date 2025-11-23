@@ -230,15 +230,18 @@
     background-color: #fff;
 }
 
+/* === UNREAD BLUE DOT === */
 .sidebar-dot {
     width: 10px;
     height: 10px;
     background-color: #0a66c2;
     border-radius: 50%;
-    display: inline-block;
-    margin-left: 8px;
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-left: 6px;
 }
 
+/* === UNREAD COUNT BADGE === */
 .sidebar-unread-badge {
     background: #0a66c2;
     color: white;
@@ -246,21 +249,30 @@
     border-radius: 12px;
     font-size: 10px;
     font-weight: bold;
-    margin-left: 4px;
+    margin-left: 6px;
     line-height: 16px;
     min-width: 16px;
-    text-align: center;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
+/* === ROW THAT HOLDS: NAME + DOT + BADGE === */
 .sidebar-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    width: 100%;
     gap: 6px;
 }
 
+/* === NAME SHOULD NOT OVERFLOW DOT/BADGE === */
 .sidebar-name {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
