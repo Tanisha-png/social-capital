@@ -1,4 +1,3 @@
-
 // import React, { useState, useEffect, useRef } from "react";
 // import { useAuth } from "../../context/AuthContext";
 // import { getMessagesWithUser, sendMessage } from "../../api/messageApi";
@@ -369,12 +368,13 @@ export default function MessagesPage() {
         ) : sidebarUsers.length ? (
           sidebarUsers.map(({ otherUser, lastMessage }) => {
             if (!otherUser?._id) return null;
-            const otherId = otherUser._id.toString();
-            const unreadCount = unreadByUser?.[otherId] || 0;
+
+            const senderId = otherUser._id.toString();
+            const unreadCount = unreadByUser?.[senderId] || 0;
 
             return (
               <div
-                key={otherId}
+                key={senderId}
                 className={`sidebar-user ${
                   selectedUser?._id === otherUser._id ? "active" : ""
                 }`}
@@ -382,27 +382,29 @@ export default function MessagesPage() {
               >
                 <img
                   className="sidebar-avatar"
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${otherId}`}
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${senderId}`}
                   alt={`${otherUser.firstName} ${otherUser.lastName}`}
                 />
+
                 <div className="sidebar-meta">
                   <div className="sidebar-row">
                     <div className="sidebar-name">
                       {otherUser.firstName} {otherUser.lastName}
                     </div>
 
-                    {/* Blue dot for unread messages */}
+                    {/* 🔵 BLUE DOT */}
                     {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
                       <span className="sidebar-dot"></span>
                     )}
 
-                    {/* Numeric unread badge */}
+                    {/* 🔢 BADGE */}
                     {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
                       <span className="sidebar-unread-badge">
                         {unreadCount}
                       </span>
                     )}
                   </div>
+
                   <div className="sidebar-sub">
                     {lastMessage ? (
                       <span className="muted small">
