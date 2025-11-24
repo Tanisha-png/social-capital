@@ -189,7 +189,7 @@ const MessageContext = createContext();
 
 export const MessageProvider = ({ children }) => {
   const { user } = useAuth();
-  const socket = useSocket();
+  const {socket} = useSocket();
 
   const [unreadCounts, setUnreadCounts] = useState({}); // { senderId: count }
   const [unreadCount, setUnreadCount] = useState(0); // global total
