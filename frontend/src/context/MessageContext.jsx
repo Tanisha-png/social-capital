@@ -178,268 +178,129 @@
 import React, {
   createContext,
   useContext,
-  useState,
   useEffect,
-  useRef,
+  useState,
+  useCallback,
 } from "react";
 import { useSocket } from "./socketContext";
 import { useAuth } from "./AuthContext";
-import {
-  sendMessage as apiSendMessage,
-  markMessagesRead as apiMarkMessagesRead,
-  getUnreadCountsByUser,
-} from "../api/messageApi";
 
 const MessageContext = createContext();
 
 export const MessageProvider = ({ children }) => {
   const { user } = useAuth();
-  const { socket } = useSocket();
+  const socket = useSocket();
 
-  const userId = user?._id || user?.id || null;
+  const [unreadCounts, setUnreadCounts] = useState({}); // { senderId: count }
+  const [unreadCount, setUnreadCount] = useState(0); // global total
 
-  // --------------------------------------------
-  // STATE
-  // --------------------------------------------
-  const [messages, setMessages] = useState([]);
-  const [unreadByUser, setUnreadByUser] = useState({});
-  const [unreadCount, setUnreadCount] = useState(0);
+  /* -----------------------------------------
+     Normalize IDs so comparisons are consistent
+  --------------------------------------------*/
+  const normalizeId = (id) => String(id).trim().toLowerCase();
 
-  // --------------------------------------------
-  // REFS
-  // --------------------------------------------
-  const seenMessageIds = useRef(new Set());
-  const initialFetchDone = useRef(false);
-  const socketBuffer = useRef([]);
-  const installedOnce = useRef(false);
+  /* -----------------------------------------
+     Load initial unread counts from API
+  --------------------------------------------*/
+  useEffect(() => {
+    if (!user) return;
 
-  // --------------------------------------------
-  // NORMALIZE ID (senderId / receiverId parsing)
-  // --------------------------------------------
-  const normalizeId = (val) => {
-    if (!val) return null;
-    if (typeof val === "string") return val;
-    if (typeof val === "object") return val._id || val.id || null;
-    return null;
-  };
+    const loadUnread = async () => {
+      try {
+        const res = await fetch(`/api/messages/unread/${user._id}`);
+        const data = await res.json();
 
-  // --------------------------------------------
-  // HANDLE INCOMING MESSAGE
-  // --------------------------------------------
-  const handleIncomingMessage = (msg) => {
-    if (!msg?._id) return;
+        const normalizedObj = Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [normalizeId(k), v])
+        );
 
-    if (seenMessageIds.current.has(msg._id)) return;
-    seenMessageIds.current.add(msg._id);
+        console.log("📊 Initial unread counts loaded:", normalizedObj);
 
-    const senderId =
-      normalizeId(msg.sender) || msg.senderId || msg.from || msg.fromId || null;
+        setUnreadCounts(normalizedObj);
 
-    const receiverId =
-      normalizeId(msg.recipient) ||
-      msg.recipientId ||
-      msg.receiver ||
-      msg.receiverId ||
-      msg.to ||
-      msg.toId ||
-      null;
+        // Compute global total
+        const total = Object.values(normalizedObj).reduce((a, b) => a + b, 0);
+        setUnreadCount(total);
+      } catch (err) {
+        console.error("❌ Failed loading unread:", err);
+      }
+    };
 
-    // Add message to list if not already included
-    setMessages((prev) =>
-      prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]
-    );
+    loadUnread();
+  }, [user]);
 
-    // Only increment unread if message is for the current user
-    if (receiverId === userId) {
-      setUnreadByUser((prev) => {
-        const updated = {
+  /* -----------------------------------------
+     SOCKET LISTENER: new private message
+  --------------------------------------------*/
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleNewMessage = (payload) => {
+      const senderRaw = payload?.senderId;
+      const receiverRaw = payload?.receiverId;
+
+      const sender = normalizeId(senderRaw);
+      const receiver = normalizeId(receiverRaw);
+      const me = normalizeId(user._id);
+
+      console.log("📩 SOCKET new message event:", payload);
+      console.log(
+        `🧩 normalized → sender:${sender}  receiver:${receiver}  me:${me}`
+      );
+
+      // Only register unread if *I* am the receiver
+      if (receiver !== me) {
+        console.log("⏩ Ignoring message not intended for this user");
+        return;
+      }
+
+      // Increment per-user
+      setUnreadCounts((prev) => {
+        const newCount = (prev[sender] || 0) + 1;
+        console.log(`🔵 Increment unread for ${sender} → ${newCount}`);
+
+        return {
           ...prev,
-          [senderId]: (prev[senderId] || 0) + 1,
+          [sender]: newCount,
         };
-
-        const total = Object.values(updated).reduce((s, v) => s + v, 0);
-        setUnreadCount(total);
-
-        return updated;
       });
-    }
-  };
 
-  // --------------------------------------------
-  // LOAD INITIAL UNREAD COUNTS
-  // --------------------------------------------
-  const fetchUnreadCounts = async () => {
-    if (!userId) return;
+      // Increment global
+      setUnreadCount((prev) => {
+        console.log(`🔵 Global unread increment: ${prev} → ${prev + 1}`);
+        return prev + 1;
+      });
+    };
+
+    socket.on("private_message", handleNewMessage);
+
+    return () => socket.off("private_message", handleNewMessage);
+  }, [socket, user]);
+
+  /* -----------------------------------------
+     Mark ALL unread messages as read
+  --------------------------------------------*/
+  const markMessagesRead = useCallback(async () => {
+    if (!user) return;
+
+    console.log("✅ Marking all messages read");
 
     try {
-      const data = await getUnreadCountsByUser();
+      await fetch(`/api/messages/mark-read/${user._id}`, { method: "PUT" });
 
-      const map = {};
-      data.forEach((item) => {
-        map[item._id] = Number(item.count) || 0;
-      });
-
-      console.log("📊 Initial unread counts loaded:", map);
-
-      setUnreadByUser(map);
-      const total = Object.values(map).reduce((s, v) => s + v, 0);
-      setUnreadCount(total);
-
-      initialFetchDone.current = true;
-
-      // Process buffered messages
-      socketBuffer.current.forEach((msg) => handleIncomingMessage(msg));
-      socketBuffer.current = [];
-    } catch (err) {
-      console.error("[MessageContext] fetchUnreadCounts failed:", err);
-    }
-  };
-
-  // --------------------------------------------
-  // RESET ON LOGOUT / SWITCH USER
-  // --------------------------------------------
-  useEffect(() => {
-    if (!userId) {
-      console.log("🔄 Resetting message state (logout)");
-      setMessages([]);
-      setUnreadByUser({});
+      setUnreadCounts({});
       setUnreadCount(0);
-      seenMessageIds.current.clear();
-      socketBuffer.current = [];
-      initialFetchDone.current = false;
-      return;
-    }
-
-    fetchUnreadCounts();
-  }, [userId]);
-
-  // --------------------------------------------
-  // SOCKET LISTENERS
-  // --------------------------------------------
-  useEffect(() => {
-    if (!socket || !userId) return;
-    if (installedOnce.current) return;
-
-    installedOnce.current = true;
-    console.log("%c[MessageContext] Socket listeners installed", "color:#4fa");
-
-    const onConnect = () => {
-      console.log(
-        `%c[Socket Connected]%c ID: ${socket.id}`,
-        "color:#0f0;font-weight:bold;",
-        "color:#fff"
-      );
-      socket.emit("join", userId);
-    };
-
-    // Main new message listener
-    const onNewMessage = (msg) => {
-      console.log("📨 NEW MESSAGE received:", msg);
-
-      if (!initialFetchDone.current) {
-        socketBuffer.current.push(msg);
-      } else {
-        handleIncomingMessage(msg);
-      }
-    };
-
-    // 🔵 NEW — unread counter update listener
-    const onUnreadUpdate = ({ senderId, unreadCount }) => {
-      console.log(
-        `🔵 UNREAD UPDATE EVENT → sender=${senderId}, count=${unreadCount}`
-      );
-
-      setUnreadByUser((prev) => {
-        const updated = { ...prev, [senderId]: unreadCount };
-
-        const total = Object.values(updated).reduce((s, v) => s + v, 0);
-        setUnreadCount(total);
-
-        return updated;
-      });
-    };
-
-    socket.on("connect", onConnect);
-    socket.on("newMessage", onNewMessage);
-    socket.on("message:received", onUnreadUpdate);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("newMessage", onNewMessage);
-      socket.off("message:received", onUnreadUpdate);
-    };
-  }, [socket, userId]);
-
-  // --------------------------------------------
-  // SEND MESSAGE
-  // --------------------------------------------
-  const sendMessage = async (recipientId, text) => {
-    if (!recipientId || !text) return;
-
-    try {
-      const savedMsg = await apiSendMessage(recipientId, text);
-
-      handleIncomingMessage(savedMsg);
-
-      socket?.emit("send_message", {
-        senderId: userId,
-        receiverId: recipientId,
-        content: text,
-      });
-
-      return savedMsg;
     } catch (err) {
-      console.error("[MessageContext] sendMessage failed:", err);
-      throw err;
+      console.error("❌ Failed marking messages read:", err);
     }
-  };
-
-  // --------------------------------------------
-  // MARK AS READ
-  // --------------------------------------------
-  const markMessagesRead = async (senderId = null) => {
-    try {
-      await apiMarkMessagesRead(senderId);
-
-      console.log(`✅ Marked messages read for ${senderId || "ALL"}`);
-
-      if (!senderId) {
-        setUnreadByUser({});
-        setUnreadCount(0);
-      } else {
-        setUnreadByUser((prev) => {
-          const updated = { ...prev, [senderId]: 0 };
-          const total = Object.values(updated).reduce((s, v) => s + v, 0);
-          setUnreadCount(total);
-          return updated;
-        });
-      }
-
-      // Refresh from backend to guarantee sync
-      await fetchUnreadCounts();
-    } catch (err) {
-      console.error("[MessageContext] markMessagesRead failed:", err);
-    }
-  };
-
-  // --------------------------------------------
-  // HELPER: DOES USER HAVE UNREAD?
-  // --------------------------------------------
-  const hasUnreadFrom = (senderId) => {
-    const count = unreadByUser[senderId] || 0;
-    console.log(`DOT CHECK → sender: ${senderId} unread: ${count}`);
-    return count > 0;
-  };
+  }, [user]);
 
   return (
     <MessageContext.Provider
       value={{
-        messages,
-        unreadByUser,
-        unreadCount,
-        sendMessage,
+        unreadCounts, // per-user unread counts (REQUIRED FOR SIDEBAR DOT)
+        unreadCount, // total unread count (used by MessagesDropdown)
         markMessagesRead,
-        hasUnreadFrom,
       }}
     >
       {children}
@@ -447,5 +308,4 @@ export const MessageProvider = ({ children }) => {
   );
 };
 
-export const useMessages = () => useContext(MessageContext);
 export const useMessageNotifications = () => useContext(MessageContext);
