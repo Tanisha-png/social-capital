@@ -138,7 +138,7 @@ io.on("connection", (socket) => {
     if (!senderId || !receiverId || !content) return;
 
     try {
-      // Save message in DB
+      // Save the message
       const newMessage = await Message.create({
         sender: senderId,
         recipient: receiverId,
@@ -152,16 +152,34 @@ io.on("connection", (socket) => {
         { path: "recipient", select: "firstName lastName avatar" },
       ]);
 
-      // Emit to recipient if online
+      // 🔵 Calculate unread count for this conversation
+      const unreadCount = await Message.countDocuments({
+        sender: senderId,
+        recipient: receiverId,
+        read: false,
+      });
+
+      console.log(
+        `📨 BACKEND: unread count for sender ${senderId} → ${unreadCount}`
+      );
+
+      // Emit to recipient (if online)
       const recipientSocket = onlineUsers.get(receiverId.toString());
       if (recipientSocket) {
+        // 👇 This is the NEW event your dot logic needs
+        io.to(recipientSocket).emit("message:received", {
+          senderId: senderId.toString(),
+          unreadCount,
+        });
+
+        // Existing message sync
         io.to(recipientSocket).emit("newMessage", {
           ...populatedMessage._doc,
           receiverId: receiverId.toString(),
         });
       }
 
-      // Emit to sender too (so they see their sent message)
+      // Emit to sender (mirror)
       io.to(senderId.toString()).emit("newMessage", {
         ...populatedMessage._doc,
         receiverId: receiverId.toString(),
@@ -171,6 +189,7 @@ io.on("connection", (socket) => {
       console.error("Socket send_message error:", err);
     }
   });
+
 
 
   socket.on("disconnect", () => {
