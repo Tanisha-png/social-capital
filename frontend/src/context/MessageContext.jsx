@@ -196,64 +196,78 @@ export const MessageProvider = ({ children }) => {
   const { user } = useAuth();
   const { socket } = useSocket();
 
-  const userId = user?._id?.toString() || user?.id?.toString() || null;
+  const userId = user?._id || user?.id || null;
 
-  // State
+  // --------------------------------------------
+  // STATE
+  // --------------------------------------------
   const [messages, setMessages] = useState([]);
   const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Refs
+  // --------------------------------------------
+  // REFS
+  // --------------------------------------------
   const seenMessageIds = useRef(new Set());
   const initialFetchDone = useRef(false);
   const socketBuffer = useRef([]);
   const installedOnce = useRef(false);
 
-  /** ------------------------------------------------------
-   * Handle NEW incoming message
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // NORMALIZE ID (senderId / receiverId parsing)
+  // --------------------------------------------
+  const normalizeId = (val) => {
+    if (!val) return null;
+    if (typeof val === "string") return val;
+    if (typeof val === "object") return val._id || val.id || null;
+    return null;
+  };
+
+  // --------------------------------------------
+  // HANDLE INCOMING MESSAGE
+  // --------------------------------------------
   const handleIncomingMessage = (msg) => {
     if (!msg?._id) return;
 
     if (seenMessageIds.current.has(msg._id)) return;
     seenMessageIds.current.add(msg._id);
 
-    // Normalize IDs to strings
-    const senderId = (
-      msg.sender?._id ||
-      msg.senderId ||
-      msg.from ||
-      msg.fromId
-    )?.toString();
-    const receiverId = (
-      msg.recipient?._id ||
+    const senderId =
+      normalizeId(msg.sender) || msg.senderId || msg.from || msg.fromId || null;
+
+    const receiverId =
+      normalizeId(msg.recipient) ||
       msg.recipientId ||
-      msg.receiver?._id ||
+      msg.receiver ||
       msg.receiverId ||
       msg.to ||
-      msg.toId
-    )?.toString();
+      msg.toId ||
+      null;
 
-    if (!senderId || !receiverId) return;
-
-    // If message is for THIS user -> increase unread count
-    if (receiverId === userId) {
-      setUnreadByUser((prev) => {
-        const updated = { ...prev, [senderId]: (prev[senderId] || 0) + 1 };
-        setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
-        console.log("🔵 Updated unreadByUser:", updated);
-        return updated;
-      });
-    }
-
+    // Add message to list if not already included
     setMessages((prev) =>
       prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]
     );
+
+    // Only increment unread if message is for the current user
+    if (receiverId === userId) {
+      setUnreadByUser((prev) => {
+        const updated = {
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1,
+        };
+
+        const total = Object.values(updated).reduce((s, v) => s + v, 0);
+        setUnreadCount(total);
+
+        return updated;
+      });
+    }
   };
 
-  /** ------------------------------------------------------
-   * Load unread counts
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // LOAD INITIAL UNREAD COUNTS
+  // --------------------------------------------
   const fetchUnreadCounts = async () => {
     if (!userId) return;
 
@@ -262,17 +276,18 @@ export const MessageProvider = ({ children }) => {
 
       const map = {};
       data.forEach((item) => {
-        map[item._id.toString()] = Number(item.count) || 0;
+        map[item._id] = Number(item.count) || 0;
       });
 
       console.log("📊 Initial unread counts loaded:", map);
 
       setUnreadByUser(map);
-      setUnreadCount(Object.values(map).reduce((s, v) => s + v, 0));
+      const total = Object.values(map).reduce((s, v) => s + v, 0);
+      setUnreadCount(total);
 
       initialFetchDone.current = true;
 
-      // now process buffered socket messages
+      // Process buffered messages
       socketBuffer.current.forEach((msg) => handleIncomingMessage(msg));
       socketBuffer.current = [];
     } catch (err) {
@@ -280,11 +295,12 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  /** ------------------------------------------------------
-   * Reset on logout or user switch
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // RESET ON LOGOUT / SWITCH USER
+  // --------------------------------------------
   useEffect(() => {
     if (!userId) {
+      console.log("🔄 Resetting message state (logout)");
       setMessages([]);
       setUnreadByUser({});
       setUnreadCount(0);
@@ -297,9 +313,9 @@ export const MessageProvider = ({ children }) => {
     fetchUnreadCounts();
   }, [userId]);
 
-  /** ------------------------------------------------------
-   * Socket listeners
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // SOCKET LISTENERS
+  // --------------------------------------------
   useEffect(() => {
     if (!socket || !userId) return;
     if (installedOnce.current) return;
@@ -310,14 +326,16 @@ export const MessageProvider = ({ children }) => {
     const onConnect = () => {
       console.log(
         `%c[Socket Connected]%c ID: ${socket.id}`,
-        "color: #0f0; font-weight: bold;",
-        "color: #fff"
+        "color:#0f0;font-weight:bold;",
+        "color:#fff"
       );
       socket.emit("join", userId);
     };
 
+    // Main new message listener
     const onNewMessage = (msg) => {
-      console.log("📨 Socket new message received:", msg);
+      console.log("📨 NEW MESSAGE received:", msg);
+
       if (!initialFetchDone.current) {
         socketBuffer.current.push(msg);
       } else {
@@ -325,19 +343,36 @@ export const MessageProvider = ({ children }) => {
       }
     };
 
-    // Use the correct event name your backend emits
+    // 🔵 NEW — unread counter update listener
+    const onUnreadUpdate = ({ senderId, unreadCount }) => {
+      console.log(
+        `🔵 UNREAD UPDATE EVENT → sender=${senderId}, count=${unreadCount}`
+      );
+
+      setUnreadByUser((prev) => {
+        const updated = { ...prev, [senderId]: unreadCount };
+
+        const total = Object.values(updated).reduce((s, v) => s + v, 0);
+        setUnreadCount(total);
+
+        return updated;
+      });
+    };
+
     socket.on("connect", onConnect);
-    socket.on("new_message", onNewMessage);
+    socket.on("newMessage", onNewMessage);
+    socket.on("message:received", onUnreadUpdate);
 
     return () => {
       socket.off("connect", onConnect);
-      socket.off("new_message", onNewMessage);
+      socket.off("newMessage", onNewMessage);
+      socket.off("message:received", onUnreadUpdate);
     };
   }, [socket, userId]);
 
-  /** ------------------------------------------------------
-   * Send message
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // SEND MESSAGE
+  // --------------------------------------------
   const sendMessage = async (recipientId, text) => {
     if (!recipientId || !text) return;
 
@@ -346,12 +381,9 @@ export const MessageProvider = ({ children }) => {
 
       handleIncomingMessage(savedMsg);
 
-      // Normalize recipientId
-      const normalizedRecipientId = recipientId.toString();
-
       socket?.emit("send_message", {
         senderId: userId,
-        receiverId: normalizedRecipientId,
+        receiverId: recipientId,
         content: text,
       });
 
@@ -362,37 +394,41 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  /** ------------------------------------------------------
-   * Mark messages as read
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // MARK AS READ
+  // --------------------------------------------
   const markMessagesRead = async (senderId = null) => {
     try {
       await apiMarkMessagesRead(senderId);
+
+      console.log(`✅ Marked messages read for ${senderId || "ALL"}`);
 
       if (!senderId) {
         setUnreadByUser({});
         setUnreadCount(0);
       } else {
-        const key = senderId.toString();
         setUnreadByUser((prev) => {
-          const updated = { ...prev, [key]: 0 };
-          setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
-          console.log(`✅ Marked messages read for ${key}`);
+          const updated = { ...prev, [senderId]: 0 };
+          const total = Object.values(updated).reduce((s, v) => s + v, 0);
+          setUnreadCount(total);
           return updated;
         });
       }
 
+      // Refresh from backend to guarantee sync
       await fetchUnreadCounts();
     } catch (err) {
       console.error("[MessageContext] markMessagesRead failed:", err);
     }
   };
 
-  /** ------------------------------------------------------
-   * HELPER: does a specific user have unread messages?
-   * ------------------------------------------------------ */
+  // --------------------------------------------
+  // HELPER: DOES USER HAVE UNREAD?
+  // --------------------------------------------
   const hasUnreadFrom = (senderId) => {
-    return unreadByUser[senderId?.toString()] > 0;
+    const count = unreadByUser[senderId] || 0;
+    console.log(`DOT CHECK → sender: ${senderId} unread: ${count}`);
+    return count > 0;
   };
 
   return (
