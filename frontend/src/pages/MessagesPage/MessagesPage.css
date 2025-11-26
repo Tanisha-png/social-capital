@@ -238,7 +238,8 @@
     border-radius: 50%;
     display: inline-flex;
     flex-shrink: 0;
-    margin-left: 6px;
+    margin-right: 6px;
+    margin-left: 0px;
 }
 
 /* === UNREAD COUNT BADGE === */
@@ -260,11 +261,17 @@
 }
 
 /* === ROW THAT HOLDS: NAME + DOT + BADGE === */
-.sidebar-row {
+/* .sidebar-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
+    gap: 6px;
+} */
+
+.sidebar-row {
+    display: flex;
+    align-items: center;
     gap: 6px;
 }
 
