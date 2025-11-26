@@ -342,24 +342,37 @@ export const MessageProvider = ({ children }) => {
   // MARK messages read
   const markMessagesRead = async (senderId = null) => {
     try {
+      // 1️⃣ Call the backend API
       await apiMarkMessagesRead(senderId);
-      if (!senderId) {
-        setUnreadByUser({});
-        setUnreadCount(0);
-      } else {
-        setUnreadByUser((prev) => {
-          const updated = { ...prev, [String(senderId)]: 0 };
-          setUnreadCount(
-            Object.values(updated).reduce((sum, val) => sum + val, 0)
-          );
-          return updated;
-        });
-      }
+
+      // 2️⃣ Immediately update local unread state
+      setUnreadByUser((prev) => {
+        const updated = { ...prev };
+
+        if (senderId) {
+          // Clear only for this sender
+          updated[String(senderId)] = 0;
+        } else {
+          // Clear all
+          Object.keys(updated).forEach((key) => {
+            updated[key] = 0;
+          });
+        }
+
+        // Update total count
+        setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
+        return updated;
+      });
+
+      // 3️⃣ Optional: re-fetch unread counts to be safe (keeps context synced)
       await fetchUnreadCounts();
+
+      console.log(`✅ Marked messages read for ${senderId || "ALL"}`);
     } catch (err) {
       console.error("[MessageContext] markMessagesRead failed:", err);
     }
   };
+
 
   // HELPER for sidebar dot
   const hasUnreadFrom = (senderId) => {
