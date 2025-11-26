@@ -388,31 +388,17 @@ export default function MessagesPage() {
 
                 <div className="sidebar-meta">
                   <div className="sidebar-row">
+                    {/* BLUE DOT — now on the LEFT OF NAME */}
+                    {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
+                      <span className="sidebar-dot"></span>
+                    )}
+
+                    {/* NAME */}
                     <div className="sidebar-name">
                       {otherUser.firstName} {otherUser.lastName}
                     </div>
 
-                    {/* 🔵 DEBUG DOT RENDER */}
-                    {(() => {
-                      console.log(
-                        "DOT CHECK → sender:",
-                        senderId,
-                        "unread:",
-                        unreadCount
-                      );
-                      if (
-                        unreadCount > 0 &&
-                        selectedUser?._id !== otherUser._id
-                      ) {
-                        console.log("DOT SHOULD SHOW FOR", senderId);
-                        return <span className="sidebar-dot"></span>;
-                      } else {
-                        console.log("DOT HIDDEN FOR", senderId);
-                        return null;
-                      }
-                    })()}
-
-                    {/* 🔢 BADGE */}
+                    {/* BADGE (optional) */}
                     {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
                       <span className="sidebar-unread-badge">
                         {unreadCount}
