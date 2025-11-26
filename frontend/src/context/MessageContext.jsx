@@ -274,27 +274,45 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  function computeUnreadCounts(convos, currentUserId) {
+    const result = {};
+
+    convos.forEach((c) => {
+      if (!c.lastMessage) return;
+
+      const otherId = c.otherUser?._id;
+      const senderId = c.lastMessage?.sender?._id;
+      const readBy = c.lastMessage?.readBy || [];
+
+      const fromOther = senderId && senderId !== currentUserId;
+      const isUnread = !readBy.includes(currentUserId);
+
+      if (fromOther && isUnread) {
+        result[otherId] = 1; // lastMessage unread = 1
+      }
+    });
+
+    return result;
+  }
+
+
   // Fetch initial unread counts (from API)
   const fetchUnreadCounts = async () => {
     if (!userId) return;
     try {
-      const data = await getUnreadCountsByUser(); // expected [{ _id: senderId, count }]
-      const map = {};
-      (data || []).forEach((item) => {
-        map[String(item._id)] = Number(item.count) || 0;
-      });
+      const convos = await getUnreadCountsByUser(userId);
+
+      // If backend returned conversations instead of counts, compute them
+      const map = computeUnreadCounts(convos, userId);
 
       console.log("📊 Initial unread counts loaded:", map);
 
       setUnreadByUser(map);
-      const total = Object.values(map).reduce((s, v) => s + v, 0);
-      setUnreadCount(total);
+      setUnreadCount(Object.values(map).reduce((s, v) => s + v, 0));
 
       initialFetchDone.current = true;
 
-      // process any messages received while loading
       if (socketBuffer.current.length) {
-        console.log(`[MessageContext] processing ${socketBuffer.current.length} buffered messages`);
         socketBuffer.current.forEach((m) => handleIncomingMessage(m));
         socketBuffer.current = [];
       }
@@ -302,6 +320,7 @@ export const MessageProvider = ({ children }) => {
       console.error("[MessageContext] fetchUnreadCounts failed:", err);
     }
   };
+
 
   // Reset on logout / user switch
   useEffect(() => {
@@ -405,11 +424,11 @@ export const MessageProvider = ({ children }) => {
 
   // Mark messages read (optionally for a single sender)
   const markMessagesRead = async (senderId = null) => {
-    try {
-      await markMessagesRead; // (no-op if function name shadowing)
-    } catch (e) {
-      /* noop */
-    }
+    // try {
+    //   await markMessagesRead; // (no-op if function name shadowing)
+    // } catch (e) {
+    //   /* noop */
+    // }
 
     try {
       await apiMarkMessagesRead(senderId);
