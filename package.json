@@ -2,9 +2,13 @@
   "name": "social-capital-backend",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+  "node": "20.x"
+},
   "scripts": {
     "start": "node ./backend/server.js",
-    "build": "npm install && npm --prefix ./frontend install  && npm --prefix ./frontend run build"
+    "build": "npm install && npm --prefix ./frontend install  && npm --prefix ./frontend run build",
+    "postinstall": "cd backend && npm install && cd ../frontend && npm install && npm run build"
   },
   "keywords": [],
   "author": "",
