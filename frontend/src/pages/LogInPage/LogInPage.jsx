@@ -13,6 +13,7 @@ export default function LogInPage() {
     e.preventDefault();
     try {
       const { user, token } = await authService.login(formData);
+      console.log(user, token)
       login(user, token);
       navigate("/"); // keep homepage
     } catch (err) {
