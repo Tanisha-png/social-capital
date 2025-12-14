@@ -24,23 +24,27 @@ dotenv.config();
 await connectDB();
 
 const app = express();
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 const server = http.createServer(app);
-const herokuAppUrl = process.env.HEROKU_APP_URL || "https://social-capital-1f13c371b2ba.herokuapp.com";
+const herokuAppUrl =
+  process.env.HEROKU_APP_URL ||
+  "https://social-capital-1f13c371b2ba.herokuapp.com";
 
+const isDev = process.env.NODE_ENV !== "production";
+const frontendDevUrl = "http://localhost:5173";
+
+// ---------------- CORS ----------------
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://social-capital-1f13c371b2ba.herokuapp.com"],
+  origin: [frontendDevUrl, herokuAppUrl],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-const isDev = process.env.NODE_ENV !== "production";
-const frontendDevUrl = "http://localhost:5173";
-
-
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
+
+// ---------------- HELMET / CSP ----------------
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -81,19 +85,14 @@ app.use(
           "https://cdnjs.cloudflare.com",
           "https://fonts.googleapis.com",
         ],
-        fontSrc: [
-          "'self'",
-          "data:",
-          "https://fonts.gstatic.com",
-          "https://cdnjs.cloudflare.com",
-        ],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
       },
     },
   })
 );
 
-
+// ---------------- MIDDLEWARE ----------------
 app.use(express.json());
 app.use(mongoSanitize());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
@@ -102,23 +101,16 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 export const io = new Server(server, { cors: corsOptions });
 const onlineUsers = new Map();
 
-// ✅ This is the helper we will use across the app
 export function notifyUser(userId, notification) {
   if (!userId) return;
-
-  // Send to user room
   io.to(userId.toString()).emit("notification", notification);
-
-  // Also send to active socket if tracked
   const socketId = onlineUsers.get(userId.toString());
   if (socketId) io.to(socketId).emit("notification", notification);
 }
 
-
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error("No token provided"));
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.id;
@@ -131,19 +123,14 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   console.log("✅ Socket connected:", socket.id, "User:", socket.userId);
-
-  // Join user's personal room
   socket.join(socket.userId.toString());
   onlineUsers.set(socket.userId.toString(), socket.id);
-
-  console.log(`✅ User joined notification room: ${socket.userId}`);
 
   socket.on("send_message", async (data) => {
     const { senderId, receiverId, content } = data;
     if (!senderId || !receiverId || !content) return;
 
     try {
-      // Save the message
       const newMessage = await Message.create({
         sender: senderId,
         recipient: receiverId,
@@ -151,51 +138,37 @@ io.on("connection", (socket) => {
         read: false,
       });
 
-      // Populate for frontend
       const populatedMessage = await newMessage.populate([
         { path: "sender", select: "firstName lastName avatar" },
         { path: "recipient", select: "firstName lastName avatar" },
       ]);
 
-      // 🔵 Calculate unread count for this conversation
       const unreadCount = await Message.countDocuments({
         sender: senderId,
         recipient: receiverId,
         read: false,
       });
 
-      console.log(
-        `📨 BACKEND: unread count for sender ${senderId} → ${unreadCount}`
-      );
-
-      // Emit to recipient (if online)
       const recipientSocket = onlineUsers.get(receiverId.toString());
       if (recipientSocket) {
-        // 👇 This is the NEW event your dot logic needs
         io.to(recipientSocket).emit("message:received", {
           senderId: senderId.toString(),
           unreadCount,
         });
-
-        // Existing message sync
         io.to(recipientSocket).emit("newMessage", {
           ...populatedMessage._doc,
           receiverId: receiverId.toString(),
         });
       }
 
-      // Emit to sender (mirror)
       io.to(senderId.toString()).emit("newMessage", {
         ...populatedMessage._doc,
         receiverId: receiverId.toString(),
       });
-
     } catch (err) {
       console.error("Socket send_message error:", err);
     }
   });
-
-
 
   socket.on("disconnect", () => {
     onlineUsers.forEach((socketId, userId) => {
@@ -211,8 +184,7 @@ app.use((req, _res, next) => {
 });
 
 const __dirname = path.resolve();
-const frontendDistPath = path.join(__dirname, 'frontend', 'dist');
-
+const frontendDistPath = path.join(__dirname, "frontend", "dist");
 
 // ---------------- ROUTES ----------------
 app.use("/api/auth", authRoutes);
@@ -224,10 +196,10 @@ app.use("/api/connections", connectionRoutes);
 app.use("/uploads", express.static("uploads"));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendDistPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(frontendDistPath, 'index.html'));
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(frontendDistPath, "index.html"));
   });
 } else {
   app.get("/", (_req, res) => res.json({ message: "API is operational." }));
