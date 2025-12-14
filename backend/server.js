@@ -35,6 +35,10 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+const isDev = process.env.NODE_ENV !== "production";
+const frontendDevUrl = "http://localhost:5173";
+
+
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 app.use(
@@ -60,6 +64,7 @@ app.use(
         ],
         connectSrc: [
           "'self'",
+          ...(isDev ? [frontendDevUrl, "ws://localhost:5173"] : []),
           "ws://localhost:3000",
           "wss://social-capital-1f13c371b2ba.herokuapp.com",
           herokuAppUrl,
