@@ -306,11 +306,12 @@
 // userApi.js
 import axios from "axios";
 
+// Use relative API URL so CSP 'self' allows requests
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
+    baseURL: "/api",
 });
 
-// Automatically attach token
+// Automatically attach token to all requests
 API.interceptors.request.use((config) => {
     try {
         const token = localStorage.getItem("token");
@@ -327,7 +328,7 @@ export const getFriends = async () => {
         const res = await API.get("/connections");
         return res.data;
     } catch (err) {
-        // fallback older route
+        // fallback if someone configured different endpoint
         const res = await API.get("/users/me/connections");
         return res.data;
     }
@@ -338,37 +339,44 @@ export const getAllUsers = async () => (await API.get("/users")).data;
 
 // Send a friend request
 export const addFriend = async (friendId) =>
-    (await API.post(`/connections/request`, { userId: friendId })).data;
+    (await API.post("/connections/request", { userId: friendId })).data;
 
 // Remove a friend
 export const removeFriend = async (friendId) =>
-    (await API.delete(`/connections/remove`, { data: { userId: friendId } })).data;
+    (await API.delete("/connections/remove", { data: { userId: friendId } })).data;
 
 // Search users
 export const searchUsers = async (query) =>
     (await API.get(`/users/search?query=${encodeURIComponent(query)}`)).data;
 
 // -------------------- PROFILE --------------------
-export const getProfile = async (userId) => (await API.get(`/users/${userId}`)).data;
+export const getProfile = async (userId) =>
+    (await API.get(`/users/${userId}`)).data;
 
 // -------------------- FRIEND REQUESTS --------------------
-export const sendFriendRequest = async (userId) =>
-    (await API.post(`/connections/request`, { userId })).data;
 
+// Send friend request (alias of addFriend)
+export const sendFriendRequest = async (userId) =>
+    (await API.post("/connections/request", { userId })).data;
+
+// Get incoming friend requests
 export const getFriendRequests = async () => {
     try {
         const res = await API.get("/connections/requests");
         return res.data;
     } catch (err) {
+        // fallback older route
         const res = await API.get("/users/me/requests");
         return res.data;
     }
 };
 
+// Accept a friend request
 export const acceptFriendRequest = async (requestId) =>
-    (await API.post(`/connections/accept`, { requestId })).data;
+    (await API.post("/connections/accept", { requestId })).data;
 
+// Reject a friend request
 export const rejectFriendRequest = async (requestId) =>
-    (await API.post(`/connections/reject`, { requestId })).data;
+    (await API.post("/connections/reject", { requestId })).data;
 
 export default API;
