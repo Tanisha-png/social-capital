@@ -248,6 +248,8 @@ router.post("/request", checkToken, async (req, res) => {
             message: `${user.firstName} ${user.lastName} sent you a connection request`,
         });
 
+        console.log("🔔 Friend request notification created:", notification._id);
+
         // 🔔 EMIT REAL-TIME NOTIFICATION
         notifyUser(friend._id, notification);
 
