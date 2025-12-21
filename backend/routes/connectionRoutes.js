@@ -141,6 +141,8 @@
 
 // export default router;
 
+import Notification from "../models/Notification.js";
+import { notifyUser } from "../server.js";
 import express from "express";
 import checkToken from "../middleware/checkToken.js";
 import User from "../models/user.js";
@@ -199,18 +201,55 @@ router.delete("/remove", checkToken, async (req, res) => {
 });
 
 // ✅ Send friend request
+// router.post("/request", checkToken, async (req, res) => {
+//     try {
+//         const { userId: friendId } = req.body;
+//         const user = await User.findById(req.user._id);
+//         const friend = await User.findById(friendId);
+
+//         if (!user || !friend) return res.status(404).json({ message: "User not found" });
+//         if (friend.friendRequests.includes(user._id))
+//             return res.status(400).json({ message: "Request already sent" });
+
+//         friend.friendRequests.push(user._id);
+//         await friend.save();
+
+//         res.json({ message: "Friend request sent" });
+//     } catch (err) {
+//         console.error("Error sending friend request:", err);
+//         res.status(500).json({ message: "Server error sending request" });
+//     }
+// });
+
 router.post("/request", checkToken, async (req, res) => {
     try {
         const { userId: friendId } = req.body;
+
         const user = await User.findById(req.user._id);
         const friend = await User.findById(friendId);
 
-        if (!user || !friend) return res.status(404).json({ message: "User not found" });
-        if (friend.friendRequests.includes(user._id))
-            return res.status(400).json({ message: "Request already sent" });
+        if (!user || !friend) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
+        if (friend.friendRequests.includes(user._id)) {
+            return res.status(400).json({ message: "Request already sent" });
+        }
+
+        // Save friend request
         friend.friendRequests.push(user._id);
         await friend.save();
+
+        // 🔔 CREATE NOTIFICATION
+        const notification = await Notification.create({
+            user: friend._id,               // recipient
+            fromUser: user._id,             // sender
+            type: "friend_request",
+            message: `${user.firstName} ${user.lastName} sent you a connection request`,
+        });
+
+        // 🔔 EMIT REAL-TIME NOTIFICATION
+        notifyUser(friend._id, notification);
 
         res.json({ message: "Friend request sent" });
     } catch (err) {
@@ -218,6 +257,7 @@ router.post("/request", checkToken, async (req, res) => {
         res.status(500).json({ message: "Server error sending request" });
     }
 });
+
 
 // ✅ Accept friend request
 router.post("/accept", checkToken, async (req, res) => {
