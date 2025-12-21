@@ -224,7 +224,6 @@ router.delete("/remove", checkToken, async (req, res) => {
 router.post("/request", checkToken, async (req, res) => {
     try {
         const { userId: friendId } = req.body;
-
         const user = await User.findById(req.user._id);
         const friend = await User.findById(friendId);
 
@@ -236,13 +235,13 @@ router.post("/request", checkToken, async (req, res) => {
             return res.status(400).json({ message: "Request already sent" });
         }
 
-        // Save friend request
+        // ✅ Save friend request
         friend.friendRequests.push(user._id);
         await friend.save();
 
-        // 🔔 CREATE NOTIFICATION
+        // ✅ CREATE notification
         const notification = await Notification.create({
-            user: friend._id,               // recipient
+            user: friend._id,              // recipient
             fromUser: user._id,             // sender
             type: "friend_request",
             message: `${user.firstName} ${user.lastName} sent you a connection request`,
@@ -250,7 +249,7 @@ router.post("/request", checkToken, async (req, res) => {
 
         console.log("🔔 Friend request notification created:", notification._id);
 
-        // 🔔 EMIT REAL-TIME NOTIFICATION
+        // ✅ EMIT notification in real-time
         notifyUser(friend._id, notification);
 
         res.json({ message: "Friend request sent" });
