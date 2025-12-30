@@ -2,16 +2,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 import {
     getFriendRequests,
     acceptFriendRequest,
-    declineFriendRequest,
-} from "../api/userApi";
-import { useAuth } from "./AuthContext";
+    rejectFriendRequest,
+    } from "../api/userApi";
+    import { useAuth } from "./AuthContext";
 
-const FriendRequestContext = createContext();
+    const FriendRequestContext = createContext();
 
-export function FriendRequestProvider({ children }) {
-    const { user } = useAuth();
-    const token = localStorage.getItem("token");
-
+    export function FriendRequestProvider({ children }) {
+    const { user, token } = useAuth();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -29,12 +27,14 @@ export function FriendRequestProvider({ children }) {
     };
 
     const accept = async (id) => {
+        if (!token) return;
         await acceptFriendRequest(id, token);
         setRequests((prev) => prev.filter((r) => r._id !== id));
     };
 
     const decline = async (id) => {
-        await declineFriendRequest(id, token);
+        if (!token) return;
+        await rejectFriendRequest(id, token);
         setRequests((prev) => prev.filter((r) => r._id !== id));
     };
 
@@ -60,4 +60,4 @@ export function FriendRequestProvider({ children }) {
 
     export function useFriendRequests() {
     return useContext(FriendRequestContext);
-    }
+}
