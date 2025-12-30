@@ -30,13 +30,15 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <NotificationProvider>
-          <SocketProvider>
-            <MessageProvider>
-              <App />
-            </MessageProvider>
-          </SocketProvider>
-        </NotificationProvider>
+        <FriendRequestProvider>
+          <NotificationProvider>
+            <SocketProvider>
+              <MessageProvider>
+                <App />
+              </MessageProvider>
+            </SocketProvider>
+          </NotificationProvider>
+        </FriendRequestProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>
