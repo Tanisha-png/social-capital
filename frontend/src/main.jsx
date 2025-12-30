@@ -9,6 +9,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { SocketProvider } from "./context/socketContext";
 import { MessageProvider } from "./context/MessageContext";
+import { FriendRequestProvider } from "./context/FriendRequestContext";
+
 
 // createRoot(document.getElementById("root")).render(
 //   <StrictMode>
