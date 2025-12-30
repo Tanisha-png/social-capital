@@ -95,6 +95,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useMessageNotifications } from "../../context/MessageContext";
 import MessagesDropdown from "../MessagesDropdown/MessagesDropdown";
 import NotificationsDropdown from "../NotificationsDropdown/NotificationsDropdown";
+import ConnectionRequestsDropdown from "../ConnectionRequestsDropdown/ConnectionRequestsDropdown";
 import "./NavBar.css";
 
 export default function NavBar() {
@@ -145,6 +146,11 @@ export default function NavBar() {
             {/* Notifications */}
             <div className="nav-icon-wrapper" style={{ position: "relative" }}>
               <NotificationsDropdown />
+            </div>
+
+            {/* Connection Requests */}
+            <div className="nav-icon-wrapper" style={{ position: "relative" }}>
+              <ConnectionRequestsDropdown />
             </div>
 
             {/* Messages */}
