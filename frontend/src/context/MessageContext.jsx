@@ -202,6 +202,8 @@ export const MessageProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [unreadByUser, setUnreadByUser] = useState({}); // { senderId: count }
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeChatUserId, setActiveChatUserId] = useState(null);
+
 
   // REFS
   const seenMessageIds = useRef(new Set());
@@ -260,7 +262,12 @@ export const MessageProvider = ({ children }) => {
     seenMessageIds.current.add(msg._id);
     addMessageToState(msg);
 
-    if (receiverId && userId && receiverId.toString() === userId.toString()) {
+    if (
+      receiverId &&
+      userId &&
+      receiverId.toString() === userId.toString() &&
+      senderId !== activeChatUserId // 👈 KEY LINE
+    ) {
       setUnreadByUser((prev) => {
         const prevCount = Number(prev[senderId]) || 0;
         const updated = { ...prev, [senderId]: prevCount + 1 };
@@ -418,6 +425,7 @@ export const MessageProvider = ({ children }) => {
         sendMessage,
         markMessagesRead,
         hasUnreadFrom,
+        setActiveChatUserId,
       }}
     >
       {children}

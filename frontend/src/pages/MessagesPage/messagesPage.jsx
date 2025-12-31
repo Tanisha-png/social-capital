@@ -224,7 +224,9 @@ import "./MessagesPage.css";
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
-  const { markMessagesRead, unreadByUser } = useMessageNotifications();
+  // const { markMessagesRead, unreadByUser } = useMessageNotifications();
+  const { markMessagesRead, unreadByUser, setActiveChatUserId } =
+    useMessageNotifications();
   console.log("unreadByUser:", unreadByUser);
 
   const [conversations, setConversations] = useState([]);
@@ -310,6 +312,8 @@ export default function MessagesPage() {
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
+    setActiveChatUserId(otherUser._id); 
+
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
       setMessages(Array.isArray(msgs) ? msgs : []);
@@ -354,6 +358,10 @@ export default function MessagesPage() {
   );
 
   const sidebarUsers = getSidebarUsers();
+
+  useEffect(() => {
+    return () => setActiveChatUserId(null);
+  }, []);
 
   return (
     <div className="linkedin-messages">
