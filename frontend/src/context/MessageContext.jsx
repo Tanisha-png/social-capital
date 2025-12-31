@@ -219,18 +219,47 @@ export const MessageProvider = ({ children }) => {
   };
 
   // MAIN message handler
+  // const handleIncomingMessage = (msg) => {
+  //   if (!msg?._id) return;
+  //   if (seenMessageIds.current.has(msg._id)) return;
+  //   seenMessageIds.current.add(msg._id);
+
+  //   const senderId = normalizeId(msg.sender) || msg.senderId || null;
+  //   const receiverId =
+  //     normalizeId(msg.recipient) || msg.recipientId || msg.toId || null;
+
+  //   addMessageToState(msg);
+
+  //   // Increment unread for the current user
+  //   if (receiverId && userId && receiverId.toString() === userId.toString()) {
+  //     setUnreadByUser((prev) => {
+  //       const prevCount = Number(prev[senderId]) || 0;
+  //       const updated = { ...prev, [senderId]: prevCount + 1 };
+  //       setUnreadCount(
+  //         Object.values(updated).reduce((sum, val) => sum + val, 0)
+  //       );
+  //       return updated;
+  //     });
+  //   }
+  // };
+
   const handleIncomingMessage = (msg) => {
     if (!msg?._id) return;
     if (seenMessageIds.current.has(msg._id)) return;
-    seenMessageIds.current.add(msg._id);
 
     const senderId = normalizeId(msg.sender) || msg.senderId || null;
     const receiverId =
       normalizeId(msg.recipient) || msg.recipientId || msg.toId || null;
 
+    // ❌ Skip counting messages sent BY the logged-in user
+    if (senderId === userId) {
+      addMessageToState(msg);
+      return;
+    }
+
+    seenMessageIds.current.add(msg._id);
     addMessageToState(msg);
 
-    // Increment unread for the current user
     if (receiverId && userId && receiverId.toString() === userId.toString()) {
       setUnreadByUser((prev) => {
         const prevCount = Number(prev[senderId]) || 0;
@@ -242,6 +271,7 @@ export const MessageProvider = ({ children }) => {
       });
     }
   };
+
 
   const fetchUnreadCounts = async () => {
     if (!userId) return;
