@@ -225,6 +225,7 @@ export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
   const { markMessagesRead, unreadByUser } = useMessageNotifications();
+  console.log("unreadByUser:", unreadByUser);
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
