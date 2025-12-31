@@ -200,10 +200,9 @@ export const MessageProvider = ({ children }) => {
 
   // STATE
   const [messages, setMessages] = useState([]);
-  const [unreadByUser, setUnreadByUser] = useState({}); // { senderId: count }
+  const [unreadByUser, setUnreadByUser] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeChatUserId, setActiveChatUserId] = useState(null);
-
 
   // REFS
   const seenMessageIds = useRef(new Set());
@@ -220,31 +219,7 @@ export const MessageProvider = ({ children }) => {
     );
   };
 
-  // MAIN message handler
-  // const handleIncomingMessage = (msg) => {
-  //   if (!msg?._id) return;
-  //   if (seenMessageIds.current.has(msg._id)) return;
-  //   seenMessageIds.current.add(msg._id);
-
-  //   const senderId = normalizeId(msg.sender) || msg.senderId || null;
-  //   const receiverId =
-  //     normalizeId(msg.recipient) || msg.recipientId || msg.toId || null;
-
-  //   addMessageToState(msg);
-
-  //   // Increment unread for the current user
-  //   if (receiverId && userId && receiverId.toString() === userId.toString()) {
-  //     setUnreadByUser((prev) => {
-  //       const prevCount = Number(prev[senderId]) || 0;
-  //       const updated = { ...prev, [senderId]: prevCount + 1 };
-  //       setUnreadCount(
-  //         Object.values(updated).reduce((sum, val) => sum + val, 0)
-  //       );
-  //       return updated;
-  //     });
-  //   }
-  // };
-
+  // 🔔 Incoming message handler
   const handleIncomingMessage = (msg) => {
     if (!msg?._id) return;
     if (seenMessageIds.current.has(msg._id)) return;
@@ -253,7 +228,7 @@ export const MessageProvider = ({ children }) => {
     const receiverId =
       normalizeId(msg.recipient) || msg.recipientId || msg.toId || null;
 
-    // ❌ Skip counting messages sent BY the logged-in user
+    // ❌ Do not count messages sent by self
     if (senderId === userId) {
       addMessageToState(msg);
       return;
@@ -262,11 +237,14 @@ export const MessageProvider = ({ children }) => {
     seenMessageIds.current.add(msg._id);
     addMessageToState(msg);
 
+    // ✅ Increment unread only if:
+    // - message is for current user
+    // - NOT currently viewing that chat
     if (
       receiverId &&
       userId &&
       receiverId.toString() === userId.toString() &&
-      senderId !== activeChatUserId // 👈 KEY LINE
+      senderId !== activeChatUserId
     ) {
       setUnreadByUser((prev) => {
         const prevCount = Number(prev[senderId]) || 0;
@@ -279,20 +257,21 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-
+  // 📥 Fetch unread counts on login
   const fetchUnreadCounts = async () => {
     if (!userId) return;
     try {
-      const data = await getUnreadCountsByUser(); // [{ _id: senderId, count }]
+      const data = await getUnreadCountsByUser(); // [{ _id, count }]
       const map = {};
       (data || []).forEach((item) => {
         map[String(item._id)] = Number(item.count) || 0;
       });
-      setUnreadByUser(map);
-      setUnreadCount(Object.values(map).reduce((sum, val) => sum + val, 0));
 
+      setUnreadByUser(map);
+      setUnreadCount(Object.values(map).reduce((s, v) => s + v, 0));
       initialFetchDone.current = true;
 
+      // Flush buffered socket messages
       if (socketBuffer.current.length) {
         socketBuffer.current.forEach(handleIncomingMessage);
         socketBuffer.current = [];
@@ -302,7 +281,7 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  // RESET on logout or user switch
+  // 🔄 Reset on logout / user switch
   useEffect(() => {
     if (!userId) {
       setMessages([]);
@@ -316,7 +295,7 @@ export const MessageProvider = ({ children }) => {
     fetchUnreadCounts();
   }, [userId]);
 
-  // SOCKET listeners
+  // 🔌 Socket listeners
   useEffect(() => {
     if (!socket) return;
 
@@ -333,9 +312,11 @@ export const MessageProvider = ({ children }) => {
     };
 
     const onUnreadUpdate = (payload) => {
-      if (!payload) return;
+      if (!payload?.senderId) return;
+
       const sid = String(payload.senderId);
       const count = Number(payload.unreadCount) || 0;
+
       setUnreadByUser((prev) => {
         const updated = { ...prev, [sid]: count };
         setUnreadCount(
@@ -356,19 +337,21 @@ export const MessageProvider = ({ children }) => {
       socket.off("message:received", onUnreadUpdate);
       socket.off("unread:update", onUnreadUpdate);
     };
-  }, [socket, userId]);
+  }, [socket, userId, activeChatUserId]);
 
-  // SEND a new message
+  // ✉️ Send message
   const sendMessage = async (recipientId, text) => {
     if (!recipientId || !text) return;
     try {
       const savedMsg = await apiSendMessage(recipientId, text);
       handleIncomingMessage(savedMsg);
+
       socket?.emit("send_message", {
         senderId: userId,
         receiverId: recipientId,
         content: text,
       });
+
       return savedMsg;
     } catch (err) {
       console.error("[MessageContext] sendMessage failed:", err);
@@ -376,45 +359,27 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  // MARK messages read
-  const markMessagesRead = async (senderId = null) => {
+  // ✅ MARK messages read (SAFE — never global)
+  const markMessagesRead = async (senderId) => {
+    if (!senderId) return; // ⛔️ CRITICAL FIX
+
     try {
-      // 1️⃣ Call the backend API
       await apiMarkMessagesRead(senderId);
 
-      // 2️⃣ Immediately update local unread state
       setUnreadByUser((prev) => {
-        const updated = { ...prev };
-
-        if (senderId) {
-          // Clear only for this sender
-          updated[String(senderId)] = 0;
-        } else {
-          // Clear all
-          Object.keys(updated).forEach((key) => {
-            updated[key] = 0;
-          });
-        }
-
-        // Update total count
+        const updated = { ...prev, [String(senderId)]: 0 };
         setUnreadCount(Object.values(updated).reduce((s, v) => s + v, 0));
         return updated;
       });
 
-      // 3️⃣ Optional: re-fetch unread counts to be safe (keeps context synced)
-      await fetchUnreadCounts();
-
-      console.log(`✅ Marked messages read for ${senderId || "ALL"}`);
+      console.log(`✅ Marked messages read for ${senderId}`);
     } catch (err) {
       console.error("[MessageContext] markMessagesRead failed:", err);
     }
   };
 
-
-  // HELPER for sidebar dot
-  const hasUnreadFrom = (senderId) => {
-    return (unreadByUser[String(senderId)] || 0) > 0;
-  };
+  // 🔵 Sidebar helper
+  const hasUnreadFrom = (senderId) => (unreadByUser[String(senderId)] || 0) > 0;
 
   return (
     <MessageContext.Provider
