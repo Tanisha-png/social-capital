@@ -15,6 +15,11 @@ export default function SignUpPage() {
     name: "",
     email: "",
     password: "",
+    firstName: "",
+    lastName: "",
+    occupation: "",
+    education: "",
+    bio: "",
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("/default-avatar.png");
@@ -84,16 +89,46 @@ export default function SignUpPage() {
         required
       />
       <input
+        name="firstName"
+        value={formData.firstName}
+        onChange={handleChange}
+        placeholder="First name (optional)"
+      />
+
+      <input
+        name="lastName"
+        value={formData.lastName}
+        onChange={handleChange}
+        placeholder="Last name (optional)"
+      />
+
+      <input
+        name="occupation"
+        value={formData.occupation}
+        onChange={handleChange}
+        placeholder="Where do you work? (optional)"
+      />
+
+      <input
+        name="education"
+        value={formData.education}
+        onChange={handleChange}
+        placeholder="Education (optional)"
+      />
+
+      <textarea
+        name="bio"
+        value={formData.bio}
+        onChange={handleChange}
+        placeholder="Short bio (optional)"
+      />
+      <input
         type="file"
         name="avatarFile"
         accept="image/png,image/jpeg"
         onChange={handleChange}
       />
-      <Avatar
-        src={avatarUrl}
-        alt="Avatar preview"
-        className="avatar-preview"
-      />
+      <Avatar src={avatarUrl} alt="Avatar preview" className="avatar-preview" />
       <button type="submit">Sign Up</button>
     </form>
   );
