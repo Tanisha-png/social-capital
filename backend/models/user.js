@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
 
+    // 🔐 Password reset (email)
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+
     // Profile fields
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
