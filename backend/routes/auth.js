@@ -64,7 +64,16 @@ const router = express.Router();
 // ---------------- SIGNUP ----------------
 router.post("/signup", upload.single("avatarFile"), async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const {
+            name,
+            email,
+            password,
+            firstName,
+            lastName,
+            occupation,
+            education,
+            bio,
+        } = req.body;
 
         // Check if user already exists
         const existing = await User.findOne({ email });
@@ -77,6 +86,14 @@ router.post("/signup", upload.single("avatarFile"), async (req, res) => {
             name,
             email,
             password,
+
+            // ✅ Optional profile fields
+            firstName: firstName || "",
+            lastName: lastName || "",
+            occupation: occupation || "",
+            education: education || "",
+            bio: bio || "",
+
             avatar: req.file
                 ? `${req.protocol}://${req.get("host")}/uploads/avatars/${req.file.filename}`
                 : "/default-avatar.png",
