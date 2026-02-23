@@ -1,6 +1,7 @@
 import Notification from "../models/Notification.js";
 import FriendRequest from "../models/FriendRequest.js";
 import Message from "../models/message.js";
+import { sendEmail } from "../utils/email.js";
 import User from "../models/user.js";
 
 // Send message with duplicate prevention
@@ -32,12 +33,44 @@ export const sendMessage = async (req, res) => {
             { path: "recipient", select: "firstName lastName avatar" },
         ]);
 
+        // // Real-time emit
+        // if (req.io) {
+        //     req.io.to(recipientId.toString()).emit("newMessage", {
+        //         ...populatedMessage._doc,
+        //         receiverId: recipientId.toString(),
+        //     });
+        // }
+
         // Real-time emit
         if (req.io) {
             req.io.to(recipientId.toString()).emit("newMessage", {
                 ...populatedMessage._doc,
                 receiverId: recipientId.toString(),
             });
+        }
+
+        /* ===========================
+        EMAIL NOTIFICATION (SAFE)
+        =========================== */
+
+        try {
+            const recipientUser = await User.findById(recipientId);
+
+            if (recipientUser?.email) {
+                // Notice: NO await (prevents slowing response)
+                sendEmail({
+                    to: recipientUser.email,
+                    subject: "New message on Social Capital",
+                    html: `
+                        <p>You have a new message from 
+                        ${populatedMessage.sender.firstName || ""} 
+                        ${populatedMessage.sender.lastName || ""}.</p>
+                        <p>Log in to reply.</p>
+                    `,
+                });
+            }
+        } catch (emailErr) {
+            console.error("Email notification error:", emailErr.message);
         }
 
         res.status(201).json(populatedMessage);

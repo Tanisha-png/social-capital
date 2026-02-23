@@ -1,5 +1,6 @@
 // routes/posts.js
 import { notifyUser } from "../server.js";
+import { sendEmail } from "../utils/email.js";
 import express from "express";
 import { ensureLoggedIn } from "../middleware/ensureLoggedIn.js";
 import checkToken from "../middleware/checkToken.js";
@@ -110,6 +111,21 @@ router.post("/:id/like", verifyToken, async (req, res) => {
                     },
                     post: { _id: post._id, content: post.content },
                 });
+
+                // ✅ Send email (non-blocking)
+                const author = await User.findById(post.author._id).select("email firstName");
+
+                if (author?.email) {
+                    await sendEmail({
+                        to: author.email,
+                        subject: "Someone liked your post",
+                        html: `
+                            <p>Hi ${author.firstName || ""},</p>
+                            <p>${req.user.firstName} liked your post.</p>
+                            <p>Log in to see it.</p>
+                        `,
+                    });
+                }
             }
         }
 
@@ -167,6 +183,21 @@ router.post("/:id/replies", checkToken, ensureLoggedIn, async (req, res) => {
                 },
                 post: { _id: post._id, content: post.content },
             });
+
+            // ✅ Send email (non-blocking)
+            const author = await User.findById(post.author._id).select("email firstName");
+
+            if (author?.email) {
+                await sendEmail({
+                    to: author.email,
+                    subject: "New comment on your post",
+                    html: `
+                        <p>Hi ${author.firstName || ""},</p>
+                        <p>${req.user.firstName} commented on your post.</p>
+                        <p>Log in to view and reply.</p>
+                    `,
+                });
+            }
         }
 
         res.json(post.replies[post.replies.length - 1]);

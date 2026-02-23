@@ -14,6 +14,8 @@ import SearchPage from "./pages/SearchPage/SearchPage";
 import FriendsPage from "./pages/FriendsPage/FriendsPage";
 import EditProfilePage from "./pages/EditProfilePage/EditProfilePage";
 import PostDetailPage from "./pages/Posts/PostDetailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage/ResetPasswordPage";
 
 import { initSocket } from "./socket"; // ✅ Import socket init
 import "./app.css";
@@ -58,6 +60,11 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/reset-password/:token"
+            element={<ResetPasswordPage />}
+          />
 
           {/* Private */}
           <Route

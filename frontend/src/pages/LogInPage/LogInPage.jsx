@@ -24,7 +24,7 @@ export default function LogInPage() {
 
   return (
     <>
-    <h2>Log In!</h2>
+      <h2>Log In!</h2>
       <form onSubmit={handleSubmit}>
         <label>Email:</label>
         <input
@@ -45,7 +45,10 @@ export default function LogInPage() {
           }
         />
         <button type="submit">Login</button>
-        <button type="submit">Forgot Password</button>
+        {/* <button type="submit">Forgot Password</button> */}
+        <button type="button" onClick={() => navigate("/forgot-password")}>
+          Forgot Password
+        </button>
       </form>
     </>
   );

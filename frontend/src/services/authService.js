@@ -58,3 +58,18 @@ export async function getProfile(token) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function forgotPassword(data) {
+  const res = await fetch(`${AUTH_URL}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Forgot password failed");
+  }
+
+  return res.json();
+}

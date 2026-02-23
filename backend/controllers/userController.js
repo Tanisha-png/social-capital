@@ -1,6 +1,7 @@
 
 // userController.js
 import User from "../models/user.js";
+import { sendEmail } from "../utils/email.js";
 import path from "path";
 
 // GET current user profile
@@ -227,6 +228,19 @@ export const sendFriendRequest = async (req, res) => {
         // Add sender to target's pending friendRequests
         targetUser.friendRequests.push(senderId);
         await targetUser.save();
+
+        // ✅ Email notification (non-blocking)
+        if (targetUser.email) {
+            await sendEmail({
+                to: targetUser.email,
+                subject: "New friend request on Social Capital",
+                html: `
+                    <p>Hi ${targetUser.firstName || ""},</p>
+                    <p>${sender.firstName} ${sender.lastName} sent you a friend request.</p>
+                    <p>Log in to accept or decline.</p>
+                `,
+            });
+        }
 
         res.json({ message: "Friend request sent!" });
     } catch (err) {

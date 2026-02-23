@@ -178,7 +178,7 @@
 // backend/controllers/notification.js
 import Notification from "../models/Notification.js";
 import { io } from "../server.js";
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 
 // --- CREATE NOTIFICATION AND EMIT ---
 export async function notifyUser({ userId, fromUserId, type, message, post, messageRef }) {
@@ -208,27 +208,27 @@ export async function notifyUser({ userId, fromUserId, type, message, post, mess
 }
 
 // --- EMAIL TRANSPORTER ---
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+// const transporter = nodemailer.createTransport({
+//     service: "Gmail",
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS,
+//     },
+// });
 
-// --- SEND EMAIL ---
-export async function sendEmail(to, subject, message) {
-    try {
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to,
-            subject,
-            text: message,
-        });
-    } catch (err) {
-        console.error("Email error:", err);
-    }
-}
+// // --- SEND EMAIL ---
+// export async function sendEmail(to, subject, message) {
+//     try {
+//         await transporter.sendMail({
+//             from: process.env.EMAIL_USER,
+//             to,
+//             subject,
+//             text: message,
+//         });
+//     } catch (err) {
+//         console.error("Email error:", err);
+//     }
+// }
 
 // --- CREATE NOTIFICATION (IN-APP) ---
 // export async function createNotification({
