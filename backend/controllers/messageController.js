@@ -61,11 +61,29 @@ export const sendMessage = async (req, res) => {
                 sendEmail({
                     to: recipientUser.email,
                     subject: "New message on Social Capital",
+                    // html: `
+                    //     <p>You have a new message from 
+                    //     ${populatedMessage.sender.firstName || ""} 
+                    //     ${populatedMessage.sender.lastName || ""}.</p>
+                    //     <p>Log in to reply.</p>
+                    // `,
                     html: `
+                        <p>Hello ${recipientUser.firstName || ""},</p>
+
                         <p>You have a new message from 
-                        ${populatedMessage.sender.firstName || ""} 
-                        ${populatedMessage.sender.lastName || ""}.</p>
-                        <p>Log in to reply.</p>
+                        <strong>
+                            ${populatedMessage.sender.firstName || ""} 
+                            ${populatedMessage.sender.lastName || ""}
+                        </strong>.
+                        </p>
+
+                        <p>
+                            <a href="${process.env.HEROKU_APP_URL}">
+                                Open Social Capital
+                            </a>
+                        </p>
+
+                        <p>— Social Capital</p>
                     `,
                 });
             }
