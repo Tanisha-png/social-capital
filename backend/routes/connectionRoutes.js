@@ -321,4 +321,45 @@ router.get("/requests", checkToken, async (req, res) => {
     }
 });
 
+// ✅ Get "People You May Know" suggestions
+router.get("/suggestions", checkToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Exclude: current user + already friends + already requested
+        const excludedIds = [
+            user._id.toString(),
+            ...user.friends.map((f) => f.toString()),
+            ...user.friendRequests.map((f) => f.toString()),
+        ];
+
+        const suggestions = await User.find({
+            _id: { $nin: excludedIds },
+        }).select("_id firstName lastName avatar occupation location friends");
+
+        // Add mutual friends count
+        const formatted = suggestions.map((s) => {
+            const mutualFriends = s.friends.filter((f) =>
+                user.friends.includes(f)
+            ).length;
+            return {
+                _id: s._id,
+                firstName: s.firstName,
+                lastName: s.lastName,
+                avatar: s.avatar,
+                occupation: s.occupation,
+                location: s.location,
+                mutualFriends,
+            };
+        });
+
+        res.json(formatted);
+    } catch (err) {
+        console.error("Error fetching suggestions:", err);
+        res.status(500).json({ message: "Server error fetching suggestions" });
+    }
+});
+
 export default router;

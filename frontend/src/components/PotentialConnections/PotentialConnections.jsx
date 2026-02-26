@@ -67,42 +67,42 @@ export default function PotentialConnections() {
 
     return (
         <div className="potential-connections">
-        <ul>
+            <ul>
             {suggestions.map((user) => (
-            <li key={user._id} className="suggestion-item">
+                <li key={user._id} className="suggestion-item">
                 <Avatar
-                src={getSafeAvatarUrl(user.avatar, user._id)}
-                alt={`${user.firstName} ${user.lastName}`}
-                className="connection-avatar"
+                    src={getSafeAvatarUrl(user.avatar, user._id)}
+                    alt={`${user.firstName} ${user.lastName}`}
+                    className="connection-avatar"
                 />
 
                 <div className="suggestion-info">
-                <strong>
+                    <strong
+                    className="cursor-pointer"
+                    onClick={() => window.location.assign(`/profile/${user._id}`)}
+                    >
                     {user.firstName} {user.lastName}
-                </strong>
-
-                {user.occupation && <p>{user.occupation}</p>}
-
-                {user.location && <p>{user.location}</p>}
-
-                {user.mutualFriends > 0 && (
+                    </strong>
+                    {user.occupation && <p>{user.occupation}</p>}
+                    {user.location && <p>{user.location}</p>}
+                    {user.mutualFriends > 0 && (
                     <p className="mutual">
-                    {user.mutualFriends} mutual connection
-                    {user.mutualFriends !== 1 ? "s" : ""}
+                        {user.mutualFriends} mutual connection
+                        {user.mutualFriends !== 1 ? "s" : ""}
                     </p>
-                )}
+                    )}
                 </div>
 
                 <button
-                onClick={() => handleConnect(user._id)}
-                disabled={sendingId === user._id}
-                className="connect-btn"
+                    onClick={() => handleConnect(user._id)}
+                    disabled={sendingId === user._id}
+                    className="connect-btn"
                 >
-                {sendingId === user._id ? "Sending..." : "Connect"}
+                    {sendingId === user._id ? "Sending..." : "Connect"}
                 </button>
-            </li>
+                </li>
             ))}
-        </ul>
+            </ul>
         </div>
     );
 }
