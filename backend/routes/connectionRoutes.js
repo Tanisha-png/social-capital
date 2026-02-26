@@ -328,7 +328,6 @@ router.get("/suggestions", checkToken, async (req, res) => {
 
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // Exclude: current user + already friends + already requested
         const excludedIds = [
             user._id.toString(),
             ...user.friends.map((f) => f.toString()),
@@ -337,17 +336,27 @@ router.get("/suggestions", checkToken, async (req, res) => {
 
         const suggestions = await User.find({
             _id: { $nin: excludedIds },
-        }).select("_id firstName lastName avatar occupation location friends");
+        }).select("_id firstName lastName name avatar occupation location friends");
 
-        // Add mutual friends count
         const formatted = suggestions.map((s) => {
-            const mutualFriends = s.friends.filter((f) =>
-                user.friends.includes(f)
-            ).length;
+            const mutualFriends = s.friends.filter((f) => user.friends.includes(f)).length;
+
+            // Fallback: if firstName/lastName missing, try splitting "name"
+            let firstName = s.firstName?.trim();
+            let lastName = s.lastName?.trim();
+
+            if (!firstName && !lastName && s.name) {
+                const split = s.name.split(" ");
+                firstName = split[0] || "Unknown";
+                lastName = split.slice(1).join(" ") || "";
+            }
+
+            if (!firstName) firstName = "Unknown";
+
             return {
                 _id: s._id,
-                firstName: s.firstName,
-                lastName: s.lastName,
+                firstName,
+                lastName,
                 avatar: s.avatar,
                 occupation: s.occupation,
                 location: s.location,
