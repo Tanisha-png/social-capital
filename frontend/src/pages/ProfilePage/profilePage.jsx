@@ -355,7 +355,11 @@ export default function ProfilePage() {
           <h3>
             <Users size={18} /> People You May Know
           </h3>
-          <PotentialConnections />
+
+          <PotentialConnections
+            userId={authUser._id}
+            currentUserId={authUser._id}
+          />
         </div>
       )}
 

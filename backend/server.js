@@ -19,6 +19,7 @@ import authRoutes from "./routes/auth.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import connectionRoutes from "./routes/connectionRoutes.js";
+import suggestionRoutes from "./routes/suggestionRoutes.js";
 
 dotenv.config();
 await connectDB();
@@ -193,6 +194,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/connections", connectionRoutes);
+app.use("/api/connections/suggestions", suggestionRoutes);
 app.use("/uploads", express.static("uploads"));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
