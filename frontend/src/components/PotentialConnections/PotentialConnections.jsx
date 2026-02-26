@@ -14,22 +14,29 @@ export default function PotentialConnections() {
 
     useEffect(() => {
         async function fetchSuggestions() {
-        try {
-            const token = getToken();
-            if (!token) return setLoading(false);
+            try {
+                const token = getToken();
+                if (!token) {
+                    setLoading(false);
+                    return;
+                }
 
-            const res = await fetch("/api/connections/suggestions", {
-            headers: { Authorization: `Bearer ${token}` },
-            });
+                const res = await fetch("/api/connections/suggestions", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
 
-            const data = await res.json();
-            if (res.ok) setSuggestions(data);
-            else console.error("Suggestion fetch failed:", data);
-        } catch (err) {
-            console.error("Suggestion fetch error:", err);
-        } finally {
-            setLoading(false);
-        }
+                const data = await res.json();
+
+                if (res.ok) {
+                    setSuggestions(data);
+                } else {
+                    console.error("Suggestion fetch failed:", data);
+                }
+            } catch (err) {
+                console.error("Suggestion fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
         }
 
         fetchSuggestions();
@@ -37,65 +44,111 @@ export default function PotentialConnections() {
 
     async function handleConnect(userId) {
         try {
-        setSendingId(userId);
-        await sendFriendRequest(userId, getToken());
-        setSuggestions((prev) => prev.filter((user) => user._id !== userId));
+            setSendingId(userId);
+
+            await sendFriendRequest(userId, getToken());
+
+            // Remove user from suggestions after sending request
+            setSuggestions((prev) =>
+                prev.filter((user) => user._id !== userId)
+            );
         } catch (err) {
-        console.error("Connection request failed:", err);
+            console.error("Connection request failed:", err);
         } finally {
-        setSendingId(null);
+            setSendingId(null);
         }
     }
 
     if (loading) return <p>Loading suggestions...</p>;
-    if (suggestions.length === 0) return <p>No suggestions available yet.</p>;
+
+    if (suggestions.length === 0)
+        return <p>No suggestions available yet.</p>;
 
     return (
         <div className="potential-connections">
-        <ul>
-            {suggestions.map((user) => {
-            const firstName = user.firstName || "Unknown";
-            const lastName = user.lastName || "";
-            const avatar = getSafeAvatarUrl(user.avatar, user._id);
-            const occupation = user.occupation || "";
-            const location = user.location || "";
-            const mutual = user.mutualFriends || 0;
+            <ul>
+                {suggestions.map((user) => {
+                    const firstName = user.firstName?.trim() || "";
+                    const lastName = user.lastName?.trim() || "";
+                    const fullName =
+                        firstName || lastName
+                            ? `${firstName} ${lastName}`.trim()
+                            : user.name || "Unknown";
 
-            return (
-                <li key={user._id} className="suggestion-item">
-                <Avatar
-                    src={avatar}
-                    alt={`${firstName} ${lastName}`}
-                    className="connection-avatar"
-                />
+                    const avatar = getSafeAvatarUrl(
+                        user.avatar,
+                        user._id
+                    );
 
-                <div className="suggestion-info">
-                    <strong
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/profile/${user._id}`)}
-                    >
-                    {firstName} {lastName}
-                    </strong>
-                    {occupation && <p>{occupation}</p>}
-                    {location && <p>{location}</p>}
-                    {mutual > 0 && (
-                    <p className="mutual">
-                        {mutual} mutual connection{mutual !== 1 ? "s" : ""}
-                    </p>
-                    )}
-                </div>
+                    const occupation =
+                        user.occupation?.trim() ||
+                        "Occupation not specified";
 
-                <button
-                    onClick={() => handleConnect(user._id)}
-                    disabled={sendingId === user._id}
-                    className="connect-btn"
-                >
-                    {sendingId === user._id ? "Sending..." : "Connect"}
-                </button>
-                </li>
-            );
-            })}
-        </ul>
+                    const location = user.location?.trim() || "";
+
+                    const mutual = user.mutualFriends || 0;
+
+                    return (
+                        <li
+                            key={user._id}
+                            className="suggestion-item"
+                        >
+                            <Avatar
+                                src={avatar}
+                                alt={fullName}
+                                className="connection-avatar"
+                            />
+
+                            <div className="suggestion-info">
+                                <strong
+                                    className="cursor-pointer"
+                                    onClick={() =>
+                                        navigate(
+                                            `/profile/${user._id}`
+                                        )
+                                    }
+                                >
+                                    {fullName}
+                                </strong>
+
+                                {/* ✅ Always show occupation */}
+                                <p className="occupation">
+                                    {occupation}
+                                </p>
+
+                                {/* Optional location */}
+                                {location && (
+                                    <p className="location">
+                                        {location}
+                                    </p>
+                                )}
+
+                                {/* Mutual friends */}
+                                {mutual > 0 && (
+                                    <p className="mutual">
+                                        {mutual} mutual connection
+                                        {mutual !== 1 ? "s" : ""}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() =>
+                                    handleConnect(user._id)
+                                }
+                                disabled={
+                                    sendingId === user._id
+                                }
+                                className="connect-btn"
+                            >
+                                {sendingId === user._id
+                                    ? "Sending..."
+                                    : "Connect"}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }
