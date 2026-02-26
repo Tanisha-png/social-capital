@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ import
+import { useNavigate } from "react-router-dom";
 import { getToken } from "../../services/authService";
 import { sendFriendRequest } from "../../api/userApi";
 import Avatar from "../Avatar/Avatar";
@@ -7,7 +7,7 @@ import { getSafeAvatarUrl } from "../../utils/avatar";
 import "./PotentialConnections.css";
 
 export default function PotentialConnections() {
-    const navigate = useNavigate(); // ✅ useNavigate hook
+    const navigate = useNavigate();
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sendingId, setSendingId] = useState(null);
@@ -16,10 +16,7 @@ export default function PotentialConnections() {
         async function fetchSuggestions() {
         try {
             const token = getToken();
-            if (!token) {
-            setLoading(false);
-            return;
-            }
+            if (!token) return setLoading(false);
 
             const res = await fetch("/api/connections/suggestions", {
             headers: { Authorization: `Bearer ${token}` },
@@ -56,39 +53,48 @@ export default function PotentialConnections() {
     return (
         <div className="potential-connections">
         <ul>
-            {suggestions.map((user) => (
-            <li key={user._id} className="suggestion-item">
+            {suggestions.map((user) => {
+            const firstName = user.firstName || "Unknown";
+            const lastName = user.lastName || "";
+            const avatar = getSafeAvatarUrl(user.avatar, user._id);
+            const occupation = user.occupation || "";
+            const location = user.location || "";
+            const mutual = user.mutualFriends || 0;
+
+            return (
+                <li key={user._id} className="suggestion-item">
                 <Avatar
-                src={getSafeAvatarUrl(user.avatar, user._id)}
-                alt={`${user.firstName ?? ""} ${user.lastName ?? ""}`}
-                className="connection-avatar"
+                    src={avatar}
+                    alt={`${firstName} ${lastName}`}
+                    className="connection-avatar"
                 />
+
                 <div className="suggestion-info">
-                <strong
+                    <strong
                     className="cursor-pointer"
-                    onClick={() => navigate(`/profile/${user._id}`)} // ✅ react-router
-                >
-                    {user.firstName || "Unknown"} {user.lastName || ""}
-                </strong>
-                {user.occupation && <p>{user.occupation}</p>}
-                {user.location && <p>{user.location}</p>}
-                {user.mutualFriends > 0 && (
+                    onClick={() => navigate(`/profile/${user._id}`)}
+                    >
+                    {firstName} {lastName}
+                    </strong>
+                    {occupation && <p>{occupation}</p>}
+                    {location && <p>{location}</p>}
+                    {mutual > 0 && (
                     <p className="mutual">
-                    {user.mutualFriends} mutual connection
-                    {user.mutualFriends !== 1 ? "s" : ""}
+                        {mutual} mutual connection{mutual !== 1 ? "s" : ""}
                     </p>
-                )}
+                    )}
                 </div>
 
                 <button
-                onClick={() => handleConnect(user._id)}
-                disabled={sendingId === user._id}
-                className="connect-btn"
+                    onClick={() => handleConnect(user._id)}
+                    disabled={sendingId === user._id}
+                    className="connect-btn"
                 >
-                {sendingId === user._id ? "Sending..." : "Connect"}
+                    {sendingId === user._id ? "Sending..." : "Connect"}
                 </button>
-            </li>
-            ))}
+                </li>
+            );
+            })}
         </ul>
         </div>
     );
