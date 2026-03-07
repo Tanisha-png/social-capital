@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import PostItem from "../../components/PostItem/PostItem";
-import "./PostDetailPage.css"; // reuse same styles as PostListPage
+import "./PostDetailPage.css";
 
 export default function PostDetailPage() {
     const { id } = useParams();
@@ -20,9 +19,19 @@ export default function PostDetailPage() {
             headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
-            setPost(data);
+
+            // Safety: ensure post and author exist
+            if (!data || !data._id) {
+            setPost(null);
+            } else {
+            setPost({
+                ...data,
+                author: data.author || null, // if author deleted
+            });
+            }
         } catch (err) {
             console.error("Error fetching post:", err);
+            setPost(null);
         } finally {
             setLoading(false);
         }
@@ -30,7 +39,6 @@ export default function PostDetailPage() {
         fetchPost();
     }, [id, token]);
 
-    // Handlers can be passed to PostItem
     const handlePostUpdated = (updatedPost) => setPost(updatedPost);
 
     if (loading) return <p>Loading post...</p>;
@@ -42,10 +50,13 @@ export default function PostDetailPage() {
         <ul className="posts-feed">
             <li>
             <PostItem
-                post={post}
+                post={{
+                ...post,
+                author: post.author || { firstName: "Deleted", lastName: "User" },
+                }}
                 onPostUpdated={handlePostUpdated}
-                onNewPost={null} // not needed for detail view
-                onPostShared={null} // not needed for detail view
+                onNewPost={null}
+                onPostShared={null}
             />
             </li>
         </ul>

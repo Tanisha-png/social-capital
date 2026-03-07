@@ -224,10 +224,8 @@ import "./MessagesPage.css";
 export default function MessagesPage() {
   const { user, token, getToken, initialized } = useAuth();
   const authToken = token || getToken();
-  // const { markMessagesRead, unreadByUser } = useMessageNotifications();
   const { markMessagesRead, unreadByUser, setActiveChatUserId } =
     useMessageNotifications();
-  console.log("unreadByUser:", unreadByUser);
 
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -238,7 +236,7 @@ export default function MessagesPage() {
   const [loadingError, setLoadingError] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // --- Initial setup and socket connection ---
+  // Initialize socket
   useEffect(() => {
     if (!initialized) return;
     if (!user || !authToken) setLoading(false);
@@ -250,6 +248,7 @@ export default function MessagesPage() {
     return () => s?.disconnect?.();
   }, [authToken, user?._id]);
 
+  // Load conversations + connections
   useEffect(() => {
     if (!authToken) return;
     let cancelled = false;
@@ -268,7 +267,7 @@ export default function MessagesPage() {
       } catch (err) {
         console.error(err);
         setLoadingError(
-          err?.message || "Failed to load conversations/connections"
+          err?.message || "Failed to load conversations/connections",
         );
         setConversations([]);
         setFriends([]);
@@ -281,13 +280,15 @@ export default function MessagesPage() {
     return () => (cancelled = true);
   }, [authToken]);
 
-  // --- Sidebar logic ---
+  // --- Sidebar users merged ---
   const getSidebarUsers = () => {
     const map = new Map();
-    (friends || []).forEach(
-      (f) =>
-        f?._id && map.set(f._id.toString(), { otherUser: f, lastMessage: null })
-    );
+
+    (friends || []).forEach((f) => {
+      if (f?._id)
+        map.set(f._id.toString(), { otherUser: f, lastMessage: null });
+    });
+
     (conversations || []).forEach((c) => {
       const other = c?.otherUser;
       if (other?._id)
@@ -296,6 +297,7 @@ export default function MessagesPage() {
           lastMessage: c.lastMessage || null,
         });
     });
+
     const merged = Array.from(map.values());
     merged.sort((a, b) => {
       if (a.lastMessage && b.lastMessage)
@@ -309,37 +311,48 @@ export default function MessagesPage() {
     return merged;
   };
 
+  // --- Select user + load messages ---
   const handleSelectUser = async (otherUser) => {
     if (!otherUser?._id) return;
     setSelectedUser(otherUser);
-    setActiveChatUserId(otherUser._id); 
+    setActiveChatUserId(otherUser._id);
 
     try {
       const msgs = await getMessagesWithUser(otherUser._id);
-      setMessages(Array.isArray(msgs) ? msgs : []);
-      markMessagesRead(otherUser._id); // update context unread counts
+      setMessages(
+        Array.isArray(msgs)
+          ? msgs.filter((m) => m?.sender && m?.recipient)
+          : [],
+      );
+      markMessagesRead(otherUser._id);
     } catch (err) {
       console.error(err);
       setMessages([]);
     }
   };
 
+  // --- Send message ---
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser?._id) return;
 
     try {
       const created = await sendMessage(selectedUser._id, newMessage.trim());
+
+      if (!created?.sender || !created?.recipient) return;
+
       setMessages((prev) => [...prev, created]);
       setNewMessage("");
 
       const otherUser =
         created.sender?._id === user._id ? created.recipient : created.sender;
 
+      if (!otherUser?._id) return;
+
       setConversations((prev) => {
         const prevArr = Array.isArray(prev) ? [...prev] : [];
         const idx = prevArr.findIndex(
-          (c) => c?.otherUser?._id === otherUser?._id
+          (c) => c?.otherUser?._id === otherUser._id,
         );
         if (idx === -1) prevArr.push({ otherUser, lastMessage: created });
         else prevArr[idx] = { ...prevArr[idx], lastMessage: created };
@@ -354,7 +367,7 @@ export default function MessagesPage() {
 
   useEffect(
     () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
-    [messages]
+    [messages],
   );
 
   const sidebarUsers = getSidebarUsers();
@@ -392,22 +405,22 @@ export default function MessagesPage() {
                 <img
                   className="sidebar-avatar"
                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${senderId}`}
-                  alt={`${otherUser.firstName} ${otherUser.lastName}`}
+                  alt={`${otherUser?.firstName || "Deleted"} ${
+                    otherUser?.lastName || "User"
+                  }`}
                 />
 
                 <div className="sidebar-meta">
                   <div className="sidebar-row">
-                    {/* BLUE DOT — now on the LEFT OF NAME */}
                     {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
                       <span className="sidebar-dot"></span>
                     )}
 
-                    {/* NAME */}
                     <div className="sidebar-name">
-                      {otherUser.firstName} {otherUser.lastName}
+                      {otherUser?.firstName || "Deleted"}{" "}
+                      {otherUser?.lastName || "User"}
                     </div>
 
-                    {/* BADGE (optional) */}
                     {unreadCount > 0 && selectedUser?._id !== otherUser._id && (
                       <span className="sidebar-unread-badge">
                         {unreadCount}
@@ -423,7 +436,7 @@ export default function MessagesPage() {
                           {
                             hour: "2-digit",
                             minute: "2-digit",
-                          }
+                          },
                         )}
                       </span>
                     ) : (
@@ -445,12 +458,15 @@ export default function MessagesPage() {
             <div className="chat-header">
               <div className="chat-user-info">
                 <img
-                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser._id}`}
-                  alt="avatar"
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${selectedUser?._id}`}
+                  alt={`${selectedUser?.firstName || "Deleted"} ${
+                    selectedUser?.lastName || "User"
+                  }`}
                   className="chat-header-avatar"
                 />
                 <h3>
-                  {selectedUser.firstName} {selectedUser.lastName}
+                  {selectedUser?.firstName || "Deleted"}{" "}
+                  {selectedUser?.lastName || "User"}
                 </h3>
               </div>
             </div>

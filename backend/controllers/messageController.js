@@ -130,7 +130,7 @@ export const getConversations = async (req, res) => {
         const userId = req.user?._id;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        // 1️⃣ Get all accepted friends
+        // 1️⃣ Get accepted friend requests
         const friendsRequests = await FriendRequest.find({
             $or: [
                 { requester: userId, status: "accepted" },
@@ -138,11 +138,15 @@ export const getConversations = async (req, res) => {
             ],
         }).populate("requester recipient", "firstName lastName avatar");
 
-        const friends = friendsRequests.map((fr) =>
-            fr.requester._id.toString() === userId.toString() ? fr.recipient : fr.requester
-        );
+        const friends = friendsRequests
+            .map((fr) =>
+                fr.requester?._id?.toString() === userId.toString()
+                    ? fr.recipient
+                    : fr.requester
+            )
+            .filter(Boolean);
 
-        // 2️⃣ Get all messages involving this user
+        // 2️⃣ Get messages
         const messages = await Message.find({
             $or: [{ sender: userId }, { recipient: userId }],
         })
@@ -153,10 +157,16 @@ export const getConversations = async (req, res) => {
         const conversations = [];
         const seen = new Set();
 
-        // 3️⃣ Add conversations from messages first
+        // 3️⃣ Conversations from messages
         for (const msg of messages) {
+            if (!msg.sender || !msg.recipient) continue;
+
             const otherUser =
-                msg.sender._id.toString() === userId.toString() ? msg.recipient : msg.sender;
+                msg.sender._id.toString() === userId.toString()
+                    ? msg.recipient
+                    : msg.sender;
+
+            if (!otherUser?._id) continue;
 
             if (!seen.has(otherUser._id.toString())) {
                 seen.add(otherUser._id.toString());
@@ -164,8 +174,10 @@ export const getConversations = async (req, res) => {
             }
         }
 
-        // 4️⃣ Add friends without messages
+        // 4️⃣ Add friends with no messages
         for (const friend of friends) {
+            if (!friend?._id) continue;
+
             if (!seen.has(friend._id.toString())) {
                 seen.add(friend._id.toString());
                 conversations.push({ otherUser: friend, lastMessage: null });
