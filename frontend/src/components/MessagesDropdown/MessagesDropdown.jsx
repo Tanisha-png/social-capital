@@ -78,7 +78,7 @@ export default function MessagesDropdown() {
   }, [location.pathname, unreadCount, markMessagesRead]);
 
   const handleClick = () => {
-    if (unreadCount > 0) {
+    if (typeof unreadCount === "number" && unreadCount > 0) {
       console.log("[MessagesDropdown] Envelope clicked, clearing unread");
       markMessagesRead();
     } else {
@@ -91,7 +91,7 @@ export default function MessagesDropdown() {
       <Link to="/messages" onClick={handleClick}>
         <div className="nav-envelope-icon">
           <Mail size={22} />
-          {unreadCount > 0 && (
+          {typeof unreadCount === "number" && unreadCount > 0 && (
             <span className="nav-envelope-badge">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>

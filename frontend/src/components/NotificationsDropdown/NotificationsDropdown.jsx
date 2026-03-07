@@ -122,9 +122,18 @@ export default function NotificationsDropdown() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  // const getAvatar = (user) => {
+  //   if (!user?._id) return "/default-avatar.png";
+  //   return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user._id}`;
+  // };
+
   const getAvatar = (user) => {
-    if (!user?._id) return "/default-avatar.png";
-    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${user._id}`;
+    if (!user || typeof user !== "object") {
+      return "https://api.dicebear.com/9.x/pixel-art/svg?seed=unknown";
+    }
+
+    const seed = user._id || user.id || user.email || "unknown";
+    return `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}`;
   };
 
   useEffect(() => {
@@ -187,7 +196,8 @@ export default function NotificationsDropdown() {
                 className={`dropdown-item ${
                   !n.read ? "bg-gray-100 font-semibold" : ""
                 }`}
-                onClick={() => handleNotificationClick(n)}
+                // onClick={() => handleNotificationClick(n)}
+                onClick={() => n && handleNotificationClick(n)}
               >
                 <img
                   src={getAvatar(n.fromUser)}
@@ -196,15 +206,19 @@ export default function NotificationsDropdown() {
 
                 <div className="notification-text">
                   <span>
-                    <strong>
+                    {/* <strong>
                       {n.fromUser?.firstName || "Someone"}{" "}
                       {n.fromUser?.lastName || ""}
-                    </strong>{" "}
+                    </strong>{" "} */}
+                    <strong>
+                      {(n.fromUser?.firstName || "Someone") +
+                        (n.fromUser?.lastName ? ` ${n.fromUser.lastName}` : "")}
+                    </strong>
                     {n.type === "post_like"
                       ? "liked"
                       : n.type === "post_reply"
-                      ? "commented on"
-                      : "interacted with"}{" "}
+                        ? "commented on"
+                        : "interacted with"}{" "}
                     your post
                   </span>
 
